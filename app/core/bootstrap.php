@@ -13,10 +13,14 @@ if (!defined('BASE_PATH')) {
 
 define('APP_PATH',     BASE_PATH . '/app');
 define('CONFIG_PATH',  BASE_PATH . '/config');
-define('VIEW_PATH',    BASE_PATH . '/views');
-define('CONTROLLER_PATH', BASE_PATH . '/controllers');
+define('VIEW_PATH',    APP_PATH . '/views');
+define('CONTROLLER_PATH', APP_PATH . '/controllers');
 define('STORAGE_PATH', BASE_PATH . '/storage');
 define('UPLOAD_PATH',  BASE_PATH . '/uploads');
+
+// The version of the code on disk. The database carries its own copy in the
+// `app_version` setting; when the two differ the admin offers an update.
+define('APP_VERSION', (string) require APP_PATH . '/core/version.php');
 
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('UTC');
@@ -30,6 +34,7 @@ date_default_timezone_set('UTC');
 // ---------------------------------------------------------------------------
 $GLOBALS['__config'] = [];
 require APP_PATH . '/helpers/functions.php';
+require APP_PATH . '/helpers/theme.php';
 
 $configFile = CONFIG_PATH . '/config.php';
 $installed  = is_file($configFile);

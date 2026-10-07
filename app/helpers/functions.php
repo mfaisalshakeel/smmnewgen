@@ -9,7 +9,7 @@
  *   output          e, money, qty_fmt, excerpt, when
  *   urls            app_base_path, base_url, url, asset, redirect, current_path,
  *                   is_https
- *   views           view, render, partial
+ *   views           view, render, partial (theme-aware, see helpers/theme.php)
  *   forms           csrf_token, csrf_field, csrf_verify, old, flash, flashes
  *   auth            admin_user, is_admin, require_admin
  *   misc            slugify, random_code, client_ip, rate_limit, log_line
@@ -191,10 +191,17 @@ function e($value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** Format an amount with the configured currency symbol. */
+/**
+ * Format an amount in the base currency.
+ *
+ * Every stored price is already in the base currency, so this only has to put
+ * the right symbol in front of it.
+ */
 function money($amount): string
 {
-    $symbol = setting('currency_symbol', 'Rs ');
+    $symbol = function_exists('base_currency')
+        ? (base_currency()['symbol'] ?: setting('currency_symbol', 'Rs '))
+        : setting('currency_symbol', 'Rs ');
     $amount = (float) $amount;
     $text   = number_format($amount, 2, '.', ',');
     $text   = preg_replace('/\.00$/', '', $text);
@@ -341,8 +348,18 @@ function render(string $name, array $data = []): string
         throw new RuntimeException("Bad view name: {$name}");
     }
 
-    $file = VIEW_PATH . '/' . ltrim($name, '/') . '.php';
-    if (!is_file($file)) {
+    // The active theme gets first refusal, then the default theme, then the
+    // application's own views. A theme only has to ship what it changes.
+    $file = null;
+    foreach (function_exists('theme_view_paths') ? theme_view_paths() : [VIEW_PATH] as $dir) {
+        $candidate = $dir . '/' . ltrim($name, '/') . '.php';
+        if (is_file($candidate)) {
+            $file = $candidate;
+            break;
+        }
+    }
+
+    if ($file === null) {
         throw new RuntimeException("View not found: {$name}");
     }
     extract($data, EXTR_SKIP);

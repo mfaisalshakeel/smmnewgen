@@ -17,6 +17,7 @@ $path = rawurldecode($path);
 // Mirror the deny rules in .htaccess so local testing is honest about them.
 if (preg_match('~^/(app|config|storage)(/|$)~', $path)
     || preg_match('~^/install/.*\.(sql|log|lock)$~', $path)
+    || preg_match('~^/themes/[^/]+/(views/|theme\.php$)~', $path)
     || preg_match('~^/uploads/.*\.(php|phtml|phar)$~i', $path)) {
     http_response_code(404);
     echo 'Not found.';

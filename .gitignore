@@ -2,6 +2,9 @@ config/config.php
 install/install.lock
 storage/logs/*.log
 storage/cache/*
+storage/*.sqlite
+storage/*.sqlite-wal
+storage/*.sqlite-shm
 uploads/branding/*
 !uploads/branding/.gitignore
 .DS_Store

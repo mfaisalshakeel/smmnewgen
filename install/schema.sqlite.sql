@@ -101,6 +101,8 @@ CREATE INDEX IF NOT EXISTS "ix_services_listing"
 CREATE TABLE IF NOT EXISTS "payment_methods" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "name" TEXT NOT NULL,
+  "driver" TEXT NOT NULL DEFAULT 'manual',
+  "config" TEXT,
   "short_name" TEXT NOT NULL DEFAULT '',
   "account_title" TEXT NOT NULL DEFAULT '',
   "account_number" TEXT NOT NULL DEFAULT '',
@@ -221,7 +223,9 @@ INSERT OR IGNORE INTO "settings" ("k", "v") VALUES
   ('auto_sync_statuses',   '1'),
   ('require_trx_id',       '1'),
   ('allow_manual_services','1'),
-  ('order_prefix',         'GK');
+  ('order_prefix',         'GK'),
+  ('active_theme',         'default'),
+  ('app_version',          '');
 
 INSERT OR IGNORE INTO "platforms" ("slug", "name", "icon", "color", "url_prefix", "sort_order", "is_active") VALUES
   ('instagram', 'Instagram', 'i-instagram', '#e1306c', 'instagram.com',  1, 1),

@@ -4,7 +4,7 @@
  *
  * A controller describes its table once - the columns to list and the fields
  * to edit - and this runs the whole list / create / edit / delete / toggle
- * cycle against views/admin/crud/list.php and form.php.
+ * cycle against app/views/admin/crud/list.php and form.php.
  *
  * Field definition keys:
  *   type      text|textarea|number|select|checkbox|password|color|email|url|hidden

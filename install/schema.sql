@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS `services` (
 CREATE TABLE IF NOT EXISTS `payment_methods` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(80) NOT NULL,
+  `driver` VARCHAR(40) NOT NULL DEFAULT 'manual',
+  `config` TEXT NULL,
   `short_name` VARCHAR(20) NOT NULL DEFAULT '',
   `account_title` VARCHAR(120) NOT NULL DEFAULT '',
   `account_number` VARCHAR(120) NOT NULL DEFAULT '',
@@ -255,7 +257,9 @@ INSERT INTO `settings` (`k`, `v`) VALUES
   ('auto_sync_statuses',   '1'),
   ('require_trx_id',       '1'),
   ('allow_manual_services','1'),
-  ('order_prefix',         'GK')
+  ('order_prefix',         'GK'),
+  ('active_theme',         'default'),
+  ('app_version',          '')
 ON DUPLICATE KEY UPDATE `k` = `k`;
 
 INSERT INTO `platforms` (`slug`, `name`, `icon`, `color`, `url_prefix`, `sort_order`, `is_active`) VALUES

@@ -15,6 +15,8 @@ DirectoryIndex index.php
 
 # Application internals are never served directly
 RedirectMatch 404 ^/(app|config|storage)(/|$)
+# A theme's code is private; its assets folder is not.
+RedirectMatch 404 ^/themes/[^/]+/views(/|$)
 RedirectMatch 404 ^/install/.*\.(sql|lock)$
 
 # Never execute anything inside uploads/

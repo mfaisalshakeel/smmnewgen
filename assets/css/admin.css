@@ -298,3 +298,82 @@ svg{max-width:100%}
 /* --- form-level validation text ------------------------------------------- */
 .field .err{display:block;color:var(--danger);font-size:12.5px;font-weight:600;margin-top:6px}
 .field input[aria-invalid="true"],.field select[aria-invalid="true"]{border-color:var(--danger)}
+
+/* --- scrollbars -----------------------------------------------------------
+   The browser default is a wide grey slab that fights the rest of the panel,
+   and it is the one piece of chrome a page can restyle. */
+*{scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px;
+  border:2.5px solid var(--page);background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);border-width:2px}
+::-webkit-scrollbar-corner{background:transparent}
+.side ::-webkit-scrollbar-thumb,.box ::-webkit-scrollbar-thumb{border-color:var(--surface)}
+
+/* --- spinner -------------------------------------------------------------- */
+.spin{display:inline-block;width:1em;height:1em;border-radius:50%;
+  border:2px solid currentColor;border-right-color:transparent;
+  animation:spin .62s linear infinite;vertical-align:-.15em}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn .spin{font-size:15px}
+.btn[aria-busy="true"]{pointer-events:none;opacity:.75}
+
+/* --- progress bar --------------------------------------------------------- */
+.bar{height:9px;border-radius:999px;background:var(--line);overflow:hidden;margin:4px 0 9px}
+.bar-fill{height:100%;width:0;border-radius:999px;background:var(--acc);
+  transition:width .35s cubic-bezier(.4,0,.2,1)}
+.bar-fill.busy{background-image:linear-gradient(110deg,
+  rgba(255,255,255,.32) 25%, transparent 25%, transparent 50%,
+  rgba(255,255,255,.32) 50%, rgba(255,255,255,.32) 75%, transparent 75%);
+  background-size:18px 18px;animation:barmove .7s linear infinite}
+.bar-fill.bad{background:var(--danger)}
+@keyframes barmove{to{background-position:18px 0}}
+.bar-note{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;
+  color:var(--ink-2);margin-bottom:16px}
+.bar-note b{margin-left:auto;color:var(--muted);font-weight:700}
+
+/* --- update screen -------------------------------------------------------- */
+.upd-hero-top{display:flex;align-items:center;gap:14px;padding:18px}
+.upd-hero-on .upd-hero-top{background:var(--acc-soft);border-bottom:1px solid var(--line)}
+.upd-mark{width:42px;height:42px;border-radius:12px;flex:none;display:grid;place-items:center;
+  font-size:20px;background:var(--ok);color:#fff}
+.upd-hero-on .upd-mark{background:var(--acc);color:var(--acc-on)}
+.upd-hero-txt{flex:1;min-width:0}
+.upd-hero-txt b{display:block;font-size:16px;font-weight:700}
+.upd-hero-txt small{color:var(--ink-2);font-size:13px}
+.upd-ver{flex:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:5px 12px;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.upd-body{padding:18px}
+.upd-lead{font-size:14px;color:var(--ink-2);margin-bottom:16px}
+.upd-steps{list-style:none;margin:0 0 18px;padding:0;counter-reset:none}
+.upd-step{display:flex;align-items:center;gap:12px;padding:11px 0;
+  border-bottom:1px solid var(--line);opacity:.55;transition:opacity .2s}
+.upd-step:last-child{border-bottom:0}
+.upd-step.on,.upd-step.ok,.upd-step.bad{opacity:1}
+.upd-dot{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--line);color:var(--muted);font-size:12px;font-weight:700}
+.upd-dot .spin{display:none;font-size:12px}
+.upd-step.on .upd-dot{background:var(--acc-soft);color:var(--acc)}
+.upd-step.on .upd-dot .spin{display:inline-block}
+.upd-step.ok .upd-dot{background:rgba(22,163,74,.16);color:var(--ok)}
+.upd-step.ok .upd-dot::after{content:"\2713"}
+.upd-step.bad .upd-dot{background:var(--danger-soft);color:var(--danger)}
+.upd-step.bad .upd-dot::after{content:"\2715"}
+.upd-step-txt{flex:1;min-width:0}
+.upd-step-txt b{display:block;font-size:14px;font-weight:600}
+.upd-step-txt small{display:block;color:var(--muted);font-size:12px;
+  font-variant-numeric:tabular-nums;word-break:break-all}
+.upd-note{flex:none;font-size:12px;font-weight:600;color:var(--muted);text-align:right}
+.upd-step.bad .upd-note{color:var(--danger)}
+.upd-done{display:flex;align-items:center;gap:12px;background:rgba(22,163,74,.12);
+  color:#15803d;border-radius:11px;padding:12px 15px;font-size:14px;margin-top:14px}
+.upd-done .btn{margin-left:auto}
+.howto{margin:0 0 14px;padding-left:20px;font-size:13.5px;color:var(--ink-2)}
+.howto li{margin-bottom:8px}
+.howto code{background:var(--page);border-radius:5px;padding:1px 5px;font-size:12.5px}
+
+/* --- "update available" nudge in the sidebar ------------------------------ */
+.snav a.has-dot{position:relative}
+.updot{width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:auto;flex:none;
+  box-shadow:0 0 0 3px var(--acc-soft)}

@@ -21,7 +21,7 @@ mkdir -p "$STAGE"
 echo "Staging..."
 # Ship these, and nothing else.
 for item in index.php cron.php .htaccess README.md \
-            app assets config controllers install views; do
+            app assets config install themes; do
   cp -R "$ROOT/$item" "$STAGE/"
 done
 

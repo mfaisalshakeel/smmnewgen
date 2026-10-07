@@ -39,6 +39,7 @@ File-based, no route table.
 | `/order`, `/order/GK-8F42KD`, `/order/GK-8F42KD/pay` | `controllers/order.php` |
 | `/api/track` | `controllers/api.php` |
 | `/sitemap.xml`, `/robots.txt` | named in the resolver, since a dot fails the slug rule |
+| `/admin/update`, `/admin/update/plan`, `/admin/update/step` | `controllers/admin/update.php` |
 | `/install` | `install/index.php`, before any routing exists |
 | anything else | `controllers/_404.php` |
 
@@ -82,6 +83,8 @@ Loaded on demand by the controllers that need them:
 - `detect.php` — platform/category guessing for the import screen
 - `orders.php` — `send_order_to_provider`, `sync_order_statuses`, `map_provider_status`
 - `cron.php` — `run_cron_tasks`, shared by `cron.php` and `controllers/cron.php`
+- `migrate.php` — `migrations_pending`, `migration_apply`, `migrations_run`
+- `update.php` — `update_available`, `update_steps`, `update_run_step`
 
 ## Database
 
@@ -157,6 +160,30 @@ Write a screen by hand only when it needs more than the spec can say — service
 - `sync_order_statuses()` groups open orders per provider and uses the
   multi-status call, so a hundred open orders is a handful of requests.
 - Every state change writes an `order_logs` row.
+
+## Versions and updating
+
+- The release version lives in **one place**, `app/core/version.php`.
+  `bootstrap.php` turns it into `APP_VERSION`; the installer reads the same
+  file without booting the app. Bump it in the same commit as the migration
+  that needs it.
+- The database carries its own copy in the `app_version` setting. When the two
+  differ, or a migration in `install/migrations.php` has not run, the admin
+  shows **Update available** — a banner on every screen and a dot on the
+  sidebar item.
+- `/admin/update` does the work **one step per request**: the browser asks for
+  the plan, then posts each step and draws the progress bar. A shared host
+  cuts a request off at thirty seconds and a migration that rewrites a table
+  is exactly what gets cut. `/admin/update/run` is the same list in one POST,
+  for a browser that cannot run the stepper.
+- The installer works the same way, for the same reason: `?step=2&task=plan`
+  returns the task list, `?step=2&task=<key>` runs one. Submitting the form
+  without JavaScript runs the identical list in one request.
+- A step that fails because the thing it adds is already there is **skipped,
+  not an error** — SQLite has no `ADD COLUMN IF NOT EXISTS`, and that is how
+  both drivers end up behaving the same way. `migration_already_done()` holds
+  the list of phrases; MySQL and SQLite word them differently, so both
+  wordings have to be in it.
 
 ## Security
 

@@ -3,20 +3,20 @@
  * Request resolver.
  *
  * Routing is file-based: the URL path names a controller file under
- * controllers/. There is no route table to keep in sync.
+ * app/controllers/. There is no route table to keep in sync.
  *
- *   /                      -> controllers/home.php
- *   /track                 -> controllers/track.php
- *   /sitemap.xml           -> controllers/sitemap.php
- *   /robots.txt            -> controllers/robots.php
- *   /admin                 -> controllers/admin/index.php
- *   /admin/services        -> controllers/admin/services.php
- *   /instagram             -> controllers/_fallback.php   (platform or page)
- *   /instagram/followers   -> controllers/_fallback.php   (platform + category)
- *   anything else          -> controllers/_404.php
+ *   /                      -> app/controllers/home.php
+ *   /track                 -> app/controllers/track.php
+ *   /sitemap.xml           -> app/controllers/sitemap.php
+ *   /robots.txt            -> app/controllers/robots.php
+ *   /admin                 -> app/controllers/admin/index.php
+ *   /admin/services        -> app/controllers/admin/services.php
+ *   /instagram             -> app/controllers/_fallback.php   (platform or page)
+ *   /instagram/followers   -> app/controllers/_fallback.php   (platform + category)
+ *   anything else          -> app/controllers/_404.php
  *
- * Every controller under controllers/admin/ is preceded by
- * controllers/admin/_middleware.php, which is what enforces the login.
+ * Every controller under app/controllers/admin/ is preceded by
+ * app/controllers/admin/_middleware.php, which is what enforces the login.
  *
  * Controllers receive the remaining path segments in $params.
  */

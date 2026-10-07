@@ -70,6 +70,34 @@ Log in at `https://yourdomain.com/admin`.
 
 ---
 
+## Updating to a newer release
+
+The database is the only thing an update has to touch, and the panel does that
+part itself.
+
+1. **Back up the database.** An update only adds tables, columns and settings,
+   but a backup costs a minute and a restore does not.
+
+2. **Upload the new files over the old ones.** Leave `config/`, `storage/` and
+   `uploads/` alone — those are yours, and nothing in a release overwrites
+   them.
+
+3. **Open *Update* in the admin sidebar.** It compares the version in the files
+   (`app/core/version.php`) with the version recorded in the database, lists
+   the changes that are outstanding, and applies them one at a time with a
+   progress bar.
+
+   Every screen shows a banner while an update is outstanding, so there is no
+   way to upload a release and forget this step.
+
+Each change runs as its own request. A migration that rewrites a large table is
+exactly the kind of thing a shared host cuts off at thirty seconds, and running
+them one per request keeps each one well inside the limit. A change that has
+already been applied is recorded and never runs twice, so pressing the button
+again is safe.
+
+---
+
 ## Nginx
 
 There is no `.htaccess` on nginx, so the rewrite and the deny rules have to go

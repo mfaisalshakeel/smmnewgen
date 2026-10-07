@@ -5,6 +5,15 @@
  * Step 1  requirements check
  * Step 2  database credentials -> writes config/config.php and runs schema.sql
  * Step 3  administrator account -> writes install/install.lock
+ * Step 4  what to do next
+ *
+ * Steps 2 and 3 are the ones that do real work, and they do it one task per
+ * request: creating twenty tables and then running every migration is more
+ * than a shared host will always allow in a single thirty-second POST, and a
+ * page that sits on a spinner with nothing to say is how people conclude an
+ * installer has hung. The browser asks for the task list, runs it, and shows
+ * each one finishing. Without JavaScript the same list runs in one request,
+ * which is what the form does on its own.
  *
  * Once install.lock exists this script refuses to do anything, so leaving it
  * on the server cannot be used to reinstall over a live site.
@@ -38,18 +47,25 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$step = (int) ($_GET['step'] ?? 1);
+$task = (string) ($_GET['task'] ?? '');
+$post = $_SERVER['REQUEST_METHOD'] === 'POST';
+
 // ---------------------------------------------------------------------------
 // Refuse to run twice
 // ---------------------------------------------------------------------------
-$justFinished = ((int) ($_GET['step'] ?? 1)) === 4 && !empty($_SESSION['install_done']);
+$justFinished = $step === 4 && !empty($_SESSION['install_done']);
 
 if (is_file(LOCK_FILE) && !$justFinished) {
     http_response_code(403);
-    render_page('Already installed', '
+    if ($task !== '') {
+        install_json(['ok' => false, 'error' => 'This site is already installed.']);
+    }
+    render_page('Already installed', 0, '
         <div class="box">
           <h2>This site is already installed</h2>
-          <p>The installer is locked by <code>install/install.lock</code>.</p>
-          <p>If you really need to install again, delete <code>install/install.lock</code>
+          <p class="sub">The installer is locked by <code>install/install.lock</code>.</p>
+          <p class="note">If you really need to install again, delete <code>install/install.lock</code>
              and <code>config/config.php</code> first &mdash; that wipes the link to your
              current database, so take a backup.</p>
           <p class="mt"><a class="btn" href="' . h(site_url('admin/login')) . '">Go to the admin login</a></p>
@@ -57,93 +73,51 @@ if (is_file(LOCK_FILE) && !$justFinished) {
     exit;
 }
 
-$step   = (int) ($_GET['step'] ?? 1);
 $errors = [];
 
 // ---------------------------------------------------------------------------
 // Step 2 - database
 // ---------------------------------------------------------------------------
-if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $driver = ($_POST['db_driver'] ?? 'mysql') === 'sqlite' ? 'sqlite' : 'mysql';
-    $db = [
-        'host' => trim((string) ($_POST['db_host'] ?? 'localhost')),
-        'name' => trim((string) ($_POST['db_name'] ?? '')),
-        'user' => trim((string) ($_POST['db_user'] ?? '')),
-        'pass' => (string) ($_POST['db_pass'] ?? ''),
-    ];
-    $sqliteFile = trim((string) ($_POST['sqlite_file'] ?? 'storage/database.sqlite'));
-    $baseUrl    = rtrim(trim((string) ($_POST['base_url'] ?? '')), '/');
+if ($step === 2 && $post) {
 
-    if ($driver === 'sqlite') {
-        if ($sqliteFile === '') {
-            $sqliteFile = 'storage/database.sqlite';
+    // The browser asking what the work is. Everything is validated and the
+    // connection proved here, so a task list coming back means the rest is
+    // very likely to succeed.
+    if ($task === 'plan') {
+        [$problems, $data] = validate_database($_POST);
+
+        if ($problems) {
+            install_json(['ok' => false, 'error' => implode(' ', $problems)]);
         }
-        if (!extension_loaded('pdo_sqlite')) {
-            $errors[] = 'This server has no pdo_sqlite extension, so SQLite is not available here.';
+
+        try {
+            open_database($data);
+        } catch (Throwable $e) {
+            install_json(['ok' => false, 'error' => friendly_db_error($e, $data)]);
         }
-        // The file must stay out of the web root, and storage/ is already
-        // denied by .htaccess. Keep it relative so the config survives a move.
-        if (str_contains($sqliteFile, '..') || preg_match('~^(/|[A-Za-z]:)~', $sqliteFile)) {
-            $errors[] = 'Give a path inside the project, like storage/database.sqlite';
-        }
-    } else {
-        if ($db['name'] === '') { $errors[] = 'Database name is required.'; }
-        if ($db['user'] === '') { $errors[] = 'Database user is required.'; }
+
+        $_SESSION['install_input'] = $data;
+        install_json(['ok' => true, 'tasks' => database_tasks()]);
     }
 
+    if ($task !== '') {
+        install_json(run_database_task($task));
+    }
+
+    // No JavaScript: the same list, in one request.
+    [$errors, $data] = validate_database($_POST);
     if (!$errors) {
-        try {
-            if ($driver === 'sqlite') {
-                $file = BASE_PATH . '/' . ltrim($sqliteFile, '/');
-                $dir  = dirname($file);
-                if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
-                    throw new RuntimeException('Could not create ' . $sqliteFile . ' - check folder permissions.');
-                }
-                if (!is_writable($dir)) {
-                    throw new RuntimeException($dir . ' is not writable, so the database file cannot be created.');
-                }
-
-                $pdo = new PDO('sqlite:' . $file, null, null,
-                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                $pdo->exec('PRAGMA foreign_keys = ON');
-
-                run_schema($pdo, __DIR__ . '/schema.sqlite.sql');
-                @chmod($file, 0660);
-            } else {
-                $pdo = new PDO(
-                    "mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4",
-                    $db['user'],
-                    $db['pass'],
-                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-                );
-
-                run_schema($pdo, __DIR__ . '/schema.sql');
+        $_SESSION['install_input'] = $data;
+        foreach (database_tasks() as $one) {
+            $result = run_database_task($one['key']);
+            if (!$result['ok']) {
+                $errors[] = $result['error'];
+                break;
             }
-
-            $config = [
-                'db_driver'  => $driver,
-                'db_host'    => $driver === 'sqlite' ? '' : $db['host'],
-                'db_name'    => $driver === 'sqlite' ? $sqliteFile : $db['name'],
-                'db_user'    => $driver === 'sqlite' ? '' : $db['user'],
-                'db_pass'    => $driver === 'sqlite' ? '' : $db['pass'],
-                'db_charset' => 'utf8mb4',
-                'app_key'    => bin2hex(random_bytes(32)),
-                'cron_key'   => bin2hex(random_bytes(16)),
-                'base_url'   => $baseUrl,
-                'debug'      => false,
-            ];
-
-            if (!write_config(CONFIG_FILE, $config)) {
-                $errors[] = 'Could not write config/config.php. Make the config/ folder writable (755) and try again.';
-            } else {
-                $_SESSION['install_db'] = true;
-                header('Location: ?step=3');
-                exit;
-            }
-        } catch (PDOException $e) {
-            $errors[] = 'Database connection failed: ' . $e->getMessage();
-        } catch (Throwable $e) {
-            $errors[] = 'Setup failed: ' . $e->getMessage();
+        }
+        if (!$errors) {
+            header('Location: ?step=3');
+            exit;
         }
     }
 }
@@ -151,77 +125,43 @@ if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // ---------------------------------------------------------------------------
 // Step 3 - administrator
 // ---------------------------------------------------------------------------
-if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($step === 3 && $post) {
     if (empty($_SESSION['install_db']) || !is_file(CONFIG_FILE)) {
+        if ($task !== '') {
+            install_json(['ok' => false, 'error' => 'The database step has not finished yet.']);
+        }
         header('Location: ?step=2');
         exit;
     }
 
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $email    = trim((string) ($_POST['email'] ?? ''));
-    $pass     = (string) ($_POST['password'] ?? '');
-    $confirm  = (string) ($_POST['password_confirm'] ?? '');
-    $site     = trim((string) ($_POST['site_name'] ?? 'GrowKit'));
+    if ($task === 'plan') {
+        [$problems, $data] = validate_admin($_POST);
 
-    if (!preg_match('/^[A-Za-z0-9_.-]{3,60}$/', $username)) {
-        $errors[] = 'Username must be 3-60 characters: letters, numbers, dot, dash or underscore.';
-    }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Enter a valid email address.';
-    }
-    if (strlen($pass) < 8) {
-        $errors[] = 'Password must be at least 8 characters.';
-    }
-    if ($pass !== $confirm) {
-        $errors[] = 'The two passwords do not match.';
+        if ($problems) {
+            install_json(['ok' => false, 'error' => implode(' ', $problems)]);
+        }
+
+        $_SESSION['install_admin'] = $data;
+        install_json(['ok' => true, 'tasks' => admin_tasks()]);
     }
 
+    if ($task !== '') {
+        install_json(run_admin_task($task));
+    }
+
+    [$errors, $data] = validate_admin($_POST);
     if (!$errors) {
-        try {
-            $config = require CONFIG_FILE;
-            $pdo = connect_from_config($config);
-
-            $exists = $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
-            if ((int) $exists > 0) {
-                $errors[] = 'An administrator already exists in this database.';
-            } else {
-                // The timestamp is bound rather than written as NOW(), which
-                // SQLite does not have.
-                $stmt = $pdo->prepare(
-                    'INSERT INTO admins (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)'
-                );
-                $stmt->execute([
-                    $username,
-                    $email,
-                    password_hash($pass, PASSWORD_DEFAULT),
-                    date('Y-m-d H:i:s'),
-                ]);
-
-                if ($site !== '') {
-                    // Spelled out rather than using an upsert, because MySQL
-                    // and SQLite word theirs differently.
-                    $update = $pdo->prepare('UPDATE settings SET v = ? WHERE k = ?');
-                    $update->execute([$site, 'site_name']);
-                    if ($update->rowCount() === 0) {
-                        $exists = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
-                        $exists->execute(['site_name']);
-                        if (!$exists->fetchColumn()) {
-                            $pdo->prepare('INSERT INTO settings (k, v) VALUES (?, ?)')
-                                ->execute(['site_name', $site]);
-                        }
-                    }
-                }
-
-                file_put_contents(LOCK_FILE, 'Installed ' . date('c') . PHP_EOL);
-                @chmod(CONFIG_FILE, 0640);
-                unset($_SESSION['install_db']);
-
-                $_SESSION['install_done'] = ['cron_key' => $config['cron_key']];
-                header('Location: ?step=4');
-                exit;
+        $_SESSION['install_admin'] = $data;
+        foreach (admin_tasks() as $one) {
+            $result = run_admin_task($one['key']);
+            if (!$result['ok']) {
+                $errors[] = $result['error'];
+                break;
             }
-        } catch (Throwable $e) {
-            $errors[] = 'Could not create the administrator: ' . $e->getMessage();
+        }
+        if (!$errors) {
+            header('Location: ?step=4');
+            exit;
         }
     }
 }
@@ -233,15 +173,17 @@ if ($step === 4) {
     $cronKey = $_SESSION['install_done']['cron_key'] ?? '';
     unset($_SESSION['install_done']);
     $cronLine = $cronKey
-        ? '<p>Add this to cron in cPanel, every 5 minutes:</p><pre>php ' . h(BASE_PATH) . '/cron.php</pre>'
-          . '<p>Or call the URL version:</p><pre>' . h(guess_base_url()) . '/cron/' . h($cronKey) . '</pre>'
+        ? '<p class="lbl">Add this to cron in cPanel, every 5 minutes</p>'
+          . '<pre>php ' . h(BASE_PATH) . '/cron.php</pre>'
+          . '<p class="lbl">Or call the URL version</p>'
+          . '<pre>' . h(guess_base_url()) . '/cron/' . h($cronKey) . '</pre>'
         : '';
 
-    render_page('Installed', '
+    render_page('Installed', 4, '
       <div class="box">
         <div class="done">&#10003;</div>
         <h2>All set</h2>
-        <p>Your panel is installed and the installer is now locked.</p>
+        <p class="sub">Your panel is installed and the installer is now locked.</p>
         ' . $cronLine . '
         <p class="warn"><b>One last step:</b> delete the <code>install/</code> folder from your
            server. Everything still works without it.</p>
@@ -251,30 +193,34 @@ if ($step === 4) {
 }
 
 if ($step === 3) {
-    if (empty($_SESSION['install_db']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if (empty($_SESSION['install_db']) && !$post) {
         header('Location: ?step=2');
         exit;
     }
-    render_page('Create your administrator', '
-      <form method="post" action="?step=3" class="box">
+
+    render_page('Create your administrator', 3, '
+      <form method="post" action="?step=3" class="box" data-run
+            data-plan="?step=3&amp;task=plan" data-task="?step=3&amp;task=" data-next="?step=4">
         <h2>Step 3 &mdash; administrator account</h2>
         <p class="sub">This is the account you will use to log in at <code>/admin</code>.</p>
         ' . errors_html($errors) . '
-        <label>Site name
-          <input name="site_name" value="' . h($_POST['site_name'] ?? 'GrowKit') . '" required></label>
-        <label>Username
-          <input name="username" value="' . h($_POST['username'] ?? '') . '" required
-                 pattern="[A-Za-z0-9_.-]{3,60}" autocomplete="username"></label>
-        <label>Email
-          <input type="email" name="email" value="' . h($_POST['email'] ?? '') . '" required
-                 autocomplete="email"></label>
-        <label>Password
-          <input type="password" name="password" required minlength="8"
-                 autocomplete="new-password"></label>
-        <label>Repeat password
-          <input type="password" name="password_confirm" required minlength="8"
-                 autocomplete="new-password"></label>
-        <button class="btn" type="submit">Finish installation</button>
+        <div class="fields">
+          <label>Site name
+            <input name="site_name" value="' . h($_POST['site_name'] ?? 'GrowKit') . '" required></label>
+          <label>Username
+            <input name="username" value="' . h($_POST['username'] ?? '') . '" required
+                   pattern="[A-Za-z0-9_.-]{3,60}" autocomplete="username"></label>
+          <label>Email
+            <input type="email" name="email" value="' . h($_POST['email'] ?? '') . '" required
+                   autocomplete="email"></label>
+          <label>Password <span class="hint">8 characters or more</span>
+            <input type="password" name="password" required minlength="8"
+                   autocomplete="new-password"></label>
+          <label>Repeat password
+            <input type="password" name="password_confirm" required minlength="8"
+                   autocomplete="new-password"></label>
+        </div>
+        ' . runner_html('Finish installation') . '
       </form>');
     exit;
 }
@@ -284,8 +230,9 @@ if ($step === 2) {
     $hasSqlite = extension_loaded('pdo_sqlite');
     $hasMysql  = extension_loaded('pdo_mysql');
 
-    render_page('Database', '
-      <form method="post" action="?step=2" class="box">
+    render_page('Database', 2, '
+      <form method="post" action="?step=2" class="box" data-run
+            data-plan="?step=2&amp;task=plan" data-task="?step=2&amp;task=" data-next="?step=3">
         <h2>Step 2 &mdash; database</h2>
         <p class="sub">Pick where your data lives. MySQL is the usual choice on shared hosting;
            SQLite needs no database server at all and keeps everything in one file.</p>
@@ -310,29 +257,31 @@ if ($step === 2) {
           </label>
         </div>
 
-        <div data-for="mysql">
-          <label>Database host
-            <input name="db_host" value="' . h($_POST['db_host'] ?? 'localhost') . '"></label>
-          <label>Database name
-            <input name="db_name" value="' . h($_POST['db_name'] ?? '') . '"></label>
-          <label>Database user
-            <input name="db_user" value="' . h($_POST['db_user'] ?? '') . '"></label>
-          <label>Database password
-            <input type="password" name="db_pass" value=""></label>
-        </div>
+        <div class="fields">
+          <div data-for="mysql">
+            <label>Database host
+              <input name="db_host" value="' . h($_POST['db_host'] ?? 'localhost') . '"></label>
+            <label>Database name
+              <input name="db_name" value="' . h($_POST['db_name'] ?? '') . '"></label>
+            <label>Database user
+              <input name="db_user" value="' . h($_POST['db_user'] ?? '') . '"></label>
+            <label>Database password
+              <input type="password" name="db_pass" value=""></label>
+          </div>
 
-        <div data-for="sqlite">
-          <label>Database file <span class="hint">inside the project, kept out of the web root</span>
-            <input name="sqlite_file"
-                   value="' . h($_POST['sqlite_file'] ?? 'storage/database.sqlite') . '"></label>
-          <p class="note">Back this file up the way you would back up a database &mdash; it
-             <em>is</em> your database.</p>
-        </div>
+          <div data-for="sqlite">
+            <label>Database file <span class="hint">inside the project, kept out of the web root</span>
+              <input name="sqlite_file"
+                     value="' . h($_POST['sqlite_file'] ?? 'storage/database.sqlite') . '"></label>
+            <p class="note">Back this file up the way you would back up a database &mdash; it
+               <em>is</em> your database.</p>
+          </div>
 
-        <label>Site URL <span class="hint">leave empty to detect automatically</span>
-          <input name="base_url" value="' . h($_POST['base_url'] ?? '') . '"
-                 placeholder="' . h(guess_base_url()) . '"></label>
-        <button class="btn" type="submit">Create the tables</button>
+          <label>Site URL <span class="hint">leave empty to detect automatically</span>
+            <input name="base_url" value="' . h($_POST['base_url'] ?? '') . '"
+                   placeholder="' . h(guess_base_url()) . '"></label>
+        </div>
+        ' . runner_html('Create the tables') . '
       </form>
 
       <script>
@@ -340,18 +289,19 @@ if ($step === 2) {
          form still works - both sets post, and the server reads the ones it
          needs. */
       (function () {
-        var radios = document.querySelectorAll(\'input[name="db_driver"]\');
         function sync() {
           var picked = document.querySelector(\'input[name="db_driver"]:checked\');
           picked = picked ? picked.value : "mysql";
           document.querySelectorAll("[data-for]").forEach(function (block) {
-            block.style.display = block.getAttribute("data-for") === picked ? "" : "none";
+            block.hidden = block.getAttribute("data-for") !== picked;
           });
           document.querySelectorAll(".opt").forEach(function (opt) {
             opt.classList.toggle("on", opt.querySelector("input").value === picked);
           });
         }
-        radios.forEach(function (r) { r.addEventListener("change", sync); });
+        document.querySelectorAll(\'input[name="db_driver"]\').forEach(function (radio) {
+          radio.addEventListener("change", sync);
+        });
         sync();
       })();
       </script>');
@@ -372,20 +322,294 @@ foreach ($checks as $check) {
            . h($check['value']) . '</td></tr>';
 }
 
-render_page('Requirements', '
+render_page('Requirements', 1, '
   <div class="box">
     <h2>Step 1 &mdash; server check</h2>
     <p class="sub">Everything below must pass before the panel can be installed.</p>
     <table>' . $rows . '</table>
     ' . ($blocked
-        ? '<p class="warn">Fix the items marked &#10007; and reload this page.</p>'
-        : '<a class="btn" href="?step=2">Continue</a>') . '
+        ? '<p class="warn">Fix the items marked &#10007;, then check again.</p>
+           <a class="btn btn-ghost" href="?step=1" data-busy="Checking&hellip;">Check again</a>'
+        : '<a class="btn" href="?step=2" data-busy="Loading&hellip;">Continue</a>') . '
   </div>');
 
 
 // ===========================================================================
+// Step 2 - the work
+// ===========================================================================
+
+/**
+ * Read the database form.
+ *
+ * @return array{0: string[], 1: array<string, mixed>}
+ */
+function validate_database(array $input): array
+{
+    $problems = [];
+    $driver   = ($input['db_driver'] ?? 'mysql') === 'sqlite' ? 'sqlite' : 'mysql';
+
+    $data = [
+        'driver'      => $driver,
+        'host'        => trim((string) ($input['db_host'] ?? 'localhost')),
+        'name'        => trim((string) ($input['db_name'] ?? '')),
+        'user'        => trim((string) ($input['db_user'] ?? '')),
+        'pass'        => (string) ($input['db_pass'] ?? ''),
+        'sqlite_file' => trim((string) ($input['sqlite_file'] ?? 'storage/database.sqlite')),
+        'base_url'    => rtrim(trim((string) ($input['base_url'] ?? '')), '/'),
+    ];
+
+    if ($driver === 'sqlite') {
+        if ($data['sqlite_file'] === '') {
+            $data['sqlite_file'] = 'storage/database.sqlite';
+        }
+        if (!extension_loaded('pdo_sqlite')) {
+            $problems[] = 'This server has no pdo_sqlite extension, so SQLite is not available here.';
+        }
+        // The file must stay out of the web root, and storage/ is already
+        // denied by .htaccess. Keep it relative so the config survives a move.
+        if (str_contains($data['sqlite_file'], '..')
+            || preg_match('~^(/|[A-Za-z]:)~', $data['sqlite_file'])) {
+            $problems[] = 'Give a path inside the project, like storage/database.sqlite';
+        }
+    } else {
+        if ($data['name'] === '') { $problems[] = 'Database name is required.'; }
+        if ($data['user'] === '') { $problems[] = 'Database user is required.'; }
+    }
+
+    // Generated once and carried through, so the config task writes the same
+    // keys the connection test was made with.
+    $data['app_key']  = bin2hex(random_bytes(32));
+    $data['cron_key'] = bin2hex(random_bytes(16));
+
+    return [$problems, $data];
+}
+
+/** One entry per request the browser makes during step 2. */
+function database_tasks(): array
+{
+    $tasks = [
+        ['key' => 'connect', 'label' => 'Reach the database'],
+        ['key' => 'schema',  'label' => 'Create the tables'],
+    ];
+
+    foreach (migration_list() as $id => $migration) {
+        $tasks[] = ['key' => 'migrate:' . $id, 'label' => (string) ($migration['label'] ?? $id)];
+    }
+
+    $tasks[] = ['key' => 'seed',   'label' => 'Record the version'];
+    $tasks[] = ['key' => 'config', 'label' => 'Write config/config.php'];
+
+    return $tasks;
+}
+
+/** @return array{ok: bool, note?: string, error?: string} */
+function run_database_task(string $key): array
+{
+    $data = $_SESSION['install_input'] ?? null;
+    if (!is_array($data)) {
+        return ['ok' => false, 'error' => 'The installer lost your answers. Go back and submit the form again.'];
+    }
+
+    // A task may be the one that rewrites a big table; do not let the browser
+    // closing abandon it halfway.
+    ignore_user_abort(true);
+    @set_time_limit(120);
+
+    try {
+        $pdo = open_database($data);
+
+        if ($key === 'connect') {
+            return ['ok' => true, 'note' => $data['driver'] === 'sqlite' ? 'File ready' : 'Connected'];
+        }
+
+        if ($key === 'schema') {
+            run_schema($pdo, __DIR__ . ($data['driver'] === 'sqlite' ? '/schema.sqlite.sql' : '/schema.sql'));
+            return ['ok' => true, 'note' => 'Done'];
+        }
+
+        if (str_starts_with($key, 'migrate:')) {
+            return apply_migration($pdo, (string) $data['driver'], substr($key, strlen('migrate:')));
+        }
+
+        if ($key === 'seed') {
+            put_setting($pdo, 'app_version', code_version());
+            return ['ok' => true, 'note' => code_version()];
+        }
+
+        if ($key === 'config') {
+            $config = [
+                'db_driver'  => $data['driver'],
+                'db_host'    => $data['driver'] === 'sqlite' ? '' : $data['host'],
+                'db_name'    => $data['driver'] === 'sqlite' ? $data['sqlite_file'] : $data['name'],
+                'db_user'    => $data['driver'] === 'sqlite' ? '' : $data['user'],
+                'db_pass'    => $data['driver'] === 'sqlite' ? '' : $data['pass'],
+                'db_charset' => 'utf8mb4',
+                'app_key'    => $data['app_key'],
+                'cron_key'   => $data['cron_key'],
+                'base_url'   => $data['base_url'],
+                'debug'      => false,
+            ];
+
+            if (!write_config(CONFIG_FILE, $config)) {
+                return ['ok' => false, 'error' => 'Could not write config/config.php. Make the config/ folder writable (755) and try again.'];
+            }
+
+            $_SESSION['install_db'] = true;
+            return ['ok' => true, 'note' => 'Saved'];
+        }
+    } catch (PDOException $e) {
+        return ['ok' => false, 'error' => friendly_db_error($e, $data)];
+    } catch (Throwable $e) {
+        return ['ok' => false, 'error' => $e->getMessage()];
+    }
+
+    return ['ok' => false, 'error' => 'Unknown step: ' . $key];
+}
+
+// ===========================================================================
+// Step 3 - the work
+// ===========================================================================
+
+/** @return array{0: string[], 1: array<string, string>} */
+function validate_admin(array $input): array
+{
+    $problems = [];
+    $data = [
+        'username' => trim((string) ($input['username'] ?? '')),
+        'email'    => trim((string) ($input['email'] ?? '')),
+        'password' => (string) ($input['password'] ?? ''),
+        'site'     => trim((string) ($input['site_name'] ?? 'GrowKit')),
+    ];
+    $confirm = (string) ($input['password_confirm'] ?? '');
+
+    if (!preg_match('/^[A-Za-z0-9_.-]{3,60}$/', $data['username'])) {
+        $problems[] = 'Username must be 3-60 characters: letters, numbers, dot, dash or underscore.';
+    }
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        $problems[] = 'Enter a valid email address.';
+    }
+    if (strlen($data['password']) < 8) {
+        $problems[] = 'Password must be at least 8 characters.';
+    }
+    if ($data['password'] !== $confirm) {
+        $problems[] = 'The two passwords do not match.';
+    }
+
+    return [$problems, $data];
+}
+
+function admin_tasks(): array
+{
+    return [
+        ['key' => 'admin',    'label' => 'Create the administrator'],
+        ['key' => 'settings', 'label' => 'Save your site name'],
+        ['key' => 'lock',     'label' => 'Lock the installer'],
+    ];
+}
+
+/** @return array{ok: bool, note?: string, error?: string} */
+function run_admin_task(string $key): array
+{
+    $data = $_SESSION['install_admin'] ?? null;
+    if (!is_array($data)) {
+        return ['ok' => false, 'error' => 'The installer lost your answers. Go back and submit the form again.'];
+    }
+
+    try {
+        $config = require CONFIG_FILE;
+        $pdo    = connect_from_config($config);
+
+        if ($key === 'admin') {
+            if ((int) $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0) {
+                return ['ok' => false, 'error' => 'An administrator already exists in this database.'];
+            }
+
+            // The timestamp is bound rather than written as NOW(), which
+            // SQLite does not have.
+            $pdo->prepare('INSERT INTO admins (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
+                ->execute([
+                    $data['username'],
+                    $data['email'],
+                    password_hash($data['password'], PASSWORD_DEFAULT),
+                    date('Y-m-d H:i:s'),
+                ]);
+
+            return ['ok' => true, 'note' => $data['username']];
+        }
+
+        if ($key === 'settings') {
+            if ($data['site'] !== '') {
+                put_setting($pdo, 'site_name', $data['site']);
+            }
+            return ['ok' => true, 'note' => 'Done'];
+        }
+
+        if ($key === 'lock') {
+            if (@file_put_contents(LOCK_FILE, 'Installed ' . date('c') . PHP_EOL) === false) {
+                return ['ok' => false, 'error' => 'Could not write install/install.lock. Make the install/ folder writable and try again.'];
+            }
+            @chmod(CONFIG_FILE, 0640);
+
+            unset($_SESSION['install_db'], $_SESSION['install_input'], $_SESSION['install_admin']);
+            $_SESSION['install_done'] = ['cron_key' => (string) ($config['cron_key'] ?? '')];
+
+            return ['ok' => true, 'note' => 'Locked'];
+        }
+    } catch (Throwable $e) {
+        return ['ok' => false, 'error' => $e->getMessage()];
+    }
+
+    return ['ok' => false, 'error' => 'Unknown step: ' . $key];
+}
+
+// ===========================================================================
 // Helpers (installer only - the application helpers are not loaded yet)
 // ===========================================================================
+
+function install_json(array $payload): never
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($payload);
+    exit;
+}
+
+/** The release version, read from the same file the application reads. */
+function code_version(): string
+{
+    $file = BASE_PATH . '/app/core/version.php';
+    return is_file($file) ? (string) require $file : '1.0.0';
+}
+
+/** Open a connection from the answers given in step 2. */
+function open_database(array $data): PDO
+{
+    $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+
+    if ($data['driver'] === 'sqlite') {
+        $file = BASE_PATH . '/' . ltrim((string) $data['sqlite_file'], '/');
+        $dir  = dirname($file);
+
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
+            throw new RuntimeException('Could not create ' . $data['sqlite_file'] . ' - check folder permissions.');
+        }
+        if (!is_writable($dir)) {
+            throw new RuntimeException($dir . ' is not writable, so the database file cannot be created.');
+        }
+
+        $pdo = new PDO('sqlite:' . $file, null, null, $options);
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        @chmod($file, 0660);
+        return $pdo;
+    }
+
+    return new PDO(
+        "mysql:host={$data['host']};dbname={$data['name']};charset=utf8mb4",
+        (string) $data['user'],
+        (string) $data['pass'],
+        $options
+    );
+}
 
 /** Open a connection from a written config, for whichever driver it names. */
 function connect_from_config(array $config): PDO
@@ -408,6 +632,30 @@ function connect_from_config(array $config): PDO
         $config['db_pass'],
         $options
     );
+}
+
+/**
+ * Database failures are the ones people get stuck on, and PDO's own wording
+ * is not much help to someone reading it in a cPanel tab.
+ */
+function friendly_db_error(Throwable $e, array $data): string
+{
+    $text = $e->getMessage();
+
+    if (str_contains($text, 'Access denied')) {
+        return 'The database refused that user and password. Check them in cPanel, and that the user is attached to the database.';
+    }
+    if (str_contains($text, 'Unknown database')) {
+        return 'There is no database called "' . $data['name'] . '" on ' . $data['host']
+             . '. Create it in cPanel first - the installer does not create databases.';
+    }
+    if (str_contains($text, 'getaddrinfo') || str_contains($text, "Can't connect")
+        || str_contains($text, 'Connection refused')) {
+        return 'Could not reach the database server at "' . $data['host']
+             . '". On most shared hosting the host is localhost.';
+    }
+
+    return $text;
 }
 
 function h($value): string
@@ -480,6 +728,80 @@ function requirement_checks(): array
     ];
 }
 
+function migration_list(): array
+{
+    $file = __DIR__ . '/migrations.php';
+    return is_file($file) ? require $file : [];
+}
+
+/**
+ * Apply one migration to a brand-new database and mark it done, so an install
+ * made today is in the same state as one that has been updated.
+ *
+ * @return array{ok: bool, note?: string, error?: string}
+ */
+function apply_migration(PDO $pdo, string $driver, string $id): array
+{
+    $all = migration_list();
+    if (!isset($all[$id])) {
+        return ['ok' => false, 'error' => 'Unknown migration: ' . $id];
+    }
+
+    $pdo->exec($driver === 'sqlite'
+        ? 'CREATE TABLE IF NOT EXISTS "migrations" ("id" TEXT NOT NULL PRIMARY KEY, "applied_at" TEXT NOT NULL)'
+        : 'CREATE TABLE IF NOT EXISTS `migrations` (`id` VARCHAR(100) NOT NULL, `applied_at` DATETIME NOT NULL,
+             PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+    $migration = $all[$id];
+    $skipped   = 0;
+
+    foreach (array_merge($migration[$driver] ?? [], $migration['both'] ?? []) as $sql) {
+        try {
+            $pdo->exec($sql);
+        } catch (PDOException $e) {
+            // The fresh schema already carries some of what a migration
+            // adds, so "it is already there" is the expected answer here.
+            $text  = strtolower($e->getMessage());
+            $known = str_contains($text, 'duplicate')
+                  || str_contains($text, 'already exists')
+                  || str_contains($text, 'unique constraint failed');
+            if (!$known) {
+                return ['ok' => false, 'error' => $e->getMessage()];
+            }
+            $skipped++;
+        }
+    }
+
+    $already = $pdo->prepare('SELECT 1 FROM migrations WHERE id = ?');
+    $already->execute([$id]);
+    if (!$already->fetchColumn()) {
+        $pdo->prepare('INSERT INTO migrations (id, applied_at) VALUES (?, ?)')
+            ->execute([$id, date('Y-m-d H:i:s')]);
+    }
+
+    return ['ok' => true, 'note' => $skipped ? $skipped . ' already in place' : 'Applied'];
+}
+
+/**
+ * Write a settings row.
+ *
+ * Spelled out rather than using an upsert, because MySQL and SQLite word
+ * theirs differently.
+ */
+function put_setting(PDO $pdo, string $key, string $value): void
+{
+    $update = $pdo->prepare('UPDATE settings SET v = ? WHERE k = ?');
+    $update->execute([$value, $key]);
+
+    if ($update->rowCount() === 0) {
+        $exists = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+        $exists->execute([$key]);
+        if (!$exists->fetchColumn()) {
+            $pdo->prepare('INSERT INTO settings (k, v) VALUES (?, ?)')->execute([$key, $value]);
+        }
+    }
+}
+
 /**
  * Execute schema.sql. Statements are split on semicolons at end of line, which
  * is enough for this file: it has no stored routines or embedded semicolons.
@@ -487,7 +809,7 @@ function requirement_checks(): array
 function run_schema(PDO $pdo, string $file): void
 {
     if (!is_file($file)) {
-        throw new RuntimeException('install/schema.sql is missing.');
+        throw new RuntimeException(basename($file) . ' is missing from install/.');
     }
 
     $sql = file_get_contents($file);
@@ -525,58 +847,264 @@ function errors_html(array $errors): string
     return '<ul class="errors">' . $items . '</ul>';
 }
 
-function render_page(string $title, string $body): void
+/**
+ * The progress block and submit button shared by steps 2 and 3.
+ *
+ * The bar and the list start hidden: without JavaScript they would never
+ * fill in, and the form still posts and still works.
+ */
+function runner_html(string $label): string
 {
+    return '
+      <div class="run" data-run-ui hidden>
+        <div class="bar"><div class="bar-fill" data-bar></div></div>
+        <p class="bar-note"><span data-bar-label></span><b data-bar-count></b></p>
+        <ol class="tasks" data-task-list></ol>
+      </div>
+      <ul class="errors" data-run-error hidden></ul>
+      <button class="btn" type="submit" data-submit data-busy="' . h($label) . '">' . h($label) . '</button>';
+}
+
+function render_page(string $title, int $step, string $body): void
+{
+    $steps = ['Server', 'Database', 'Administrator', 'Done'];
+    $crumbs = '';
+    foreach ($steps as $index => $name) {
+        $number = $index + 1;
+        $state  = $step > $number ? ' done' : ($step === $number ? ' on' : '');
+        $crumbs .= '<li class="' . trim('crumb' . $state) . '">'
+                 . '<span class="num">' . ($step > $number ? '&#10003;' : $number) . '</span>'
+                 . '<span class="nm">' . h($name) . '</span></li>';
+    }
+
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
        . '<meta name="robots" content="noindex, nofollow">'
        . '<title>' . h($title) . ' &mdash; Installer</title><style>'
-       . <<<'CSS'
+       . install_css()
+       . '</style></head><body><div class="wrap">'
+       . '<div class="head"><b>SMM Panel</b><span>Installation</span></div>'
+       . ($step ? '<ol class="crumbs">' . $crumbs . '</ol>' : '')
+       . $body
+       . '</div><script>' . install_js() . '</script></body></html>';
+}
+
+function install_css(): string
+{
+    return <<<'CSS'
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;background:#f5f6fa;color:#141726;
-  padding:28px 16px}
+:root{--acc:#4f46e5;--ink:#141726;--ink-2:#4a5068;--muted:#838aa0;--line:#e8eaf1;--line-2:#d5d9e5;
+  --page:#f5f6fa;--ok:#16a34a;--bad:#dc2626}
+body{margin:0;font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--page);
+  color:var(--ink);padding:28px 16px}
+*{scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px;border:2.5px solid var(--page);
+  background-clip:padding-box}
 .wrap{max-width:560px;margin:0 auto}
-.head{text-align:center;margin-bottom:22px}
+.head{text-align:center;margin-bottom:18px}
 .head b{display:block;font-size:21px;letter-spacing:-.02em}
-.head span{color:#838aa0;font-size:13.5px}
-.box{background:#fff;border:1px solid #e8eaf1;border-radius:14px;padding:26px}
+.head span{color:var(--muted);font-size:13.5px}
+.crumbs{display:flex;align-items:center;gap:6px;list-style:none;margin:0 0 18px;padding:0}
+.crumb{flex:1;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);
+  min-width:0}
+.crumb .num{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:#e8eaf1;color:var(--muted);font-size:11.5px;font-weight:700}
+.crumb .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumb.on{color:var(--acc)}
+.crumb.on .num{background:var(--acc);color:#fff}
+.crumb.done{color:var(--ok)}
+.crumb.done .num{background:rgba(22,163,74,.16);color:var(--ok)}
+.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px}
 h2{margin:0 0 6px;font-size:19px;letter-spacing:-.02em}
-.sub{color:#838aa0;font-size:14px;margin:0 0 20px}
-label{display:block;margin-bottom:15px;font-size:13px;font-weight:600;color:#4a5068}
+.sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+.fields label{display:block;margin-bottom:15px;font-size:13px;font-weight:600;color:var(--ink-2)}
 .hint{font-weight:400;color:#9aa0b4}
 input{display:block;width:100%;margin-top:7px;padding:11px 13px;font-size:15px;font-weight:400;
-  border:1px solid #e8eaf1;border-radius:9px;background:#f9fafc;outline:none;color:#141726}
-input:focus{border-color:#4f46e5;background:#fff}
-.btn{display:inline-block;margin-top:6px;background:#4f46e5;color:#fff;border:0;border-radius:9px;
-  padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
+  border:1px solid var(--line);border-radius:9px;background:#f9fafc;outline:none;color:var(--ink)}
+input:focus{border-color:var(--acc);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;margin-top:6px;
+  background:var(--acc);color:#fff;border:0;border-radius:9px;padding:12px 22px;font:inherit;
+  font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
 .btn:hover{background:#4338ca}
+.btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--page)}
+.btn[aria-busy="true"]{opacity:.75;pointer-events:none}
+.btn-block{width:100%}
 table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px}
 td{padding:9px 6px;border-bottom:1px solid #f0f1f6}
-td.r{text-align:right;color:#838aa0;font-size:13px}
-.ok{color:#16a34a;font-weight:700}
-.bad{color:#dc2626;font-weight:700}
+td.r{text-align:right;color:var(--muted);font-size:13px}
+.ok{color:var(--ok);font-weight:700}
+.bad{color:var(--bad);font-weight:700}
 .meh{color:#d97706;font-weight:700}
 .choice{display:grid;gap:10px;margin-bottom:20px}
-.opt{display:block;border:1.5px solid #e8eaf1;border-radius:11px;padding:13px 15px;cursor:pointer;
+.opt{display:block;border:1.5px solid var(--line);border-radius:11px;padding:13px 15px;cursor:pointer;
   margin:0;font-weight:400;transition:border-color .15s,background .15s}
-.opt.on{border-color:#4f46e5;background:#f7f8ff}
+.opt.on{border-color:var(--acc);background:#f7f8ff}
 .opt.off{opacity:.5;cursor:not-allowed}
 .opt input{width:auto;display:inline;margin:0 8px 0 0;vertical-align:middle}
-.opt b{font-size:14.5px;font-weight:600;color:#141726}
-.opt small{display:block;color:#838aa0;font-size:12.5px;margin-top:3px;font-weight:400}
-.note{background:#f5f6fa;border-radius:9px;padding:11px 13px;font-size:12.5px;color:#4a5068;margin:0 0 15px}
+.opt b{font-size:14.5px;font-weight:600}
+.opt small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.note{background:var(--page);border-radius:9px;padding:11px 13px;font-size:12.5px;color:var(--ink-2);
+  margin:0 0 15px}
 .errors{background:#fdeaea;border:1px solid #f6caca;color:#b91c1c;border-radius:9px;
   padding:12px 14px 12px 30px;margin:0 0 18px;font-size:13.5px}
 .warn{background:#fff7e6;border:1px solid #f6e2b8;color:#8a5d2a;border-radius:9px;
-  padding:12px 14px;font-size:13.5px}
-pre{background:#f5f6fa;border:1px solid #e8eaf1;border-radius:9px;padding:11px 13px;font-size:12.5px;
-  overflow-x:auto;margin:8px 0 16px}
-code{background:#f5f6fa;border-radius:5px;padding:1px 5px;font-size:13px}
-.done{width:46px;height:46px;border-radius:50%;background:#e7f8ee;color:#16a34a;display:grid;
+  padding:12px 14px;font-size:13.5px;margin:0 0 14px}
+pre{background:var(--page);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  font-size:12.5px;overflow-x:auto;margin:0 0 14px}
+.lbl{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0 0 6px}
+code{background:var(--page);border-radius:5px;padding:1px 5px;font-size:13px}
+.done{width:46px;height:46px;border-radius:50%;background:#e7f8ee;color:var(--ok);display:grid;
   place-items:center;font-size:24px;margin-bottom:14px}
-.mt{margin-top:18px}
-CSS
-       . '</style></head><body><div class="wrap">'
-       . '<div class="head"><b>SMM Panel</b><span>Installation</span></div>'
-       . $body . '</div></body></html>';
+.mt{margin-top:18px;margin-bottom:0}
+.spin{display:inline-block;width:1em;height:1em;border-radius:50%;border:2px solid currentColor;
+  border-right-color:transparent;animation:spin .62s linear infinite;vertical-align:-.15em}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{height:9px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:9px}
+.bar-fill{height:100%;width:0;border-radius:999px;background:var(--acc);
+  transition:width .35s cubic-bezier(.4,0,.2,1)}
+.bar-fill.busy{background-image:linear-gradient(110deg,rgba(255,255,255,.32) 25%,transparent 25%,
+  transparent 50%,rgba(255,255,255,.32) 50%,rgba(255,255,255,.32) 75%,transparent 75%);
+  background-size:18px 18px;animation:barmove .7s linear infinite}
+.bar-fill.bad{background:var(--bad)}
+@keyframes barmove{to{background-position:18px 0}}
+.bar-note{display:flex;gap:10px;font-size:13px;font-weight:600;color:var(--ink-2);margin:0 0 14px}
+.bar-note b{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.tasks{list-style:none;margin:0 0 18px;padding:0;max-height:260px;overflow-y:auto}
+.tasks li{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line);
+  font-size:13.5px;opacity:.5;transition:opacity .2s}
+.tasks li:last-child{border-bottom:0}
+.tasks li.on,.tasks li.ok,.tasks li.bad{opacity:1}
+.tasks .dot{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--line);color:var(--muted);font-size:11px;font-weight:700}
+.tasks li.on .dot{background:#eef0fe;color:var(--acc)}
+.tasks li.ok .dot{background:rgba(22,163,74,.16);color:var(--ok)}
+.tasks li.bad .dot{background:#fdeaea;color:var(--bad)}
+.tasks .nm{flex:1;min-width:0;font-weight:600}
+.tasks .st{flex:none;font-size:12px;color:var(--muted);font-weight:600}
+.tasks li.bad .st{color:var(--bad)}
+CSS;
+}
+
+function install_js(): string
+{
+    return <<<'JS'
+(function () {
+  /* Any plain link or button marked data-busy says so while the next page
+     loads, because a server check can take a second or two. */
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest('a[data-busy]');
+    if (!link) { return; }
+    link.setAttribute('aria-busy', 'true');
+    link.innerHTML = '<span class="spin"></span> ' + link.getAttribute('data-busy');
+  });
+
+  var form = document.querySelector('form[data-run]');
+  if (!form || !window.fetch) { return; }
+
+  var ui      = form.querySelector('[data-run-ui]');
+  var list    = form.querySelector('[data-task-list]');
+  var bar     = form.querySelector('[data-bar]');
+  var label   = form.querySelector('[data-bar-label]');
+  var count   = form.querySelector('[data-bar-count]');
+  var errBox  = form.querySelector('[data-run-error]');
+  var button  = form.querySelector('[data-submit]');
+  var planUrl = form.getAttribute('data-plan');
+  var taskUrl = form.getAttribute('data-task');
+  var nextUrl = form.getAttribute('data-next');
+
+  function post(url, body) {
+    return fetch(url, { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) { throw new Error('The server answered ' + response.status + '.'); }
+        return response.json();
+      });
+  }
+
+  function stop(message) {
+    bar.classList.remove('busy');
+    bar.classList.add('bad');
+    errBox.innerHTML = '<li></li>';
+    errBox.firstChild.textContent = message;
+    errBox.hidden = false;
+    button.removeAttribute('aria-busy');
+    button.textContent = 'Try again';
+  }
+
+  form.addEventListener('submit', function (event) {
+    if (!form.reportValidity()) { return; }
+    event.preventDefault();
+
+    errBox.hidden = true;
+    button.setAttribute('aria-busy', 'true');
+    button.innerHTML = '<span class="spin"></span> ' + button.getAttribute('data-busy');
+
+    post(planUrl, new FormData(form)).then(function (plan) {
+      if (!plan.ok) { throw new Error(plan.error || 'That did not work.'); }
+
+      var tasks = plan.tasks || [];
+      ui.hidden = false;
+      list.innerHTML = '';
+
+      tasks.forEach(function (task, index) {
+        var row = document.createElement('li');
+        row.innerHTML = '<span class="dot">' + (index + 1) + '</span>'
+                      + '<span class="nm"></span><span class="st"></span>';
+        row.querySelector('.nm').textContent = task.label;
+        list.appendChild(row);
+        task.row = row;
+      });
+
+      var index = 0;
+
+      function next() {
+        count.textContent = index + ' / ' + tasks.length;
+        bar.style.width = Math.round((index / tasks.length) * 100) + '%';
+
+        if (index >= tasks.length) {
+          bar.classList.remove('busy');
+          label.textContent = 'Finished';
+          window.location.href = nextUrl;
+          return;
+        }
+
+        var task = tasks[index];
+        task.row.classList.add('on');
+        task.row.querySelector('.dot').innerHTML = '<span class="spin"></span>';
+        label.textContent = task.label;
+        bar.classList.add('busy');
+
+        var body = new FormData();
+        post(taskUrl + encodeURIComponent(task.key), body).then(function (result) {
+          task.row.classList.remove('on');
+          task.row.classList.add(result.ok ? 'ok' : 'bad');
+          task.row.querySelector('.dot').innerHTML = result.ok ? '&#10003;' : '&#10007;';
+          task.row.querySelector('.st').textContent = result.ok ? (result.note || '') : 'failed';
+
+          if (!result.ok) {
+            stop(result.error || 'That step failed.');
+            return;
+          }
+
+          index++;
+          /* A breath between tasks, so a fast server still reads as progress
+             rather than one instant jump. */
+          setTimeout(next, 160);
+        }).catch(function (error) {
+          task.row.classList.remove('on');
+          task.row.classList.add('bad');
+          task.row.querySelector('.dot').innerHTML = '&#10007;';
+          stop(error.message);
+        });
+      }
+
+      next();
+    }).catch(function (error) {
+      ui.hidden = true;
+      stop(error.message);
+    });
+  });
+})();
+JS;
 }
