@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMM Panel &mdash; Direction C (Minimal / Premium)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#fdfcfa; --paper:#ffffff; --ink:#1a1a18; --ink-2:#4a4a45; --muted:#8a8a80;
+  --line:#e6e3dc; --line-2:#d6d2c8; --accent:#1a1a18; --gold:#a8743a; --ok:#3f7d4e;
+  --pc:#1a1a18; --radius:4px;
+}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  line-height:1.65;overflow-x:hidden;font-size:16px}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4{margin:0;line-height:1.14;font-family:'Fraunces','Georgia',serif;font-weight:400;letter-spacing:-.015em}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+svg{max-width:100%}
+.wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 28px}
+.icon{width:1em;height:1em;display:inline-block;vertical-align:-.125em;fill:currentColor;flex:none}
+.serif{font-family:'Fraunces',Georgia,serif}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:var(--radius);
+  padding:14px 26px;font-weight:600;font-size:14.5px;cursor:pointer;letter-spacing:.01em;
+  transition:background .18s, color .18s, border-color .18s, transform .14s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-primary:hover{background:#000}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line-2)}
+.btn-ghost:hover{border-color:var(--ink);background:var(--ink);color:#fff}
+.btn-wa{background:#1f8c4d;color:#fff}
+.btn-lg{padding:17px 34px;font-size:15.5px}
+.btn-block{width:100%}
+
+/* header */
+header{position:sticky;top:0;z-index:40;background:rgba(253,252,250,.9);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:20px;height:86px}
+.logo{font-family:'Fraunces',Georgia,serif;font-size:25px;letter-spacing:-.02em;display:flex;align-items:baseline;gap:9px}
+.logo em{font-style:italic;color:var(--gold)}
+.nav-links{display:flex;gap:30px;margin-left:46px}
+.nav-links a{font-size:14.5px;font-weight:500;color:var(--ink-2);padding:4px 0;border-bottom:1px solid transparent}
+.nav-links a:hover,.nav-links a.active{color:var(--ink);border-bottom-color:var(--ink)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:22px}
+.wa-link{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:500;color:var(--ink-2)}
+.wa-link:hover{color:var(--ink)}
+.burger{display:none;background:none;border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 12px;cursor:pointer}
+.drawer{display:none;border-bottom:1px solid var(--line);padding:10px 28px 22px;background:var(--paper)}
+.drawer.show{display:block}
+.drawer a{display:block;padding:14px 0;font-weight:500;border-bottom:1px solid var(--line)}
+.drawer .btn{margin-top:16px}
+
+/* hero */
+.hero{padding:92px 0 80px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:76px;align-items:center}
+.badge-trust{display:inline-flex;align-items:center;gap:12px;font-size:12px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+.badge-trust .stars{display:inline-flex;gap:2px;color:var(--gold);font-size:12px}
+h1{font-size:clamp(36px,5.4vw,62px);margin:26px 0 24px}
+h1 em{font-style:italic;color:var(--gold)}
+.hero-sub{color:var(--ink-2);font-size:16.5px;max-width:48ch}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:40px 0;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line)}
+.stat{padding:22px 16px 22px 0;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat>.icon{font-size:17px;color:var(--gold);margin-bottom:10px;display:block}
+.stat b{display:block;font-size:15px;font-weight:600;font-family:'Fraunces',Georgia,serif}
+.stat small{color:var(--muted);font-size:12px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.hero-note{font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.hero-note .icon{color:var(--ok)}
+
+/* profile card */
+.pcard{background:var(--paper);border:1px solid var(--line);padding:34px;position:relative}
+.pcard-top{display:flex;align-items:center;gap:17px}
+.pavatar{width:66px;height:66px;border-radius:50%;flex:none;border:1px solid var(--line-2);display:grid;place-items:center;background:var(--bg)}
+.pavatar i{font-size:27px;font-style:normal}
+.phandle{font-size:18px;font-family:'Fraunces',Georgia,serif;display:flex;align-items:center;gap:7px}
+.verified{color:var(--gold);font-size:14px}
+.pbio{color:var(--muted);font-size:13.5px}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);margin:26px 0;text-align:left;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0}
+.pstats b{display:block;font-size:22px;font-family:'Fraunces',Georgia,serif;font-weight:400}
+.pstats small{color:var(--muted);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase}
+.pstats .up b{color:var(--ok)}
+.pbtns{display:flex;gap:10px}
+.pbtns .btn{flex:1;padding:12px;font-size:14px}
+.float-pill{position:absolute;top:-14px;right:28px;background:var(--gold);color:#fff;font-size:11.5px;
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px}
+
+/* platforms */
+.psec{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper)}
+.plat-scroll{overflow-x:auto;scrollbar-width:none}
+.plat-scroll::-webkit-scrollbar{display:none}
+.plats{display:flex;min-width:max-content;justify-content:center}
+.plat{display:flex;align-items:center;gap:10px;background:none;border:0;border-right:1px solid var(--line);
+  padding:24px 30px;font-size:14.5px;font-weight:500;cursor:pointer;color:var(--muted);
+  transition:color .18s, background .18s;position:relative}
+.plat:first-child{border-left:1px solid var(--line)}
+.plat .icon{font-size:19px}
+.plat:hover{color:var(--ink);background:var(--bg)}
+.plat.active{color:var(--ink);font-weight:600}
+.plat.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}
+
+/* sections */
+.section{padding:88px 0}
+.section.alt{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.section-head{max-width:620px;margin:0 auto 52px;text-align:center}
+.eyebrow{display:block;color:var(--muted);font-size:11.5px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;margin-bottom:18px}
+h2{font-size:clamp(28px,4vw,44px)}
+.section-head p{color:var(--ink-2);margin-top:18px;font-size:16.5px}
+.tabs{display:flex;gap:36px;justify-content:center;margin:0 auto 52px;width:max-content;max-width:100%;
+  overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:6px 0;font-size:16px;font-family:'Fraunces',Georgia,serif;cursor:pointer;
+  color:var(--muted);white-space:nowrap;border-bottom:1px solid transparent;transition:all .18s}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink);border-bottom-color:var(--gold)}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line)}
+.card{min-width:0;background:var(--paper);padding:38px 32px 32px;display:flex;flex-direction:column;position:relative;
+  transition:background .2s}
+.card:hover{background:#fffdf9}
+.card.featured{background:#fffdf7}
+.cbadge{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:18px;display:block}
+.card.featured .cbadge{color:var(--gold)}
+.card h3{font-size:24px;margin:0 0 12px;line-height:1.2}
+.cdesc{color:var(--muted);font-size:14.5px;min-height:48px}
+.qty-row{margin:28px 0 0}
+.qty-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+.qty-label span{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.qty-label small{color:var(--muted);font-size:12px}
+.qty-input{display:flex;align-items:center;border:1px solid var(--line-2);background:var(--bg)}
+.qty-input:focus-within{border-color:var(--ink)}
+.qty-input button{width:48px;height:54px;border:0;background:none;font-size:20px;color:var(--ink-2);cursor:pointer;flex:none}
+.qty-input button:hover{background:var(--line);color:var(--ink)}
+.qty-input input{flex:1;min-width:0;border:0;background:none;text-align:center;font-size:19px;height:54px;
+  outline:none;font-family:'Fraunces',Georgia,serif}
+.qty-input input::-webkit-outer-spin-button,.qty-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:0;margin-top:12px;border:1px solid var(--line)}
+.chip{flex:1;border:0;border-right:1px solid var(--line);background:var(--paper);padding:10px 6px;font-size:12.5px;
+  font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s}
+.chip:last-child{border-right:0}
+.chip:hover{background:var(--bg);color:var(--ink)}
+.chip.active{background:var(--ink);color:#fff}
+.price-box{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:30px 0 0;
+  padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.price{font-size:40px;font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.03em;line-height:1}
+.price-box small{color:var(--muted);font-size:12px;display:block;margin-top:8px}
+.delivery{text-align:right;font-size:12.5px;color:var(--ok);display:flex;align-items:center;gap:6px;font-weight:500}
+.feats{list-style:none;padding:0;margin:26px 0;display:grid;gap:12px}
+.feats li{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--ink-2)}
+.tick{color:var(--gold);font-size:13px;flex:none;display:grid;place-items:center;width:16px;height:16px}
+.card .btn{margin-top:auto}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.step{background:var(--bg);padding:42px 32px}
+.step-n{font-family:'Fraunces',Georgia,serif;font-size:15px;color:var(--gold);letter-spacing:.2em;margin-bottom:20px}
+.step h3{font-size:23px;margin-bottom:12px}
+.step p{color:var(--muted);font-size:14.5px}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto;border-top:1px solid var(--line)}
+.fitem{border-bottom:1px solid var(--line)}
+.fq{width:100%;text-align:left;background:none;border:0;padding:26px 4px;font-size:18px;
+  font-family:'Fraunces',Georgia,serif;cursor:pointer;display:flex;justify-content:space-between;
+  align-items:center;gap:14px;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.fq i{font-style:normal;font-size:22px;color:var(--gold);transition:transform .25s;flex:none;font-family:'Inter',sans-serif}
+.fitem.open .fq i{transform:rotate(45deg)}
+.fa{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.fa p{padding:0 4px 28px;color:var(--ink-2);font-size:15.5px;max-width:62ch}
+
+/* band */
+.band{border:1px solid var(--line);background:var(--paper);padding:72px 40px;text-align:center}
+.band h2{margin-bottom:18px}
+.band p{color:var(--ink-2);max-width:50ch;margin:0 auto 32px;font-size:16.5px}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:72px 0 32px;margin-top:0;background:var(--paper)}
+.fgrid{display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:48px}
+.fgrid h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:20px;
+  font-family:'Inter',sans-serif;font-weight:600}
+.fgrid ul{list-style:none;padding:0;margin:0;display:grid;gap:13px}
+.fgrid a{font-size:14.5px;color:var(--ink-2)}
+.fgrid a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.fabout p{color:var(--muted);font-size:14.5px;margin-top:18px;max-width:34ch}
+.pays{display:flex;gap:0;margin-top:22px;flex-wrap:wrap;border:1px solid var(--line);width:max-content}
+.pay{padding:9px 14px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;
+  text-transform:uppercase;border-right:1px solid var(--line)}
+.pay:last-child{border-right:0}
+.fbottom{border-top:1px solid var(--line);margin-top:56px;padding-top:26px;display:flex;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13.5px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(26,26,24,.4);backdrop-filter:blur(5px);z-index:90;display:none;
+  align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{background:var(--paper);border:1px solid var(--line-2);width:100%;max-width:470px;
+  box-shadow:0 40px 90px rgba(26,26,24,.18);animation:pop .25s ease;max-height:calc(100vh - 40px);overflow-y:auto}
+@keyframes pop{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.mhead{display:flex;align-items:flex-start;gap:14px;padding:32px 32px 0}
+.mhead h3{font-size:26px}
+.mhead p{color:var(--muted);font-size:14px;margin-top:7px}
+.mclose{margin-left:auto;background:none;border:1px solid var(--line);width:36px;height:36px;font-size:19px;
+  cursor:pointer;color:var(--ink-2);flex:none;line-height:1;border-radius:var(--radius)}
+.mclose:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mbody{padding:28px 32px 32px}
+.summary{display:flex;align-items:center;gap:15px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:20px 0;margin-bottom:26px}
+.summary .si{width:44px;height:44px;border:1px solid var(--line);display:grid;place-items:center;font-size:20px;
+  flex:none;color:var(--gold)}
+.summary b{display:block;font-size:16px;font-family:'Fraunces',Georgia,serif;font-weight:400}
+.summary small{color:var(--muted);font-size:12.5px}
+.summary .amt{margin-left:auto;font-size:26px;font-family:'Fraunces',Georgia,serif;white-space:nowrap}
+.field{margin-bottom:22px}
+.field label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  margin-bottom:9px;color:var(--muted)}
+.field input{width:100%;border:0;border-bottom:1px solid var(--line-2);padding:12px 2px;font-size:16px;
+  outline:none;background:none;transition:border-color .15s;border-radius:0}
+.field input:focus{border-bottom-color:var(--ink)}
+.field small{display:block;color:var(--muted);font-size:12.5px;margin-top:8px}
+.safe-note{display:flex;gap:11px;border:1px solid var(--line);padding:15px;font-size:13.5px;color:var(--ink-2);margin-bottom:24px}
+.safe-note .icon{font-size:18px;flex:none;color:var(--ok)}
+.muted-note{font-size:13.5px;color:var(--muted);margin-top:14px}
+
+/* fab */
+.fab{position:fixed;right:24px;bottom:24px;z-index:60;display:flex;align-items:center;gap:10px;background:var(--ink);
+  color:#fff;border:0;border-radius:var(--radius);padding:15px 22px;font-weight:500;font-size:14.5px;cursor:pointer;
+  box-shadow:0 14px 34px rgba(26,26,24,.26)}
+.fab:hover{background:#000;transform:translateY(-2px)}
+.fab .icon{font-size:20px}
+
+/* responsive */
+@media (max-width:1000px){
+  .hero-grid{grid-template-columns:1fr;gap:48px}
+  .pcard{max-width:440px}
+  .steps{grid-template-columns:1fr}
+  .fgrid{grid-template-columns:1fr 1fr;gap:34px}
+  .hero{padding:60px 0 56px}
+}
+@media (max-width:760px){
+  .wrap{padding:0 20px}
+  .nav-links,.nav-right .wa-link,.nav-right .btn-ghost{display:none}
+  .burger{display:block;margin-left:auto}
+  .nav{height:70px}
+  .hero{padding:40px 0 44px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat{padding:18px 14px}
+  .stat:nth-child(2){border-right:0}
+  .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid var(--line)}
+  .plats{justify-content:flex-start}
+  .plat{padding:18px 22px}
+  .section{padding:52px 0}
+  .cards{grid-template-columns:minmax(0,1fr)}
+  .fq{padding:22px 2px;font-size:16.5px;gap:10px}
+  .tabs{gap:24px}
+  .band{padding:44px 24px}
+  .fgrid{grid-template-columns:1fr}
+  .fab{padding:14px;border-radius:50%}
+  .fab span{display:none}
+  .hero-cta .btn{width:100%}
+  .mhead,.mbody{padding-left:22px;padding-right:22px}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============ ICON SPRITE (generic glyphs, no brand logos) ============ -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-instagram" viewBox="0 0 24 24"><path d="M12 2.2c-2.7 0-3 0-4.1.06-1 .05-1.7.21-2.3.45a4.6 4.6 0 0 0-1.7 1.1 4.6 4.6 0 0 0-1.1 1.7c-.24.6-.4 1.3-.45 2.3C2.2 9 2.2 9.3 2.2 12s0 3 .06 4.1c.05 1 .21 1.7.45 2.3a4.6 4.6 0 0 0 1.1 1.7 4.6 4.6 0 0 0 1.7 1.1c.6.24 1.3.4 2.3.45 1.1.06 1.4.06 4.1.06s3 0 4.1-.06c1-.05 1.7-.21 2.3-.45a4.9 4.9 0 0 0 2.8-2.8c.24-.6.4-1.3.45-2.3.06-1.1.06-1.4.06-4.1s0-3-.06-4.1c-.05-1-.21-1.7-.45-2.3a4.6 4.6 0 0 0-1.1-1.7 4.6 4.6 0 0 0-1.7-1.1c-.6-.24-1.3-.4-2.3-.45C15 2.2 14.7 2.2 12 2.2Zm0 1.8c2.67 0 2.98.01 4.03.06.78.04 1.2.16 1.49.27.37.15.64.32.92.6.28.28.45.55.6.92.11.28.23.7.27 1.49.05 1.05.06 1.36.06 4.03s-.01 2.98-.06 4.03c-.04.78-.16 1.2-.27 1.49a3.1 3.1 0 0 1-1.52 1.52c-.28.11-.71.23-1.49.27-1.05.05-1.36.06-4.03.06s-2.98-.01-4.03-.06c-.78-.04-1.2-.16-1.49-.27a3.1 3.1 0 0 1-1.52-1.52c-.11-.28-.23-.71-.27-1.49C4.01 14.98 4 14.67 4 12s.01-2.98.06-4.03c.04-.78.16-1.2.27-1.49.15-.37.32-.64.6-.92.28-.28.55-.45.92-.6.28-.11.71-.23 1.49-.27C8.39 4.65 8.7 4.64 12 4.64Zm0 2.4a4.96 4.96 0 1 0 0 9.92 4.96 4.96 0 0 0 0-9.92Zm0 1.8a3.16 3.16 0 1 1 0 6.32 3.16 3.16 0 0 1 0-6.32Zm6.3-2.14a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0Z"/></symbol>
+  <symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M16.5 2h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V8.78A6.1 6.1 0 0 0 10.9 8.7a5.7 5.7 0 1 0 5.7 5.7V8.9a6.4 6.4 0 0 0 4 1.38V7.2a3.6 3.6 0 0 1-3.6-3.6V2Z"/></symbol>
+  <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M21.6 7.2a2.8 2.8 0 0 0-1.97-1.98C17.9 4.75 12 4.75 12 4.75s-5.9 0-7.63.47A2.8 2.8 0 0 0 2.4 7.2C1.93 8.93 1.93 12 1.93 12s0 3.07.47 4.8a2.8 2.8 0 0 0 1.97 1.98c1.73.47 7.63.47 7.63.47s5.9 0 7.63-.47a2.8 2.8 0 0 0 1.97-1.98c.47-1.73.47-4.8.47-4.8s0-3.07-.47-4.8ZM10.1 15.3V8.7L15.8 12l-5.7 3.3Z"/></symbol>
+  <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.77l-.44 2.91h-2.33V22C18.34 21.25 22 17.08 22 12.06Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M17.53 3h3.3l-7.2 8.23L22 21h-6.47l-4.3-5.62L6.3 21H3l7.7-8.8L2.4 3h6.6l4.03 5.33L17.53 3Zm-1.16 16.03h1.82L7.3 4.88H5.35l11.02 14.15Z"/></symbol>
+  <symbol id="i-telegram" viewBox="0 0 24 24"><path d="M21.6 4.2 18.5 19c-.23 1.03-.85 1.28-1.72.8l-4.75-3.5-2.3 2.2c-.25.26-.47.47-.95.47l.34-4.83 8.8-7.95c.38-.34-.08-.53-.59-.19L6.5 12.84l-4.68-1.46c-1.02-.32-1.04-1.02.21-1.5l17.9-6.9c.85-.31 1.6.2 1.33 1.22Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6.5c0 5 3.4 9.3 8 10.5 4.6-1.2 8-5.5 8-10.5V5l-8-3Zm-1 14-3.5-3.5 1.4-1.4L11 13.2l4.6-4.6 1.4 1.4L11 16Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2c-1.2 0-2.3.3-3.2.8 1.4 1 2.2 2.4 2.2 4.2V21h7v-2c0-3.3-2.7-6-6-6ZM9 13c-3.9 0-7 2.7-7 6v2h14v-2c0-3.3-3.1-6-7-6Z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l4.9-1.4A10 10 0 1 0 12 2Zm0 4a1 1 0 0 1 1 1v4.6l3 1.8-.9 1.5-3.6-2.2V7a1 1 0 0 1 .5-1Z"/></symbol>
+  <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.15-1.7-.84-1.96-.94-.26-.1-.45-.14-.64.14-.19.29-.75.95-.92 1.14-.17.19-.34.21-.62.07a7.6 7.6 0 0 1-2.25-1.39 8.5 8.5 0 0 1-1.56-1.94c-.16-.28-.02-.44.12-.6.14-.16.34-.4.5-.6.17-.2.22-.33.33-.55.1-.22.05-.4-.03-.57-.08-.17-.63-1.52-.86-2.07-.22-.54-.45-.47-.62-.47h-.53c-.19 0-.5.07-.75.35-.26.28-.98.95-.98 2.33s1 2.7 1.14 2.9c.14.18 1.96 3.13 4.84 4.26 2.87 1.14 2.87.76 3.39.71.52-.05 1.7-.69 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.12-.26-.19-.54-.33ZM12 22a9.9 9.9 0 0 1-5.03-1.37L2 22l1.4-4.86A9.9 9.9 0 0 1 2 12 10 10 0 1 1 12 22Zm0-18.2A8.2 8.2 0 0 0 5.2 16.5l.2.32-.83 2.9 2.98-.8.3.18A8.2 8.2 0 1 0 12 3.8Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 17.3-6.2 3.7 1.7-7-5.4-4.7 7.1-.6L12 2l2.8 6.7 7.1.6-5.4 4.7 1.7 7L12 17.3Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11h-5v-2h3V6h2v7Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M14 3c3.5 0 7 3.5 7 7 0 2-1 4-3 6l-3 3-2-2 1-4-3-3-4 1-2-2 3-3c2-2 4-3 6-3Zm1 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4 17c1-1 2.5-1 3.5 0s1 2.5 0 3.5C6 22 2 22 2 22s0-4 2-5Z"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H4v-6h16v6Zm0-9H4V6h16v3Z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap nav">
+    <a href="#" class="logo">Grow<em>Kit</em></a>
+    <nav class="nav-links"><a href="#" class="active">Home</a><a href="#faq">FAQ</a><a href="#contact">Contact</a></nav>
+    <div class="nav-right">
+      <a href="#" class="wa-link" onclick="return false"><svg class="icon"><use href="#i-whatsapp"></use></svg> Help</a>
+      <button class="btn btn-ghost" onclick="openTrack()">Track Order</button>
+      <button class="burger" onclick="document.getElementById('drawer').classList.toggle('show')"><svg class="icon"><use href="#i-menu"></use></svg></button>
+    </div>
+  </div>
+  <div class="drawer" id="drawer">
+    <a href="#">Home</a><a href="#faq">FAQ</a><a href="#contact">Contact</a><a href="#" onclick="return false">WhatsApp help</a>
+    <button class="btn btn-primary btn-block" onclick="openTrack()">Track Order</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="badge-trust">
+        <span class="stars"><svg class="icon"><use href="#i-star"></use></svg><svg class="icon"><use href="#i-star"></use></svg><svg class="icon"><use href="#i-star"></use></svg><svg class="icon"><use href="#i-star"></use></svg><svg class="icon"><use href="#i-star"></use></svg></span>
+        Trusted by 10,000+ users
+      </div>
+      <h1>Buy <em id="heroPlat">Instagram Followers</em> with safe &amp; instant delivery</h1>
+      <p class="hero-sub">No password required. Delivery starts within 2&ndash;15 minutes. Secure payment, high quality service and support around the clock.</p>
+      <div class="stats">
+        <div class="stat"><svg class="icon"><use href="#i-shield"></use></svg><b>100% Safe</b><small>&amp; secure</small></div>
+        <div class="stat"><svg class="icon"><use href="#i-bolt"></use></svg><b>Instant</b><small>delivery</small></div>
+        <div class="stat"><svg class="icon"><use href="#i-users"></use></svg><b>10,000+</b><small>customers</small></div>
+        <div class="stat"><svg class="icon"><use href="#i-chat"></use></svg><b>24 / 7</b><small>support</small></div>
+      </div>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="#services" id="heroCta">Buy Instagram Followers</a>
+        <span class="hero-note"><svg class="icon"><use href="#i-check"></use></svg> No login or password needed</span>
+      </div>
+    </div>
+    <div class="pcard">
+      <div class="float-pill" id="pillText">+10K Followers</div>
+      <div class="pcard-top">
+        <div class="pavatar"><i id="pAvatar">&#129365;</i></div>
+        <div><div class="phandle">@yourbrand <svg class="icon verified"><use href="#i-check"></use></svg></div>
+        <div class="pbio" id="pBio">Creator</div></div>
+      </div>
+      <div class="pstats">
+        <div><b id="pS1">255</b><small id="pL1">Posts</small></div>
+        <div class="up"><b id="pS2">12.5K</b><small id="pL2">Followers</small></div>
+        <div><b id="pS3">318</b><small id="pL3">Following</small></div>
+      </div>
+      <div class="pbtns"><button class="btn btn-primary">Follow</button><button class="btn btn-ghost">Message</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="psec" id="services">
+  <div class="plat-scroll"><div class="plats" id="plats"></div></div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Our services</span>
+      <h2 id="svcTitle">Instagram Followers</h2>
+      <p>Choose a package and enter any quantity &mdash; the price updates as you type.</p>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="cards" id="cards"></div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">How it works</span><h2>Three steps</h2></div>
+    <div class="steps">
+      <div class="step"><div class="step-n">01</div><h3>Choose your package</h3><p>Pick the platform and service, type the quantity you need, and see the exact price before paying.</p></div>
+      <div class="step"><div class="step-n">02</div><h3>Share link &amp; pay</h3><p>Give us your public profile or post link and WhatsApp number, then pay by JazzCash, EasyPaisa or bank transfer.</p></div>
+      <div class="step"><div class="step-n">03</div><h3>Watch it grow</h3><p>Delivery begins within 2&ndash;15 minutes. Track progress at any time using your order code.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">FAQ</span><h2>Questions people ask us</h2></div>
+    <div class="faq" id="faqList"></div>
+  </div>
+</section>
+
+<section class="wrap section" id="contact" style="padding-top:0">
+  <div class="band">
+    <h2>Not sure which package to pick?</h2>
+    <p>Message us on WhatsApp and we will recommend the right service for your account, usually within a couple of minutes.</p>
+    <button class="btn btn-primary btn-lg"><svg class="icon"><use href="#i-whatsapp"></use></svg> Chat on WhatsApp</button>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  <div class="fgrid">
+    <div class="fabout">
+      <a href="#" class="logo">Grow<em>Kit</em></a>
+      <p>Social media growth for Instagram, TikTok, YouTube, Facebook, X and Telegram. Safe, fast, and never a password.</p>
+      <div class="pays"><span class="pay">JazzCash</span><span class="pay">EasyPaisa</span><span class="pay">Bank</span></div>
+    </div>
+    <div><h4>Services</h4><ul><li><a href="#">Instagram Followers</a></li><li><a href="#">TikTok Likes</a></li><li><a href="#">YouTube Views</a></li><li><a href="#">Telegram Members</a></li></ul></div>
+    <div><h4>Company</h4><ul><li><a href="#">About Us</a></li><li><a href="#">Contact Us</a></li><li><a href="#faq">FAQ</a></li><li><a href="#" onclick="openTrack();return false">Track Order</a></li></ul></div>
+    <div><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Terms of Service</a></li></ul></div>
+  </div>
+  <div class="fbottom"><span>&copy; 2026 GrowKit. All rights reserved.</span><span>Not affiliated with any platform</span></div>
+</div></footer>
+
+<button class="fab" onclick="alert('Demo: opens WhatsApp chat')"><svg class="icon"><use href="#i-whatsapp"></use></svg><span>WhatsApp</span></button>
+
+<div class="overlay" id="orderModal" onclick="if(event.target===this)closeModal('orderModal')"><div class="modal">
+  <div class="mhead"><div><h3>Complete your order</h3><p>Takes less than a minute</p></div>
+    <button class="mclose" onclick="closeModal('orderModal')">&times;</button></div>
+  <div class="mbody">
+    <div class="summary">
+      <div class="si"><svg class="icon" id="omIcon"><use href="#i-instagram"></use></svg></div>
+      <div><b id="omTitle">500 Instagram Followers</b><small id="omDelivery">Starts in 2&ndash;15 minutes</small></div>
+      <span class="amt" id="omPrice">&#8377;299</span>
+    </div>
+    <div class="field"><label id="omLinkLabel">Instagram profile URL</label>
+      <input type="url" id="omLink" placeholder="https://instagram.com/yourbrand">
+      <small>Your account must be public, not private.</small></div>
+    <div class="field"><label>WhatsApp number</label>
+      <input type="tel" id="omWa" placeholder="+92 300 1234567">
+      <small>We send your order code and updates here.</small></div>
+    <div class="safe-note"><svg class="icon"><use href="#i-shield"></use></svg><span>We never ask for your password. Only the public link is needed.</span></div>
+    <button class="btn btn-primary btn-block btn-lg" onclick="fakeOrder()">Continue to payment</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="trackModal" onclick="if(event.target===this)closeModal('trackModal')"><div class="modal" style="max-width:430px">
+  <div class="mhead"><div><h3>Track your order</h3><p>Enter the code we sent on WhatsApp</p></div>
+    <button class="mclose" onclick="closeModal('trackModal')">&times;</button></div>
+  <div class="mbody">
+    <div class="field"><label>Order code</label><input id="tkCode" placeholder="GK-8F42KD" style="text-transform:uppercase;letter-spacing:.1em"></div>
+    <button class="btn btn-primary btn-block btn-lg" onclick="fakeTrack()">Track order</button>
+    <div id="tkResult" style="display:none;margin-top:20px">
+      <div class="summary" style="margin-bottom:0"><div class="si"><svg class="icon"><use href="#i-bolt"></use></svg></div>
+        <div><b>1,000 Instagram Followers</b><small>Processing &bull; 640 / 1,000 delivered</small></div></div>
+      <p class="muted-note">Start count 12,500 &bull; Remains 360 &bull; Updated 2 minutes ago</p>
+    </div>
+  </div>
+</div></div>
+
+
+<script>
+/* ===================== DUMMY DATA ===================== */
+var ORDER_PAGE = 'order-c.html';
+var CUR = '₹';
+var TIERS = [
+  {badge:'Best Value',   name:'Non Drop 💧', mult:1,    delivery:'2–15 min',
+   desc:'High quality, steady drip-feed delivery with a no-drop guarantee.',
+   feats:['Fast delivery','100% secure','No password required'], featured:false},
+  {badge:'Most Popular', name:'Premium Quality',       mult:1.55, delivery:'0–30 min',
+   desc:'Stronger accounts with profile pictures and real activity history.',
+   feats:['Premium accounts','30-day refill guarantee','No password required'], featured:true},
+  {badge:'Top Rated',    name:'Real & Active ⚡',  mult:2.2,  delivery:'1–24 hrs',
+   desc:'Genuinely active users from targeted regions. Best for engagement.',
+   feats:['Real active users','Lifetime guarantee','Targeted audience'], featured:false}
+];
+var PLATFORMS = [
+  {id:'instagram', name:'Instagram', icon:'i-instagram', color:'#e1306c', emoji:'🧑‍🎤',
+   bio:'Creator • Growing every day', linkLabel:'Instagram profile URL', linkPh:'https://instagram.com/yourbrand',
+   stats:[['255','Posts'],['12.5K','Followers'],['318','Following']],
+   rates:{followers:598, likes:149, views:39}, nouns:{followers:'Followers', likes:'Likes', views:'Reels Views'}},
+  {id:'tiktok', name:'TikTok', icon:'i-tiktok', color:'#111827', emoji:'🕺',
+   bio:'Dancer • Daily videos', linkLabel:'TikTok profile or video URL', linkPh:'https://tiktok.com/@yourbrand',
+   stats:[['1.2M','Likes'],['48.9K','Followers'],['96','Following']],
+   rates:{followers:699, likes:199, views:29}, nouns:{followers:'Followers', likes:'Likes', views:'Video Views'}},
+  {id:'youtube', name:'YouTube', icon:'i-youtube', color:'#ef4444', emoji:'🎬',
+   bio:'Weekly uploads • Tech reviews', linkLabel:'YouTube channel or video URL', linkPh:'https://youtube.com/@yourbrand',
+   stats:[['182','Videos'],['24.1K','Subscribers'],['1.8M','Views']],
+   rates:{followers:1899, likes:349, views:99}, nouns:{followers:'Subscribers', likes:'Likes', views:'Views'}},
+  {id:'facebook', name:'Facebook', icon:'i-facebook', color:'#1877f2', emoji:'📘',
+   bio:'Local business page', linkLabel:'Facebook page or post URL', linkPh:'https://facebook.com/yourpage',
+   stats:[['410','Posts'],['31.2K','Followers'],['1.1K','Likes']],
+   rates:{followers:649, likes:199, views:49}, nouns:{followers:'Page Followers', likes:'Post Likes', views:'Video Views'}},
+  {id:'x', name:'X', icon:'i-x', color:'#0f172a', emoji:'🐦',
+   bio:'Thoughts in 280 characters', linkLabel:'X profile or post URL', linkPh:'https://x.com/yourbrand',
+   stats:[['2.4K','Posts'],['9.8K','Followers'],['540','Following']],
+   rates:{followers:899, likes:299, views:69}, nouns:{followers:'Followers', likes:'Likes', views:'Post Views'}},
+  {id:'telegram', name:'Telegram', icon:'i-telegram', color:'#2aabee', emoji:'✈️',
+   bio:'Public channel • Deals &amp; drops', linkLabel:'Telegram channel URL', linkPh:'https://t.me/yourchannel',
+   stats:[['1.9K','Posts'],['18.4K','Members'],['92%','Reach']],
+   rates:{followers:499, likes:249, views:19}, nouns:{followers:'Members', likes:'Reactions', views:'Post Views'}}
+];
+var CATS = [
+  {id:'followers', label:'Followers', presets:[500,1000,2500,5000], min:100,  max:100000, step:100},
+  {id:'likes',     label:'Likes',     presets:[250,500,1000,2500],  min:50,   max:50000,  step:50},
+  {id:'views',     label:'Views',     presets:[1000,5000,10000,25000], min:500, max:1000000, step:500}
+];
+var FAQS = [
+  ['Do you need my password?','Never. We only need your public profile or post link. Anyone asking for your password is not us — do not share it.'],
+  ['How fast does delivery start?','Most orders start within 2–15 minutes of payment confirmation. Larger orders are drip-fed over a few hours so growth looks natural.'],
+  ['Is it safe for my account?','Yes. We use gradual delivery that stays inside normal platform limits. We have delivered to more than 10,000 accounts without issues.'],
+  ['What if followers drop?','Premium and Real &amp; Active packages include a refill guarantee. Send us your order code on WhatsApp and we refill free of charge.'],
+  ['Which payment methods do you accept?','JazzCash, EasyPaisa and direct bank transfer. After paying you submit the transaction ID and we confirm it manually within a few minutes.'],
+  ['Can I order for a private account?','No. Your account must be public while the order is running, otherwise delivery fails and we have to cancel it.']
+];
+
+
+/* ===================== STATE ===================== */
+var curPlat = PLATFORMS[0];
+var curCat  = CATS[0];
+
+function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function money(n){
+  var s = (Math.round(n*100)/100).toFixed(2).replace(/\.00$/,'');
+  return CUR + s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function servicesFor(plat, cat){
+  var rate = plat.rates[cat.id], noun = plat.nouns[cat.id];
+  return TIERS.map(function(t,i){
+    return {
+      id: plat.id+'-'+cat.id+'-'+i,
+      badge: t.badge, featured: t.featured,
+      title: plat.name+' '+noun+' — '+t.name,
+      desc: t.desc, delivery: t.delivery, feats: t.feats,
+      rate: Math.round(rate*t.mult), min: cat.min, max: cat.max,
+      step: cat.step, presets: cat.presets, noun: noun
+    };
+  });
+}
+
+/* ===================== RENDER ===================== */
+function renderPlats(){
+  document.getElementById('plats').innerHTML = PLATFORMS.map(function(p){
+    return '<button class="plat'+(p.id===curPlat.id?' active':'')+'" style="--pc:'+p.color+'" onclick="setPlat(\''+p.id+'\')">'+
+           '<svg class="icon"><use href="#'+p.icon+'"></use></svg>'+p.name+'</button>';
+  }).join('');
+}
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = CATS.map(function(c){
+    return '<button class="tab'+(c.id===curCat.id?' active':'')+'" onclick="setCat(\''+c.id+'\')">'+
+           curPlat.nouns[c.id]+'</button>';
+  }).join('');
+}
+function renderHero(){
+  var noun = curPlat.nouns[curCat.id];
+  document.getElementById('heroPlat').textContent = curPlat.name+' '+noun;
+  document.getElementById('heroCta').innerHTML = 'Buy '+curPlat.name+' '+noun+' &rarr;';
+  document.getElementById('svcTitle').textContent = curPlat.name+' '+noun;
+  document.getElementById('pAvatar').textContent = curPlat.emoji;
+  document.getElementById('pBio').innerHTML = curPlat.bio;
+  document.getElementById('pillText').textContent = '+10K '+noun;
+  for(var i=0;i<3;i++){
+    document.getElementById('pS'+(i+1)).textContent = curPlat.stats[i][0];
+    document.getElementById('pL'+(i+1)).textContent = curPlat.stats[i][1];
+  }
+  document.documentElement.style.setProperty('--pc', curPlat.color);
+}
+function renderCards(){
+  var svcs = servicesFor(curPlat, curCat);
+  document.getElementById('cards').innerHTML = svcs.map(function(s){
+    var q = s.presets[1];
+    return '<article class="card'+(s.featured?' featured':'')+'" data-rate="'+s.rate+'" data-min="'+s.min+
+      '" data-max="'+s.max+'" data-step="'+s.step+'" data-title="'+s.title+'" data-noun="'+s.noun+
+      '" data-delivery="'+s.delivery+'" id="c-'+s.id+'">'+
+      '<span class="cbadge">'+s.badge+'</span>'+
+      '<h3>'+s.title+'</h3>'+
+      '<p class="cdesc">'+s.desc+'</p>'+
+      '<div class="qty-row">'+
+        '<div class="qty-label"><span>Quantity</span><small>Min '+fmt(s.min)+' &bull; Max '+fmt(s.max)+'</small></div>'+
+        '<div class="qty-input">'+
+          '<button type="button" onclick="bump(this,-1)">&minus;</button>'+
+          '<input type="number" value="'+q+'" oninput="recalc(this)" onchange="recalc(this)">'+
+          '<button type="button" onclick="bump(this,1)">+</button>'+
+        '</div>'+
+        '<div class="chips">'+ s.presets.map(function(p){
+            return '<button type="button" class="chip'+(p===q?' active':'')+'" onclick="setQty(this,'+p+')">'+fmt(p)+'</button>';
+          }).join('') +'</div>'+
+      '</div>'+
+      '<div class="price-box">'+
+        '<div><div class="price">'+money(q/1000*s.rate)+'</div><small>'+money(s.rate)+' per 1,000</small></div>'+
+        '<div class="delivery"><svg class="icon"><use href="#i-clock"></use></svg>'+s.delivery+'</div>'+
+      '</div>'+
+      '<ul class="feats">'+ s.feats.map(function(f){
+          return '<li><span class="tick"><svg class="icon"><use href="#i-check"></use></svg></span>'+f+'</li>';
+        }).join('') +'</ul>'+
+      '<button class="btn '+(s.featured?'btn-primary':'btn-ghost')+' btn-block btn-lg" onclick="openOrder(this)">Order Now</button>'+
+    '</article>';
+  }).join('');
+}
+function renderFaq(){
+  document.getElementById('faqList').innerHTML = FAQS.map(function(f,i){
+    return '<div class="fitem'+(i===0?' open':'')+'">'+
+      '<button class="fq" onclick="toggleFaq(this)">'+f[0]+'<i>+</i></button>'+
+      '<div class="fa"'+(i===0?' style="max-height:200px"':'')+'><p>'+f[1]+'</p></div></div>';
+  }).join('');
+}
+
+/* ===================== INTERACTION ===================== */
+function setPlat(id){
+  curPlat = PLATFORMS.filter(function(p){return p.id===id})[0];
+  renderPlats(); renderTabs(); renderHero(); renderCards();
+}
+function setCat(id){
+  curCat = CATS.filter(function(c){return c.id===id})[0];
+  renderTabs(); renderHero(); renderCards();
+}
+function cardOf(el){ return el.closest('.card'); }
+function recalc(input){
+  var card = cardOf(input);
+  var min = +card.dataset.min, max = +card.dataset.max, rate = +card.dataset.rate;
+  var q = parseInt(input.value, 10);
+  if(isNaN(q)) q = min;
+  if(q > max) { q = max; input.value = q; }
+  var eff = Math.max(q, min);
+  card.querySelector('.price').textContent = money(eff/1000*rate);
+  var warn = card.querySelector('.qty-label small');
+  if(q < min){ warn.style.color = '#dc2626'; warn.textContent = 'Minimum is '+fmt(min); }
+  else { warn.style.color = ''; warn.textContent = 'Min '+fmt(min)+' • Max '+fmt(max); }
+  var chips = card.querySelectorAll('.chip');
+  for(var i=0;i<chips.length;i++){
+    chips[i].classList.toggle('active', parseInt(chips[i].textContent.replace(/,/g,''),10) === q);
+  }
+}
+function bump(btn, dir){
+  var card = cardOf(btn), input = card.querySelector('input');
+  var step = +card.dataset.step, min = +card.dataset.min, max = +card.dataset.max;
+  var q = (parseInt(input.value,10)||min) + dir*step;
+  input.value = Math.min(max, Math.max(min, q));
+  recalc(input);
+}
+function setQty(chip, v){
+  var input = cardOf(chip).querySelector('input');
+  input.value = v; recalc(input);
+}
+function toggleFaq(btn){
+  var item = btn.parentElement, body = item.querySelector('.fa'), open = item.classList.contains('open');
+  var all = document.querySelectorAll('.fitem');
+  for(var i=0;i<all.length;i++){ all[i].classList.remove('open'); all[i].querySelector('.fa').style.maxHeight = 0; }
+  if(!open){ item.classList.add('open'); body.style.maxHeight = body.scrollHeight + 'px'; }
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+function openTrack(){ document.getElementById('drawer').classList.remove('show'); openModal('trackModal'); }
+function openOrder(btn){
+  var card = cardOf(btn);
+  var q = Math.max(parseInt(card.querySelector('input').value,10) || +card.dataset.min, +card.dataset.min);
+  document.getElementById('omTitle').textContent = fmt(q)+' '+card.dataset.title.split(' — ')[0].replace(curPlat.name+' ','')
+    ? fmt(q)+' '+curPlat.name+' '+card.dataset.noun : fmt(q);
+  document.getElementById('omTitle').textContent = fmt(q)+' '+curPlat.name+' '+card.dataset.noun;
+  document.getElementById('omPrice').textContent = money(q/1000*(+card.dataset.rate));
+  document.getElementById('omDelivery').textContent = 'Starts in '+card.dataset.delivery;
+  document.getElementById('omIcon').innerHTML = '<use href="#'+curPlat.icon+'"></use>';
+  document.getElementById('omLinkLabel').textContent = curPlat.linkLabel;
+  document.getElementById('omLink').placeholder = curPlat.linkPh;
+  openModal('orderModal');
+}
+function fakeOrder(){
+  var link = document.getElementById('omLink').value.trim();
+  var wa = document.getElementById('omWa').value.trim();
+  if(!link){ alert('Please paste your profile link.'); return; }
+  if(!wa){ alert('Please enter your WhatsApp number.'); return; }
+  closeModal('orderModal');
+  window.location.href = ORDER_PAGE;
+}
+function fakeTrack(){
+  if(!document.getElementById('tkCode').value.trim()){ alert('Enter your order code'); return; }
+  document.getElementById('tkResult').style.display = 'block';
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeModal('orderModal'); closeModal('trackModal'); }
+});
+
+/* ===================== BOOT ===================== */
+renderPlats(); renderTabs(); renderHero(); renderCards(); renderFaq();
+</script>
+</body>
+</html>
