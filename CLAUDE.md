@@ -249,9 +249,14 @@ No test framework. The checks that matter:
 find . -name '*.php' -not -path './.git/*' -exec php -l {} \;
 
 # a real run
-php -S localhost:8000                          # the app
+php -S localhost:8000 tools/dev-router.php     # the app
 php -S localhost:8001 tools/mock-provider.php  # a fake provider
 ```
+
+Use the router script. Without it `php -S` answers `/sitemap.xml` and
+`/robots.txt` from disk, finds no such file and returns 404, while Apache
+rewrites both to the front controller — so the two servers disagree about
+exactly the URLs the resolver names specially.
 
 Run the install-to-completed pass **on both drivers**. The two bugs that only
 one of them showed were `NOW()` left in the installer's admin INSERT, which

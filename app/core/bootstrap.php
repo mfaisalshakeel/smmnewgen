@@ -55,6 +55,15 @@ ini_set('error_log', STORAGE_PATH . '/logs/php-error.log');
 
 set_exception_handler(function (Throwable $e) use ($debug) {
     error_log('[' . date('c') . '] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    // On the command line there is no response to set a code on, and trying
+    // to buries the real message under a headers-already-sent error - which
+    // is exactly what a cron job would mail you instead of the fault.
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL);
+        exit(1);
+    }
+
     http_response_code(500);
     if ($debug) {
         header('Content-Type: text/plain; charset=utf-8');

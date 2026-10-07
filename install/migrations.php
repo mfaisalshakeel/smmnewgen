@@ -72,10 +72,15 @@ return [
             'ALTER TABLE "services" ADD COLUMN "missing_at_provider" INTEGER NOT NULL DEFAULT 0',
         ],
         'both' => [
+            // rate_to_base is how much of the base currency one unit of this
+            // one buys, because that is the direction every conversion goes:
+            // a provider bills in its own currency and we price in ours.
+            // These two are a starting point and the first rate refresh
+            // replaces them.
             "INSERT INTO currencies (code, name, symbol, rate_to_base, is_base, is_active, sort_order, updated_at)
                VALUES ('PKR', 'Pakistani Rupee', 'Rs ', 1, 1, 1, 1, '2026-01-01 00:00:00')",
             "INSERT INTO currencies (code, name, symbol, rate_to_base, is_base, is_active, sort_order, updated_at)
-               VALUES ('USD', 'US Dollar', '$', 0.0036, 0, 1, 2, '2026-01-01 00:00:00')",
+               VALUES ('USD', 'US Dollar', '$', 278, 0, 1, 2, '2026-01-01 00:00:00')",
             "INSERT INTO settings (`k`, `v`) VALUES ('base_currency', 'PKR')",
             "INSERT INTO settings (`k`, `v`) VALUES ('currency_rates_updated_at', '')",
             "INSERT INTO settings (`k`, `v`) VALUES ('currency_auto_update', '1')",
