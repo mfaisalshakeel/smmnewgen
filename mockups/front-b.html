@@ -146,28 +146,22 @@ h2{font-size:clamp(25px,3.6vw,38px);font-weight:800}
 .card:not(.featured) .cbadge{background:var(--panel-2);color:var(--ink-2);border:1px solid var(--line)}
 .card h3{font-size:18.5px;margin:8px 0 8px;font-weight:800}
 .cdesc{color:var(--muted);font-size:13.5px;font-weight:500;min-height:42px}
-.qty-row{margin:20px 0 0}
-.qty-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
-.qty-label span{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
-.qty-label small{color:var(--muted);font-size:11.5px;font-weight:600;font-family:'JetBrains Mono',monospace}
-.qty-input{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;background:var(--bg)}
-.qty-input:focus-within{border-color:var(--neon)}
-.qty-input button{width:46px;height:50px;border:0;background:none;font-size:21px;font-weight:700;color:var(--neon);cursor:pointer;flex:none}
-.qty-input button:hover{background:rgba(0,232,163,.1)}
-.qty-input input{flex:1;min-width:0;border:0;background:none;text-align:center;font-weight:800;font-size:18px;
-  height:50px;outline:none;font-family:'JetBrains Mono',monospace}
-.qty-input input::-webkit-outer-spin-button,.qty-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
-.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 13px;font-size:12.5px;
-  font-weight:700;cursor:pointer;color:var(--ink-2);font-family:'JetBrains Mono',monospace;transition:all .15s}
-.chip:hover{border-color:var(--neon);color:var(--neon)}
-.chip.active{background:var(--neon);border-color:var(--neon);color:#04120c}
-.price-box{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;background:var(--bg);
-  border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin:20px 0 0}
-.price{font-size:31px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--neon);
-  font-family:'JetBrains Mono',monospace;text-shadow:0 0 26px rgba(0,232,163,.4)}
-.price-box small{color:var(--muted);font-size:11.5px;font-weight:700;display:block;margin-top:6px;font-family:'JetBrains Mono',monospace}
-.delivery{text-align:right;font-size:12.5px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+/* ---- quantity + amount (kept deliberately plain) ---- */
+.qp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 0}
+.qp-f>span{display:block;font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-2);margin-bottom:9px}
+.qp input,.qp .price{width:100%;height:56px;border:1.5px solid var(--line);border-radius:11px;padding:0 16px;
+  font-size:21px;font-weight:800;letter-spacing:-.02em;outline:none;background:var(--bg);
+  display:flex;align-items:center;font-family:'JetBrains Mono',ui-monospace,monospace}
+.qp input{-moz-appearance:textfield;color:var(--ink)}
+.qp input::-webkit-outer-spin-button,.qp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qp input:focus{border-color:var(--neon)}
+.qp .price{background:rgba(0,232,163,.1);border-color:rgba(0,232,163,.3);color:var(--neon);
+  text-shadow:0 0 22px rgba(0,232,163,.4)}
+.qp-note{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:11px}
+.qp-err{color:#f87171;font-size:12.5px;font-weight:700;margin-top:7px;display:none}
+.qp-err.show{display:block}
+.qp-del{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--neon);margin-top:15px}
 .feats{list-style:none;padding:0;margin:20px 0;display:grid;gap:10px}
 .feats li{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
 .tick{width:19px;height:19px;border-radius:5px;background:rgba(0,232,163,.14);color:var(--neon);
@@ -570,26 +564,20 @@ function renderCards(){
   document.getElementById('cards').innerHTML = svcs.map(function(s){
     var q = s.presets[1];
     return '<article class="card'+(s.featured?' featured':'')+'" data-rate="'+s.rate+'" data-min="'+s.min+
-      '" data-max="'+s.max+'" data-step="'+s.step+'" data-title="'+s.title+'" data-noun="'+s.noun+
+      '" data-max="'+s.max+'" data-title="'+s.title+'" data-noun="'+s.noun+
       '" data-delivery="'+s.delivery+'" id="c-'+s.id+'">'+
       '<span class="cbadge">'+s.badge+'</span>'+
       '<h3>'+s.title+'</h3>'+
       '<p class="cdesc">'+s.desc+'</p>'+
-      '<div class="qty-row">'+
-        '<div class="qty-label"><span>Quantity</span><small>Min '+fmt(s.min)+' &bull; Max '+fmt(s.max)+'</small></div>'+
-        '<div class="qty-input">'+
-          '<button type="button" onclick="bump(this,-1)">&minus;</button>'+
-          '<input type="number" value="'+q+'" oninput="recalc(this)" onchange="recalc(this)">'+
-          '<button type="button" onclick="bump(this,1)">+</button>'+
-        '</div>'+
-        '<div class="chips">'+ s.presets.map(function(p){
-            return '<button type="button" class="chip'+(p===q?' active':'')+'" onclick="setQty(this,'+p+')">'+fmt(p)+'</button>';
-          }).join('') +'</div>'+
+      '<div class="qp">'+
+        '<label class="qp-f"><span>Quantity</span>'+
+          '<input type="number" value="'+q+'" oninput="recalc(this)" onchange="recalc(this)"></label>'+
+        '<div class="qp-f"><span>Amount</span>'+
+          '<div class="price">'+money(q/1000*s.rate)+'</div></div>'+
       '</div>'+
-      '<div class="price-box">'+
-        '<div><div class="price">'+money(q/1000*s.rate)+'</div><small>'+money(s.rate)+' per 1,000</small></div>'+
-        '<div class="delivery"><svg class="icon"><use href="#i-clock"></use></svg>'+s.delivery+'</div>'+
-      '</div>'+
+      '<p class="qp-note">Price updates instantly according to the quantity you enter</p>'+
+      '<p class="qp-err"></p>'+
+      '<div class="qp-del"><svg class="icon"><use href="#i-clock"></use></svg>'+s.delivery+'</div>'+
       '<ul class="feats">'+ s.feats.map(function(f){
           return '<li><span class="tick"><svg class="icon"><use href="#i-check"></use></svg></span>'+f+'</li>';
         }).join('') +'</ul>'+
@@ -615,32 +603,18 @@ function setCat(id){
   renderTabs(); renderHero(); renderCards();
 }
 function cardOf(el){ return el.closest('.card'); }
+/* type a quantity, the amount follows — nothing else to learn.
+   limits are only mentioned if the typed number breaks one. */
 function recalc(input){
   var card = cardOf(input);
   var min = +card.dataset.min, max = +card.dataset.max, rate = +card.dataset.rate;
   var q = parseInt(input.value, 10);
-  if(isNaN(q)) q = min;
-  if(q > max) { q = max; input.value = q; }
-  var eff = Math.max(q, min);
+  var eff = isNaN(q) || q < 0 ? 0 : Math.min(q, max);
   card.querySelector('.price').textContent = money(eff/1000*rate);
-  var warn = card.querySelector('.qty-label small');
-  if(q < min){ warn.style.color = '#dc2626'; warn.textContent = 'Minimum is '+fmt(min); }
-  else { warn.style.color = ''; warn.textContent = 'Min '+fmt(min)+' • Max '+fmt(max); }
-  var chips = card.querySelectorAll('.chip');
-  for(var i=0;i<chips.length;i++){
-    chips[i].classList.toggle('active', parseInt(chips[i].textContent.replace(/,/g,''),10) === q);
-  }
-}
-function bump(btn, dir){
-  var card = cardOf(btn), input = card.querySelector('input');
-  var step = +card.dataset.step, min = +card.dataset.min, max = +card.dataset.max;
-  var q = (parseInt(input.value,10)||min) + dir*step;
-  input.value = Math.min(max, Math.max(min, q));
-  recalc(input);
-}
-function setQty(chip, v){
-  var input = cardOf(chip).querySelector('input');
-  input.value = v; recalc(input);
+  var err = card.querySelector('.qp-err');
+  if(!isNaN(q) && q > 0 && q < min){ err.textContent = 'Minimum for this service is '+fmt(min)+'.'; err.classList.add('show'); }
+  else if(q > max){ err.textContent = 'Maximum for this service is '+fmt(max)+'.'; err.classList.add('show'); }
+  else { err.classList.remove('show'); }
 }
 function toggleFaq(btn){
   var item = btn.parentElement, body = item.querySelector('.fa'), open = item.classList.contains('open');

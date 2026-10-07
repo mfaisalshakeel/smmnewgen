@@ -119,32 +119,18 @@ h1 .hl{color:var(--brand)}
 .pkg-rate small{color:var(--muted);font-size:11.5px;font-weight:800}
 
 /* quantity */
-.qbox{background:var(--bg);border-radius:18px;padding:22px}
-.qtop{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
-.qtop label{font-size:12px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.qnum{display:flex;align-items:center;background:var(--paper);border:2px solid var(--line);border-radius:14px;overflow:hidden}
-.qnum button{width:46px;height:52px;border:0;background:none;font-size:22px;font-weight:900;color:var(--brand);cursor:pointer;flex:none}
-.qnum button:hover{background:var(--brand-soft)}
-.qnum input{width:110px;border:0;background:none;text-align:center;font-weight:900;font-size:19px;height:52px;outline:none}
-.qnum input::-webkit-outer-spin-button,.qnum input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-input[type=range]{width:100%;height:36px;-webkit-appearance:none;background:none;cursor:pointer;margin:0}
-input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:#d8e1f2}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;
-  background:var(--brand);border:4px solid #fff;box-shadow:0 3px 10px rgba(37,99,235,.5);margin-top:-10px}
-input[type=range]::-moz-range-track{height:10px;border-radius:999px;background:#d8e1f2}
-input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--brand);
-  border:4px solid #fff;box-shadow:0 3px 10px rgba(37,99,235,.5)}
-.qrange-labels{display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.chip{border:2px solid var(--line);background:var(--paper);border-radius:11px;padding:9px 15px;font-size:13.5px;
-  font-weight:800;cursor:pointer;color:var(--ink-2);transition:all .15s}
-.chip:hover{border-color:var(--brand);color:var(--brand)}
-.chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
-.livebox{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--brand);
-  color:#fff;border-radius:18px;padding:20px 24px;margin-top:16px;box-shadow:0 10px 26px -6px rgba(37,99,235,.6)}
-.livebox small{display:block;font-size:12.5px;font-weight:800;opacity:.85}
-.livebox .big{font-size:34px;font-weight:900;letter-spacing:-.03em;line-height:1.1}
-.livebox .right{text-align:right;font-size:13.5px;font-weight:800}
+/* ---- quantity + amount (kept deliberately plain) ---- */
+.qp{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.qp-f>span{display:block;font-size:13px;font-weight:900;color:var(--ink-2);margin-bottom:9px}
+.qp input,.qp .price{width:100%;height:62px;border:2px solid var(--line);border-radius:16px;padding:0 18px;
+  font-size:25px;font-weight:900;letter-spacing:-.02em;outline:none;background:var(--bg);
+  display:flex;align-items:center;font-family:inherit}
+.qp input{-moz-appearance:textfield;color:var(--ink)}
+.qp input::-webkit-outer-spin-button,.qp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qp input:focus{border-color:var(--brand);background:var(--paper)}
+.qp .price{background:var(--brand);border-color:var(--brand);color:#fff}
+.qp-note{font-size:13px;color:var(--muted);font-weight:700;margin-top:12px}
+.qp-del{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:800;color:var(--ok);margin-top:16px}
 .err{color:#dc2626;font-size:13.5px;font-weight:800;margin-top:10px;display:none}
 .err.show{display:block}
 
@@ -256,9 +242,8 @@ footer{background:var(--paper);border-top:1px solid var(--line);padding:46px 0 2
   .pkg{flex-wrap:wrap;padding:16px}
   .pkg-rate{text-align:left;width:100%;display:flex;gap:8px;align-items:baseline;
     border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
-  .livebox{flex-direction:column;align-items:flex-start;gap:8px}
-  .livebox .right{text-align:left}
-  .qnum input{width:80px}
+  .qp{grid-template-columns:1fr;gap:12px}
+  .qp input,.qp .price{height:56px;font-size:22px}
   .wiz-foot{flex-direction:column-reverse}
   .wiz-foot .btn{width:100%}
   .section{padding:40px 0}
@@ -355,27 +340,16 @@ footer{background:var(--paper);border-top:1px solid var(--line);padding:46px 0 2
       <div class="step" data-step="4">
         <div class="q">How many do you want?</div>
         <div class="qsub" id="s4Sub">Drag the slider or type an exact number.</div>
-        <div class="qbox">
-          <div class="qtop">
-            <label>Quantity</label>
-            <div class="qnum">
-              <button type="button" onclick="bumpQty(-1)">&minus;</button>
-              <input type="number" id="qtyInput" oninput="onQtyInput()" onchange="onQtyInput()">
-              <button type="button" onclick="bumpQty(1)">+</button>
-            </div>
-          </div>
-          <input type="range" id="qtyRange" oninput="onRange()">
-          <div class="qrange-labels"><span id="rMin">100</span><span id="rMax">100,000</span></div>
-          <div class="chips" id="qtyChips"></div>
+        <div class="qp">
+          <label class="qp-f"><span>Quantity</span>
+            <input type="number" id="qtyInput" oninput="onQtyInput()" onchange="onQtyInput()"></label>
+          <div class="qp-f"><span>Amount</span>
+            <div class="price" id="liveTotal">&#8377;299</div></div>
         </div>
+        <p class="qp-note">Price updates instantly according to the quantity you enter</p>
         <div class="err" id="qtyErr"></div>
-        <div class="livebox">
-          <div><small>Total price</small><div class="big" id="liveTotal">&#8377;299</div></div>
-          <div class="right">
-            <div id="liveRate">&#8377;598 per 1,000</div>
-            <div style="opacity:.85;margin-top:3px" id="liveDelivery">Starts in 2&ndash;15 min</div>
-          </div>
-        </div>
+        <div class="qp-del"><svg class="icon"><use href="#i-clock"></use></svg>
+          <span id="liveDelivery">Starts in 2&ndash;15 min</span></div>
       </div>
 
       <!-- STEP 5 -->
@@ -564,18 +538,10 @@ function renderPkgs(){
   }).join('');
 }
 function renderQty(){
-  var c = S.cat;
-  document.getElementById('s4Sub').textContent = 'Minimum '+fmt(c.min)+', maximum '+fmt(c.max)+' '+noun().toLowerCase()+'.';
-  var inp = document.getElementById('qtyInput'), rng = document.getElementById('qtyRange');
-  inp.min = c.min; inp.max = c.max; inp.step = c.step; inp.value = S.qty;
-  rng.min = c.min; rng.max = c.max; rng.step = c.step; rng.value = S.qty;
-  document.getElementById('rMin').textContent = fmt(c.min);
-  document.getElementById('rMax').textContent = fmt(c.max);
-  document.getElementById('qtyChips').innerHTML = c.presets.map(function(p){
-    return '<button type="button" class="chip'+(p===S.qty?' active':'')+'" onclick="setQty('+p+')">'+fmt(p)+'</button>';
-  }).join('');
+  var inp = document.getElementById('qtyInput');
+  inp.min = S.cat.min; inp.max = S.cat.max; inp.value = S.qty;
+  document.getElementById('s4Sub').textContent = 'Type how many you want \u2014 the amount updates as you type.';
   document.getElementById('liveTotal').textContent = money(total());
-  document.getElementById('liveRate').textContent = money(rate())+' per 1,000';
   document.getElementById('liveDelivery').textContent = 'Starts in '+TIERS[S.tier].delivery;
 }
 function renderForm(){
@@ -673,30 +639,17 @@ function pickCat(id){
   S.step = 3; showStep();
 }
 function pickTier(i){ S.tier = i; renderPkgs(); S.step = 4; showStep(); }
-function setQty(v){ S.qty = v; renderQty(); document.getElementById('qtyErr').classList.remove('show'); }
+/* type a quantity, the amount follows \u2014 limits are only mentioned
+   when the typed number breaks one */
 function onQtyInput(){
   var v = parseInt(document.getElementById('qtyInput').value,10);
-  S.qty = isNaN(v) ? S.cat.min : v;
-  document.getElementById('qtyRange').value = Math.min(S.cat.max, Math.max(S.cat.min, S.qty));
-  document.getElementById('liveTotal').textContent = money(Math.max(S.qty,0)/1000*rate());
-  var chips = document.getElementById('qtyChips').children;
-  for(var i=0;i<chips.length;i++){
-    chips[i].classList.toggle('active', parseInt(chips[i].textContent.replace(/,/g,''),10)===S.qty);
-  }
+  S.qty = isNaN(v) ? 0 : v;
+  var eff = S.qty < 0 ? 0 : Math.min(S.qty, S.cat.max);
+  document.getElementById('liveTotal').textContent = money(eff/1000*rate());
   var e = document.getElementById('qtyErr');
-  if(S.qty < S.cat.min){ e.textContent = 'Minimum is '+fmt(S.cat.min); e.classList.add('show'); }
-  else if(S.qty > S.cat.max){ e.textContent = 'Maximum is '+fmt(S.cat.max); e.classList.add('show'); }
+  if(S.qty > 0 && S.qty < S.cat.min){ e.textContent = 'Minimum for this service is '+fmt(S.cat.min)+'.'; e.classList.add('show'); }
+  else if(S.qty > S.cat.max){ e.textContent = 'Maximum for this service is '+fmt(S.cat.max)+'.'; e.classList.add('show'); }
   else e.classList.remove('show');
-}
-function onRange(){
-  S.qty = +document.getElementById('qtyRange').value;
-  document.getElementById('qtyInput').value = S.qty;
-  onQtyInput();
-}
-function bumpQty(dir){
-  S.qty = Math.min(S.cat.max, Math.max(S.cat.min, S.qty + dir*S.cat.step));
-  document.getElementById('qtyInput').value = S.qty;
-  onQtyInput();
 }
 function toggleFaq(btn){
   var item = btn.parentElement, body = item.querySelector('.fa'), open = item.classList.contains('open');

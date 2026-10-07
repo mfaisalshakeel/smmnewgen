@@ -142,26 +142,20 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
   box-shadow:0 5px 14px rgba(108,77,246,.35)}
 .card h3{font-size:19px;margin:8px 0 7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cdesc{color:var(--muted);font-size:13.5px;font-weight:500;min-height:40px}
-.qty-row{margin:18px 0 0}
-.qty-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-.qty-label span{font-size:12.5px;font-weight:700;color:var(--ink-2)}
-.qty-label small{color:var(--muted);font-size:11.5px;font-weight:600}
-.qty-input{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:13px;overflow:hidden;background:var(--bg-soft)}
-.qty-input button{width:44px;height:48px;border:0;background:none;font-size:20px;font-weight:700;
-  color:var(--brand);cursor:pointer;flex:none}
-.qty-input button:hover{background:var(--brand-soft)}
-.qty-input input{flex:1;min-width:0;border:0;background:none;text-align:center;font-weight:800;font-size:17px;height:48px;outline:none}
-.qty-input input::-webkit-outer-spin-button,.qty-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.chip{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;font-size:12.5px;
-  font-weight:700;cursor:pointer;color:var(--ink-2);transition:all .15s}
-.chip:hover{border-color:var(--brand);color:var(--brand)}
-.chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
-.price-box{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
-  background:linear-gradient(135deg,var(--brand-soft),#faf8ff);border-radius:15px;padding:15px 17px;margin:18px 0 0}
-.price{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
-.price-box small{color:var(--muted);font-size:11.5px;font-weight:700;display:block;margin-top:5px}
-.delivery{text-align:right;font-size:12.5px;font-weight:700;color:var(--ok);display:flex;align-items:center;gap:5px}
+/* ---- quantity + amount (kept deliberately plain) ---- */
+.qp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 0}
+.qp-f>span{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+.qp input,.qp .price{width:100%;height:56px;border:1.5px solid var(--line);border-radius:13px;padding:0 16px;
+  font-size:21px;font-weight:800;letter-spacing:-.02em;outline:none;background:var(--bg-soft);
+  display:flex;align-items:center;font-family:inherit}
+.qp input{-moz-appearance:textfield}
+.qp input::-webkit-outer-spin-button,.qp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qp input:focus{border-color:var(--brand);background:#fff}
+.qp .price{background:var(--brand-soft);border-color:transparent;color:var(--brand)}
+.qp-note{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:10px}
+.qp-err{color:#dc2626;font-size:12.5px;font-weight:700;margin-top:7px;display:none}
+.qp-err.show{display:block}
+.qp-del{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ok);margin-top:14px}
 .feats{list-style:none;padding:0;margin:18px 0;display:grid;gap:9px}
 .feats li{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
 .tick{width:19px;height:19px;border-radius:50%;background:#e8f8ee;color:var(--ok);display:grid;place-items:center;font-size:11px;flex:none}

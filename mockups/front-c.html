@@ -138,28 +138,21 @@ h2{font-size:clamp(28px,4vw,44px)}
 .card.featured .cbadge{color:var(--gold)}
 .card h3{font-size:24px;margin:0 0 12px;line-height:1.2}
 .cdesc{color:var(--muted);font-size:14.5px;min-height:48px}
-.qty-row{margin:28px 0 0}
-.qty-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
-.qty-label span{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.qty-label small{color:var(--muted);font-size:12px}
-.qty-input{display:flex;align-items:center;border:1px solid var(--line-2);background:var(--bg)}
-.qty-input:focus-within{border-color:var(--ink)}
-.qty-input button{width:48px;height:54px;border:0;background:none;font-size:20px;color:var(--ink-2);cursor:pointer;flex:none}
-.qty-input button:hover{background:var(--line);color:var(--ink)}
-.qty-input input{flex:1;min-width:0;border:0;background:none;text-align:center;font-size:19px;height:54px;
-  outline:none;font-family:'Fraunces',Georgia,serif}
-.qty-input input::-webkit-outer-spin-button,.qty-input input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.chips{display:flex;flex-wrap:wrap;gap:0;margin-top:12px;border:1px solid var(--line)}
-.chip{flex:1;border:0;border-right:1px solid var(--line);background:var(--paper);padding:10px 6px;font-size:12.5px;
-  font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s}
-.chip:last-child{border-right:0}
-.chip:hover{background:var(--bg);color:var(--ink)}
-.chip.active{background:var(--ink);color:#fff}
-.price-box{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:30px 0 0;
-  padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.price{font-size:40px;font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.03em;line-height:1}
-.price-box small{color:var(--muted);font-size:12px;display:block;margin-top:8px}
-.delivery{text-align:right;font-size:12.5px;color:var(--ok);display:flex;align-items:center;gap:6px;font-weight:500}
+/* ---- quantity + amount (kept deliberately plain) ---- */
+.qp{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:30px 0 0}
+.qp-f>span{display:block;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:10px}
+.qp input,.qp .price{width:100%;height:50px;border:0;border-bottom:1px solid var(--line-2);border-radius:0;
+  padding:0 2px;font-size:30px;letter-spacing:-.02em;outline:none;background:none;
+  display:flex;align-items:center;font-family:'Fraunces',Georgia,serif;font-weight:400;color:var(--ink)}
+.qp input{-moz-appearance:textfield}
+.qp input::-webkit-outer-spin-button,.qp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qp input:focus{border-bottom-color:var(--ink)}
+.qp .price{color:var(--gold);border-bottom-color:var(--gold)}
+.qp-note{font-size:12.5px;color:var(--muted);margin-top:14px}
+.qp-err{color:#b91c1c;font-size:12.5px;font-weight:600;margin-top:8px;display:none}
+.qp-err.show{display:block}
+.qp-del{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:var(--ok);margin-top:16px}
 .feats{list-style:none;padding:0;margin:26px 0;display:grid;gap:12px}
 .feats li{display:flex;align-items:center;gap:11px;font-size:14px;color:var(--ink-2)}
 .tick{color:var(--gold);font-size:13px;flex:none;display:grid;place-items:center;width:16px;height:16px}
@@ -558,26 +551,20 @@ function renderCards(){
   document.getElementById('cards').innerHTML = svcs.map(function(s){
     var q = s.presets[1];
     return '<article class="card'+(s.featured?' featured':'')+'" data-rate="'+s.rate+'" data-min="'+s.min+
-      '" data-max="'+s.max+'" data-step="'+s.step+'" data-title="'+s.title+'" data-noun="'+s.noun+
+      '" data-max="'+s.max+'" data-title="'+s.title+'" data-noun="'+s.noun+
       '" data-delivery="'+s.delivery+'" id="c-'+s.id+'">'+
       '<span class="cbadge">'+s.badge+'</span>'+
       '<h3>'+s.title+'</h3>'+
       '<p class="cdesc">'+s.desc+'</p>'+
-      '<div class="qty-row">'+
-        '<div class="qty-label"><span>Quantity</span><small>Min '+fmt(s.min)+' &bull; Max '+fmt(s.max)+'</small></div>'+
-        '<div class="qty-input">'+
-          '<button type="button" onclick="bump(this,-1)">&minus;</button>'+
-          '<input type="number" value="'+q+'" oninput="recalc(this)" onchange="recalc(this)">'+
-          '<button type="button" onclick="bump(this,1)">+</button>'+
-        '</div>'+
-        '<div class="chips">'+ s.presets.map(function(p){
-            return '<button type="button" class="chip'+(p===q?' active':'')+'" onclick="setQty(this,'+p+')">'+fmt(p)+'</button>';
-          }).join('') +'</div>'+
+      '<div class="qp">'+
+        '<label class="qp-f"><span>Quantity</span>'+
+          '<input type="number" value="'+q+'" oninput="recalc(this)" onchange="recalc(this)"></label>'+
+        '<div class="qp-f"><span>Amount</span>'+
+          '<div class="price">'+money(q/1000*s.rate)+'</div></div>'+
       '</div>'+
-      '<div class="price-box">'+
-        '<div><div class="price">'+money(q/1000*s.rate)+'</div><small>'+money(s.rate)+' per 1,000</small></div>'+
-        '<div class="delivery"><svg class="icon"><use href="#i-clock"></use></svg>'+s.delivery+'</div>'+
-      '</div>'+
+      '<p class="qp-note">Price updates instantly according to the quantity you enter</p>'+
+      '<p class="qp-err"></p>'+
+      '<div class="qp-del"><svg class="icon"><use href="#i-clock"></use></svg>'+s.delivery+'</div>'+
       '<ul class="feats">'+ s.feats.map(function(f){
           return '<li><span class="tick"><svg class="icon"><use href="#i-check"></use></svg></span>'+f+'</li>';
         }).join('') +'</ul>'+
@@ -603,32 +590,18 @@ function setCat(id){
   renderTabs(); renderHero(); renderCards();
 }
 function cardOf(el){ return el.closest('.card'); }
+/* type a quantity, the amount follows — nothing else to learn.
+   limits are only mentioned if the typed number breaks one. */
 function recalc(input){
   var card = cardOf(input);
   var min = +card.dataset.min, max = +card.dataset.max, rate = +card.dataset.rate;
   var q = parseInt(input.value, 10);
-  if(isNaN(q)) q = min;
-  if(q > max) { q = max; input.value = q; }
-  var eff = Math.max(q, min);
+  var eff = isNaN(q) || q < 0 ? 0 : Math.min(q, max);
   card.querySelector('.price').textContent = money(eff/1000*rate);
-  var warn = card.querySelector('.qty-label small');
-  if(q < min){ warn.style.color = '#dc2626'; warn.textContent = 'Minimum is '+fmt(min); }
-  else { warn.style.color = ''; warn.textContent = 'Min '+fmt(min)+' • Max '+fmt(max); }
-  var chips = card.querySelectorAll('.chip');
-  for(var i=0;i<chips.length;i++){
-    chips[i].classList.toggle('active', parseInt(chips[i].textContent.replace(/,/g,''),10) === q);
-  }
-}
-function bump(btn, dir){
-  var card = cardOf(btn), input = card.querySelector('input');
-  var step = +card.dataset.step, min = +card.dataset.min, max = +card.dataset.max;
-  var q = (parseInt(input.value,10)||min) + dir*step;
-  input.value = Math.min(max, Math.max(min, q));
-  recalc(input);
-}
-function setQty(chip, v){
-  var input = cardOf(chip).querySelector('input');
-  input.value = v; recalc(input);
+  var err = card.querySelector('.qp-err');
+  if(!isNaN(q) && q > 0 && q < min){ err.textContent = 'Minimum for this service is '+fmt(min)+'.'; err.classList.add('show'); }
+  else if(q > max){ err.textContent = 'Maximum for this service is '+fmt(max)+'.'; err.classList.add('show'); }
+  else { err.classList.remove('show'); }
 }
 function toggleFaq(btn){
   var item = btn.parentElement, body = item.querySelector('.fa'), open = item.classList.contains('open');
