@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin &mdash; Direction B (Dark Sidebar)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#f4f6f9; --surface:#ffffff; --hover:#f6f8fb;
+  --ink:#121726; --ink-2:#48506a; --muted:#808aa2;
+  --line:#e6eaf1; --line-2:#d3d9e4;
+  --acc:#0ea5e9; --acc-on:#ffffff; --acc-soft:#e6f6fe; --acc-ink:#0369a1;
+  --ok:#16a34a; --warn:#d97706; --danger:#dc2626; --danger-soft:#fdeaea;
+  --side:#0f1729; --side-line:#1e2a44; --side-hover:#1a2439;
+  --side-ink:#f1f5f9; --side-ink-2:#9fb0c9; --side-muted:#6b7f9c;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--page);color:var(--ink);
+  line-height:1.55;font-size:15px;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4{margin:0;line-height:1.2;letter-spacing:-.02em}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+svg{max-width:100%}
+.icon{width:1em;height:1em;display:inline-block;vertical-align:-.125em;fill:currentColor;flex:none}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.muted{color:var(--muted);font-size:13px}
+.ta-r{text-align:right}
+.up{color:var(--ok)}
+.warn{color:var(--warn)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;
+  padding:10px 17px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;
+  transition:background .15s, border-color .15s, transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--acc);color:var(--acc-on)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--line-2);background:var(--hover)}
+.btn-ghost.on{background:var(--acc);color:var(--acc-on);border-color:var(--acc)}
+.btn-danger{background:var(--danger-soft);color:var(--danger);border:1px solid transparent}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:7px 13px;font-size:13px;border-radius:9px}
+.btn-lg{padding:13px 22px;font-size:15px}
+.btn-block{width:100%}
+
+/* shell */
+.shell{display:flex;min-height:100vh}
+.side{width:254px;flex:none;background:var(--side);border-right:1px solid var(--side-line);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:50}
+.brand{display:flex;align-items:center;gap:11px;padding:19px 18px;border-bottom:1px solid var(--side-line);
+  font-weight:700;font-size:17px;color:var(--side-ink)}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:var(--acc);color:var(--acc-on);display:grid;
+  place-items:center;font-size:17px;flex:none}
+.brand small{display:block;font-size:10.5px;font-weight:600;color:var(--side-muted);letter-spacing:.07em;
+  text-transform:uppercase;line-height:1.3}
+.sideclose{display:none;margin-left:auto;background:none;border:0;font-size:24px;color:var(--side-muted);cursor:pointer;line-height:1}
+.snav{flex:1;overflow-y:auto;padding:14px 12px}
+.sgroup{display:block;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--side-muted);padding:14px 10px 7px}
+.snav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;font-size:14.5px;
+  font-weight:600;color:var(--side-ink-2);margin-bottom:2px;transition:background .15s, color .15s}
+.snav a .icon{font-size:17px;opacity:.85}
+.snav a:hover{background:var(--side-hover);color:var(--side-ink)}
+.snav a.on{background:var(--acc);color:var(--acc-on)}
+.snav a.on .icon{opacity:1}
+.pill{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;font-weight:700;
+  padding:2px 8px;border-radius:999px}
+.snav a.on .pill{background:rgba(255,255,255,.26)}
+.sfoot{padding:14px;border-top:1px solid var(--side-line)}
+.bal-mini{background:var(--side-hover);border-radius:11px;padding:13px 14px}
+.bal-mini small{display:block;font-size:11px;font-weight:600;color:var(--side-muted);text-transform:uppercase;letter-spacing:.07em}
+.bal-mini b{font-size:18px;font-weight:700;color:var(--side-ink)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:16px;background:var(--surface);border-bottom:1px solid var(--line);
+  padding:0 22px;height:68px;position:sticky;top:0;z-index:30}
+.burger{display:none;background:none;border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer}
+.crumb b{display:block;font-size:17px;font-weight:700}
+.crumb small{color:var(--muted);font-size:12.5px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.search{display:flex;align-items:center;gap:9px;background:var(--page);border:1px solid var(--line);
+  border-radius:10px;padding:0 13px;height:40px;min-width:240px}
+.search .icon{color:var(--muted);font-size:16px}
+.search input{border:0;background:none;outline:none;width:100%;font-size:14px}
+.search.wide{min-width:280px;flex:1;max-width:420px}
+.iconbtn{position:relative;background:var(--page);border:1px solid var(--line);width:40px;height:40px;
+  border-radius:10px;display:grid;place-items:center;cursor:pointer;font-size:17px;color:var(--ink-2)}
+.iconbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--danger)}
+.me{display:flex;align-items:center;gap:10px}
+.avatar{width:38px;height:38px;border-radius:11px;background:var(--acc);color:var(--acc-on);display:grid;
+  place-items:center;font-size:13.5px;font-weight:700;flex:none}
+.me-txt b{display:block;font-size:14px;font-weight:700;line-height:1.3}
+.me-txt small{color:var(--muted);font-size:12px}
+
+.content{padding:22px;flex:1}
+.view{display:none}
+.view.on{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* stat cards */
+.cards4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;gap:14px}
+.scard .si{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:21px;flex:none}
+.si-a{background:rgba(99,102,241,.14);color:#6366f1}
+.si-b{background:rgba(22,163,74,.14);color:#16a34a}
+.si-c{background:rgba(245,158,11,.16);color:#d97706}
+.si-d{background:rgba(236,72,153,.14);color:#ec4899}
+.scard small{display:block;color:var(--muted);font-size:12.5px;font-weight:600}
+.scard b{display:block;font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.scard span{font-size:12px;font-weight:600}
+
+.split{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
+.split2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.box + .box{margin-top:16px}
+.box-head{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.box-head b{font-size:15.5px;font-weight:700}
+.box-head .lnk,.box-head .btn,.box-head .muted,.box-head .st{margin-left:auto}
+.lnk{color:var(--acc);font-weight:600;font-size:13.5px}
+.lnk.back{display:inline-block;margin-bottom:14px}
+.pad{padding:18px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+.tbl th{text-align:left;font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--page)}
+.tbl td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody tr:hover{background:var(--hover);cursor:pointer}
+.tbl tr.dim td{opacity:.62}
+.tbl .sub{display:block;color:var(--muted);font-size:12px;font-weight:500;margin-top:2px}
+.tbl .empty{text-align:center;color:var(--muted);padding:40px 14px;cursor:default}
+.tbl input[type=checkbox]{width:17px;height:17px;accent-color:var(--acc);cursor:pointer}
+.chipx{background:var(--acc-soft);color:var(--acc-ink);border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700}
+
+/* status tags */
+.st{display:inline-block;border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:700;
+  text-transform:capitalize;white-space:nowrap}
+.st-pending{background:rgba(245,158,11,.16);color:#b45309}
+.st-paid{background:rgba(37,99,235,.14);color:#1d4ed8}
+.st-processing{background:rgba(139,92,246,.16);color:#7c3aed}
+.st-completed{background:rgba(22,163,74,.15);color:#15803d}
+.st-cancelled{background:var(--hover);color:var(--muted)}
+.st-api_error{background:rgba(220,38,38,.14);color:#dc2626}
+
+/* providers */
+.provs{padding:8px 18px 18px}
+.prov{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.prov:last-child{border-bottom:0}
+.pv-main{flex:1;min-width:0}
+.pv-main b{display:block;font-size:14.5px;font-weight:700}
+.pv-main small{color:var(--muted);font-size:12px;word-break:break-all}
+.pv-bal{text-align:right;flex:none}
+.pv-bal b{display:block;font-size:16px;font-weight:700}
+
+/* filters */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters select,.filters input[type=date]{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:0 13px;height:40px;font-size:14px;outline:none;cursor:pointer}
+.filters select:focus,.filters input:focus{border-color:var(--acc)}
+
+/* bulk bar */
+.bulkbar{display:none;align-items:center;gap:9px;flex-wrap:wrap;background:var(--acc-soft);
+  border:1px solid var(--acc);border-radius:12px;padding:11px 15px;margin-bottom:14px}
+.bulkbar.on{display:flex}
+.bulkbar b{font-size:13.5px;font-weight:700;margin-right:5px}
+
+.pager{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:13.5px}
+.pbtns{margin-left:auto;display:flex;gap:6px}
+
+/* detail rows */
+.drow{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.drow:last-child{border-bottom:0}
+.drow span{color:var(--muted);font-weight:600}
+.drow b{text-align:right;word-break:break-all;font-weight:600}
+.acts{display:grid;gap:9px}
+.log{list-style:none;padding:0;margin:0 0 18px}
+.log li{font-size:13.5px;color:var(--ink-2);padding:8px 0;border-bottom:1px dashed var(--line)}
+.log li:last-child{border-bottom:0}
+.log b{color:var(--muted);font-weight:700;margin-right:8px;font-variant-numeric:tabular-nums}
+
+/* fields */
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12.5px;font-weight:700;margin-bottom:7px;color:var(--ink-2)}
+.field input,.field select,.field textarea{width:100%;background:var(--page);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;font-size:14.5px;outline:none;transition:border-color .15s}
+.field textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:13px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--acc)}
+.field small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+.field2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.colorrow{display:flex;gap:10px}
+.colorrow input[type=color]{width:52px;padding:4px;height:44px;cursor:pointer}
+.copyrow{display:flex;gap:9px}
+.copyrow input{font-family:ui-monospace,monospace}
+.upload{display:flex;align-items:center;gap:9px;background:var(--page);border:1.5px dashed var(--line-2);
+  border-radius:10px;padding:13px;font-size:13.5px;color:var(--muted);cursor:pointer;font-weight:600}
+.upload:hover{border-color:var(--acc);color:var(--acc)}
+
+/* switches */
+.switch{display:inline-flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer}
+.switch.block{display:flex;padding:11px 0;border-bottom:1px solid var(--line)}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.track{width:40px;height:23px;border-radius:999px;background:var(--line-2);position:relative;flex:none;transition:background .2s}
+.track::after{content:"";position:absolute;top:2.5px;left:2.5px;width:18px;height:18px;border-radius:50%;
+  background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch input:checked + .track{background:var(--acc)}
+.switch input:checked + .track::after{transform:translateX(17px)}
+
+/* import */
+.irow{display:grid;grid-template-columns:1fr 1.4fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px}
+.optbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:var(--page);border:1px solid var(--line);
+  border-radius:12px;padding:13px 16px;margin-bottom:14px}
+.markup{display:flex;align-items:center;gap:10px}
+.markup label{font-size:13.5px;font-weight:600}
+.mk{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.mk input{width:66px;border:0;background:none;outline:none;padding:8px 11px;font-size:14px;font-weight:600;text-align:right}
+.mk input::-webkit-outer-spin-button,.mk input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.mk span{padding:8px 11px 8px 0;color:var(--muted);font-size:13.5px;font-weight:600}
+.impfoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+.impfoot .btn{margin-left:auto}
+
+/* flash */
+.ok{display:none;background:rgba(22,163,74,.13);color:#15803d;border-radius:10px;padding:11px 14px;
+  font-size:13.5px;font-weight:700;margin-top:12px}
+.ok.show{display:block}
+.ok.inline{margin-top:0;padding:7px 12px}
+
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:45}
+
+/* responsive */
+@media (max-width:1200px){ .cards4{grid-template-columns:1fr 1fr} }
+@media (max-width:1050px){
+  .split,.split2{grid-template-columns:1fr}
+  .irow{grid-template-columns:1fr 1fr}
+}
+@media (max-width:1000px){
+  .side{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.3)}
+  body.side-open .side{transform:none}
+  body.side-open .scrim{display:block}
+  .sideclose{display:block}
+  .burger{display:grid;place-items:center}
+  .search{min-width:0;width:44px;padding:0 12px}
+  .search input{display:none}
+  .me-txt{display:none}
+}
+@media (max-width:760px){
+  .content{padding:15px}
+  .topbar{padding:0 15px;height:62px;gap:11px}
+  .cards4{grid-template-columns:1fr;gap:11px}
+  .scard b{font-size:22px}
+  .irow{grid-template-columns:1fr}
+  .field2{grid-template-columns:1fr}
+  .hide-sm{display:none}
+  .tbl{min-width:0}
+  .tbl th,.tbl td{padding:11px 10px}
+  .filters{gap:8px}
+  .filters select,.filters input[type=date],.search.wide{width:100%;max-width:none;flex:none}
+  .optbar{gap:13px}
+  .impfoot .btn{margin-left:0;width:100%}
+  .crumb small{display:none}
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============ ICON SPRITE (generic glyphs, no brand logos) ============ -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-instagram" viewBox="0 0 24 24"><path d="M12 2.2c-2.7 0-3 0-4.1.06-1 .05-1.7.21-2.3.45a4.6 4.6 0 0 0-1.7 1.1 4.6 4.6 0 0 0-1.1 1.7c-.24.6-.4 1.3-.45 2.3C2.2 9 2.2 9.3 2.2 12s0 3 .06 4.1c.05 1 .21 1.7.45 2.3a4.6 4.6 0 0 0 1.1 1.7 4.6 4.6 0 0 0 1.7 1.1c.6.24 1.3.4 2.3.45 1.1.06 1.4.06 4.1.06s3 0 4.1-.06c1-.05 1.7-.21 2.3-.45a4.9 4.9 0 0 0 2.8-2.8c.24-.6.4-1.3.45-2.3.06-1.1.06-1.4.06-4.1s0-3-.06-4.1c-.05-1-.21-1.7-.45-2.3a4.6 4.6 0 0 0-1.1-1.7 4.6 4.6 0 0 0-1.7-1.1c-.6-.24-1.3-.4-2.3-.45C15 2.2 14.7 2.2 12 2.2Zm0 1.8c2.67 0 2.98.01 4.03.06.78.04 1.2.16 1.49.27.37.15.64.32.92.6.28.28.45.55.6.92.11.28.23.7.27 1.49.05 1.05.06 1.36.06 4.03s-.01 2.98-.06 4.03c-.04.78-.16 1.2-.27 1.49a3.1 3.1 0 0 1-1.52 1.52c-.28.11-.71.23-1.49.27-1.05.05-1.36.06-4.03.06s-2.98-.01-4.03-.06c-.78-.04-1.2-.16-1.49-.27a3.1 3.1 0 0 1-1.52-1.52c-.11-.28-.23-.71-.27-1.49C4.01 14.98 4 14.67 4 12s.01-2.98.06-4.03c.04-.78.16-1.2.27-1.49.15-.37.32-.64.6-.92.28-.28.55-.45.92-.6.28-.11.71-.23 1.49-.27C8.39 4.65 8.7 4.64 12 4.64Zm0 2.4a4.96 4.96 0 1 0 0 9.92 4.96 4.96 0 0 0 0-9.92Zm0 1.8a3.16 3.16 0 1 1 0 6.32 3.16 3.16 0 0 1 0-6.32Zm6.3-2.14a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0Z"/></symbol>
+  <symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M16.5 2h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.27 0 .53.04.78.12V8.78A6.1 6.1 0 0 0 10.9 8.7a5.7 5.7 0 1 0 5.7 5.7V8.9a6.4 6.4 0 0 0 4 1.38V7.2a3.6 3.6 0 0 1-3.6-3.6V2Z"/></symbol>
+  <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M21.6 7.2a2.8 2.8 0 0 0-1.97-1.98C17.9 4.75 12 4.75 12 4.75s-5.9 0-7.63.47A2.8 2.8 0 0 0 2.4 7.2C1.93 8.93 1.93 12 1.93 12s0 3.07.47 4.8a2.8 2.8 0 0 0 1.97 1.98c1.73.47 7.63.47 7.63.47s5.9 0 7.63-.47a2.8 2.8 0 0 0 1.97-1.98c.47-1.73.47-4.8.47-4.8s0-3.07-.47-4.8ZM10.1 15.3V8.7L15.8 12l-5.7 3.3Z"/></symbol>
+  <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.25 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.77l-.44 2.91h-2.33V22C18.34 21.25 22 17.08 22 12.06Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M17.53 3h3.3l-7.2 8.23L22 21h-6.47l-4.3-5.62L6.3 21H3l7.7-8.8L2.4 3h6.6l4.03 5.33L17.53 3Zm-1.16 16.03h1.82L7.3 4.88H5.35l11.02 14.15Z"/></symbol>
+  <symbol id="i-telegram" viewBox="0 0 24 24"><path d="M21.6 4.2 18.5 19c-.23 1.03-.85 1.28-1.72.8l-4.75-3.5-2.3 2.2c-.25.26-.47.47-.95.47l.34-4.83 8.8-7.95c.38-.34-.08-.53-.59-.19L6.5 12.84l-4.68-1.46c-1.02-.32-1.04-1.02.21-1.5l17.9-6.9c.85-.31 1.6.2 1.33 1.22Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6.5c0 5 3.4 9.3 8 10.5 4.6-1.2 8-5.5 8-10.5V5l-8-3Zm-1 14-3.5-3.5 1.4-1.4L11 13.2l4.6-4.6 1.4 1.4L11 16Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 2c-1.2 0-2.3.3-3.2.8 1.4 1 2.2 2.4 2.2 4.2V21h7v-2c0-3.3-2.7-6-6-6ZM9 13c-3.9 0-7 2.7-7 6v2h14v-2c0-3.3-3.1-6-7-6Z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l4.9-1.4A10 10 0 1 0 12 2Zm0 4a1 1 0 0 1 1 1v4.6l3 1.8-.9 1.5-3.6-2.2V7a1 1 0 0 1 .5-1Z"/></symbol>
+  <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.15-1.7-.84-1.96-.94-.26-.1-.45-.14-.64.14-.19.29-.75.95-.92 1.14-.17.19-.34.21-.62.07a7.6 7.6 0 0 1-2.25-1.39 8.5 8.5 0 0 1-1.56-1.94c-.16-.28-.02-.44.12-.6.14-.16.34-.4.5-.6.17-.2.22-.33.33-.55.1-.22.05-.4-.03-.57-.08-.17-.63-1.52-.86-2.07-.22-.54-.45-.47-.62-.47h-.53c-.19 0-.5.07-.75.35-.26.28-.98.95-.98 2.33s1 2.7 1.14 2.9c.14.18 1.96 3.13 4.84 4.26 2.87 1.14 2.87.76 3.39.71.52-.05 1.7-.69 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.12-.26-.19-.54-.33ZM12 22a9.9 9.9 0 0 1-5.03-1.37L2 22l1.4-4.86A9.9 9.9 0 0 1 2 12 10 10 0 1 1 12 22Zm0-18.2A8.2 8.2 0 0 0 5.2 16.5l.2.32-.83 2.9 2.98-.8.3.18A8.2 8.2 0 1 0 12 3.8Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 17.3-6.2 3.7 1.7-7-5.4-4.7 7.1-.6L12 2l2.8 6.7 7.1.6-5.4 4.7 1.7 7L12 17.3Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11h-5v-2h3V6h2v7Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2Z"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M14 3c3.5 0 7 3.5 7 7 0 2-1 4-3 6l-3 3-2-2 1-4-3-3-4 1-2-2 3-3c2-2 4-3 6-3Zm1 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4 17c1-1 2.5-1 3.5 0s1 2.5 0 3.5C6 22 2 22 2 22s0-4 2-5Z"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H4v-6h16v6Zm0-9H4V6h16v3Z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 6h18v2H3v-2Zm0 6h18v2H3v-2Z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4L10 13.2V3h2ZM4 19h16v2H4v-2Z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 21V10.8l-3.6 3.6L7 13l6-6 6 6-1.4 1.4L14 10.8V21h-2ZM4 3h16v2H4V3Z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="m19.4 13-.1-1 2-1.6-2-3.4-2.4.9-1.7-1-.4-2.5h-4l-.4 2.5-1.7 1-2.4-.9-2 3.4 2 1.6-.1 1 .1 1-2 1.6 2 3.4 2.4-.9 1.7 1 .4 2.5h4l.4-2.5 1.7-1 2.4.9 2-3.4-2-1.6.1-1Zm-7.4 3.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5V3Zm6.2 4.6-1.4 1.4 2 2H8v2h8.8l-2 2 1.4 1.4L21 12l-4.8-4.4Z"/></symbol>
+</svg>
+
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="logo-mark"><svg class="icon"><use href="#i-rocket"></use></svg></span>
+      <span>GrowKit<small>Admin Panel</small></span>
+      <button class="sideclose" onclick="toggleSide()">&times;</button>
+    </div>
+    <nav class="snav">
+      <span class="sgroup">Main</span>
+      <a href="#dashboard" class="on" data-view="dashboard"><svg class="icon"><use href="#i-grid"></use></svg> Dashboard</a>
+      <a href="#orders" data-view="orders"><svg class="icon"><use href="#i-card"></use></svg> Orders <span class="pill">12</span></a>
+      <span class="sgroup">Catalogue</span>
+      <a href="#services" data-view="services"><svg class="icon"><use href="#i-list"></use></svg> Services</a>
+      <a href="#import" data-view="import"><svg class="icon"><use href="#i-down"></use></svg> Import Services</a>
+      <span class="sgroup">System</span>
+      <a href="#settings" data-view="settings"><svg class="icon"><use href="#i-gear"></use></svg> Settings</a>
+      <a href="#" onclick="return false"><svg class="icon"><use href="#i-out"></use></svg> Log out</a>
+    </nav>
+    <div class="sfoot">
+      <div class="bal-mini">
+        <small>Provider balance</small>
+        <b>&#8377;24,180.50</b>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="burger" onclick="toggleSide()"><svg class="icon"><use href="#i-menu"></use></svg></button>
+      <div class="crumb"><b id="viewTitle">Dashboard</b><small id="viewSub">Overview of today</small></div>
+      <div class="tb-right">
+        <div class="search"><svg class="icon"><use href="#i-search"></use></svg>
+          <input placeholder="Search orders, services&hellip;"></div>
+        <button class="iconbtn" title="Notifications"><svg class="icon"><use href="#i-chat"></use></svg><span class="dot"></span></button>
+        <div class="me"><span class="avatar">FS</span><span class="me-txt"><b>Faisal</b><small>Administrator</small></span></div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ================= DASHBOARD ================= -->
+      <section class="view on" id="v-dashboard">
+        <div class="cards4">
+          <div class="scard"><div class="si si-a"><svg class="icon"><use href="#i-card"></use></svg></div>
+            <div><small>Orders today</small><b>48</b><span class="up">+12% vs yesterday</span></div></div>
+          <div class="scard"><div class="si si-b"><svg class="icon"><use href="#i-bolt"></use></svg></div>
+            <div><small>Revenue today</small><b>&#8377;28,640</b><span class="up">+8% vs yesterday</span></div></div>
+          <div class="scard"><div class="si si-c"><svg class="icon"><use href="#i-clock"></use></svg></div>
+            <div><small>Pending payment</small><b>7</b><span class="warn">needs review</span></div></div>
+          <div class="scard"><div class="si si-d"><svg class="icon"><use href="#i-users"></use></svg></div>
+            <div><small>Active services</small><b>186</b><span class="muted">across 6 platforms</span></div></div>
+        </div>
+
+        <div class="split">
+          <div class="box">
+            <div class="box-head"><b>Recent orders</b><a href="#orders" data-view="orders" class="lnk">View all &rarr;</a></div>
+            <div class="tbl-wrap"><table class="tbl" id="recentTbl"></table></div>
+          </div>
+          <div class="box">
+            <div class="box-head"><b>Provider balances</b><button class="btn btn-ghost btn-sm" onclick="checkBal(this)">Check balance</button></div>
+            <div class="provs" id="provList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ORDERS ================= -->
+      <section class="view" id="v-orders">
+        <div class="filters">
+          <div class="search wide"><svg class="icon"><use href="#i-search"></use></svg>
+            <input placeholder="Order code, link or WhatsApp number" oninput="renderOrders()" id="oSearch"></div>
+          <select id="fStatus" onchange="renderOrders()">
+            <option value="">All statuses</option><option>pending</option><option>paid</option>
+            <option>processing</option><option>completed</option><option>cancelled</option><option>api_error</option>
+          </select>
+          <select id="fPlat" onchange="renderOrders()">
+            <option value="">All platforms</option><option>Instagram</option><option>TikTok</option>
+            <option>YouTube</option><option>Facebook</option><option>X</option><option>Telegram</option>
+          </select>
+          <input type="date" id="fDate" onchange="renderOrders()">
+          <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+          <button class="btn btn-primary" style="margin-left:auto">Export CSV</button>
+        </div>
+        <div class="box">
+          <div class="tbl-wrap"><table class="tbl" id="ordersTbl"></table></div>
+          <div class="pager"><span id="oCount">Showing 8 of 128 orders</span>
+            <div class="pbtns"><button class="btn btn-ghost btn-sm">Prev</button>
+              <button class="btn btn-ghost btn-sm on">1</button><button class="btn btn-ghost btn-sm">2</button>
+              <button class="btn btn-ghost btn-sm">3</button><button class="btn btn-ghost btn-sm">Next</button></div></div>
+        </div>
+      </section>
+
+      <!-- ================= ORDER DETAIL ================= -->
+      <section class="view" id="v-order">
+        <a href="#orders" data-view="orders" class="lnk back">&larr; Back to orders</a>
+        <div class="split2">
+          <div>
+            <div class="box">
+              <div class="box-head"><b>Order GK-8F42KD</b><span class="st st-processing">processing</span></div>
+              <div class="pad">
+                <div class="drow"><span>Service</span><b>Instagram Followers &mdash; Non Drop</b></div>
+                <div class="drow"><span>Provider</span><b>MainPanel (service #1042)</b></div>
+                <div class="drow"><span>Provider order ID</span><b>99381726</b></div>
+                <div class="drow"><span>Quantity</span><b>1,000</b></div>
+                <div class="drow"><span>Link</span><b>https://instagram.com/yourbrand</b></div>
+                <div class="drow"><span>WhatsApp</span><b>+92 300 1234567</b></div>
+                <div class="drow"><span>Charge / Cost</span><b>&#8377;598.00 / &#8377;412.00</b></div>
+                <div class="drow"><span>Profit</span><b class="up">&#8377;186.00 (31%)</b></div>
+                <div class="drow"><span>Start count</span><b>12,500</b></div>
+                <div class="drow"><span>Remains</span><b>360</b></div>
+                <div class="drow"><span>Placed</span><b>Today, 11:04</b></div>
+              </div>
+            </div>
+            <div class="box">
+              <div class="box-head"><b>Payment</b><span class="st st-paid">confirmed</span></div>
+              <div class="pad">
+                <div class="drow"><span>Method</span><b>JazzCash</b></div>
+                <div class="drow"><span>Transaction ID</span><b>102938475601</b></div>
+                <div class="drow"><span>Amount sent</span><b>&#8377;598.00</b></div>
+                <div class="drow"><span>Submitted</span><b>Today, 11:09</b></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="box">
+              <div class="box-head"><b>Actions</b></div>
+              <div class="pad acts">
+                <button class="btn btn-primary btn-block" onclick="act(this,'Marked as paid')">Mark as paid</button>
+                <button class="btn btn-ghost btn-block" onclick="act(this,'Sent to provider')">Send to provider</button>
+                <button class="btn btn-ghost btn-block" onclick="act(this,'Status synced')">Sync status now</button>
+                <button class="btn btn-ghost btn-block" onclick="act(this,'Refill requested')">Request refill</button>
+                <button class="btn btn-ghost btn-block" onclick="act(this,'Order cancelled')">Cancel at provider</button>
+                <button class="btn btn-ghost btn-block" onclick="act(this,'Marked completed')">Mark completed manually</button>
+                <button class="btn btn-danger btn-block" onclick="act(this,'Order refunded')">Refund order</button>
+                <div class="ok" id="actOk"></div>
+              </div>
+            </div>
+            <div class="box">
+              <div class="box-head"><b>Activity log</b></div>
+              <div class="pad">
+                <ul class="log">
+                  <li><b>11:04</b> Order created by customer</li>
+                  <li><b>11:09</b> Payment submitted &mdash; TRX 102938475601</li>
+                  <li><b>11:11</b> Payment confirmed by admin</li>
+                  <li><b>11:11</b> Sent to MainPanel &mdash; provider order 99381726</li>
+                  <li><b>11:26</b> Status synced: in progress, remains 360</li>
+                </ul>
+                <div class="field"><label>Add internal note</label>
+                  <input placeholder="Visible to admins only"></div>
+                <button class="btn btn-ghost btn-block">Save note</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SERVICES ================= -->
+      <section class="view" id="v-services">
+        <div class="filters">
+          <div class="search wide"><svg class="icon"><use href="#i-search"></use></svg>
+            <input placeholder="Search service name" oninput="renderServices()" id="sSearch"></div>
+          <select id="sPlat" onchange="renderServices()">
+            <option value="">All platforms</option><option>Instagram</option><option>TikTok</option>
+            <option>YouTube</option><option>Facebook</option><option>X</option><option>Telegram</option>
+          </select>
+          <select id="sCat" onchange="renderServices()">
+            <option value="">All categories</option><option>Followers</option><option>Likes</option><option>Views</option>
+          </select>
+          <select id="sState" onchange="renderServices()">
+            <option value="">Active &amp; inactive</option><option>active</option><option>inactive</option>
+          </select>
+          <button class="btn btn-primary" style="margin-left:auto">+ Add service</button>
+        </div>
+        <div class="bulkbar" id="bulkBar">
+          <b><span id="selCount">0</span> selected</b>
+          <button class="btn btn-ghost btn-sm" onclick="bulk('Activated')">Activate</button>
+          <button class="btn btn-ghost btn-sm" onclick="bulk('Deactivated')">Deactivate</button>
+          <button class="btn btn-ghost btn-sm" onclick="bulk('Markup applied')">Set markup %</button>
+          <button class="btn btn-ghost btn-sm" onclick="bulk('Prices synced')">Sync prices</button>
+          <button class="btn btn-danger btn-sm" onclick="bulk('Deleted')">Delete</button>
+          <span class="ok inline" id="bulkOk"></span>
+        </div>
+        <div class="box">
+          <div class="tbl-wrap"><table class="tbl" id="servicesTbl"></table></div>
+        </div>
+      </section>
+
+      <!-- ================= IMPORT ================= -->
+      <section class="view" id="v-import">
+        <div class="box">
+          <div class="box-head"><b>Import services from provider</b><span class="muted" id="impCached">cached 4 minutes ago</span></div>
+          <div class="pad">
+            <div class="irow">
+              <div class="field"><label>Provider</label>
+                <select id="impProv" onchange="renderImport()">
+                  <option>MainPanel</option><option>FastSMM</option><option>Mock Provider (local)</option></select></div>
+              <div class="field"><label>Search</label>
+                <input placeholder="e.g. instagram followers" oninput="renderImport()" id="impSearch"></div>
+              <div class="field"><label>Provider category</label>
+                <select id="impCat" onchange="renderImport()">
+                  <option value="">All categories</option><option>Instagram Followers</option>
+                  <option>Instagram Likes</option><option>TikTok Followers</option><option>YouTube Views</option>
+                  <option>Telegram Members</option></select></div>
+              <div class="field"><label>&nbsp;</label>
+                <button class="btn btn-ghost btn-block" onclick="refetch(this)">Refresh from API</button></div>
+            </div>
+
+            <div class="optbar">
+              <label class="switch"><input type="checkbox" id="autoDetect" checked onchange="renderImport()">
+                <span class="track"></span> Auto-detect platform &amp; category</label>
+              <div class="markup">
+                <label>Markup</label>
+                <div class="mk"><input type="number" id="markup" value="35" min="0" max="500" oninput="renderImport()"><span>%</span></div>
+              </div>
+              <label class="switch"><input type="checkbox" id="skipExisting" checked>
+                <span class="track"></span> Update existing instead of skipping</label>
+              <span class="muted" id="impSel" style="margin-left:auto">0 selected</span>
+            </div>
+
+            <div class="tbl-wrap"><table class="tbl" id="importTbl"></table></div>
+
+            <div class="impfoot">
+              <span class="muted" id="impNote">Prices shown include your markup.</span>
+              <button class="btn btn-primary" onclick="doImport(this)">Import selected services</button>
+            </div>
+            <div class="ok" id="impOk"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SETTINGS ================= -->
+      <section class="view" id="v-settings">
+        <div class="split2">
+          <div>
+            <div class="box">
+              <div class="box-head"><b>Site settings</b></div>
+              <div class="pad">
+                <div class="field"><label>Site name</label><input value="GrowKit"></div>
+                <div class="field"><label>Tagline</label><input value="Buy social media growth, safely"></div>
+                <div class="field2">
+                  <div class="field"><label>Currency symbol</label><input value="&#8377;"></div>
+                  <div class="field"><label>Default platform</label>
+                    <select><option>Instagram</option><option>TikTok</option><option>YouTube</option></select></div>
+                </div>
+                <div class="field"><label>Theme colour</label>
+                  <div class="colorrow"><input type="color" value="#6c4df6" id="themeColor" oninput="pickColor()">
+                    <input value="#6c4df6" id="themeHex" readonly></div></div>
+                <div class="field2">
+                  <div class="field"><label>Logo</label><div class="upload"><svg class="icon"><use href="#i-up"></use></svg> Upload logo.png</div></div>
+                  <div class="field"><label>Favicon</label><div class="upload"><svg class="icon"><use href="#i-up"></use></svg> Upload favicon.ico</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="box">
+              <div class="box-head"><b>Contact &amp; support</b></div>
+              <div class="pad">
+                <div class="field"><label>WhatsApp number</label><input value="+92 300 1234567"></div>
+                <div class="field"><label>Support email</label><input value="help@growkit.example"></div>
+                <div class="field"><label>Head code (analytics, pixels)</label>
+                  <textarea rows="4" placeholder="&lt;!-- pasted into &lt;head&gt; --&gt;"></textarea></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="box">
+              <div class="box-head"><b>Orders &amp; automation</b></div>
+              <div class="pad">
+                <label class="switch block"><input type="checkbox" checked><span class="track"></span> Auto-send orders to provider when marked paid</label>
+                <label class="switch block"><input type="checkbox" checked><span class="track"></span> Auto-sync order statuses on cron</label>
+                <label class="switch block"><input type="checkbox"><span class="track"></span> Allow manual services (no provider)</label>
+                <label class="switch block"><input type="checkbox" checked><span class="track"></span> Require transaction ID before confirming</label>
+                <div class="field"><label>Default markup %</label><input type="number" value="35"></div>
+                <div class="field"><label>Cron key</label>
+                  <div class="copyrow"><input value="a7f3c9d14b8e2605" readonly>
+                    <button class="btn btn-ghost btn-sm" onclick="act(this,'Copied')">Copy</button></div>
+                  <small>Cron URL: /cron/a7f3c9d14b8e2605</small></div>
+              </div>
+            </div>
+            <div class="box">
+              <div class="box-head"><b>Save</b></div>
+              <div class="pad">
+                <button class="btn btn-primary btn-block btn-lg" onclick="act(this,'Settings saved')">Save settings</button>
+                <div class="ok" id="setOk"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+  <div class="scrim" id="scrim" onclick="toggleSide()"></div>
+</div>
+
+<script>
+/* ===================== DUMMY DATA ===================== */
+var ORDERS = [
+  ['GK-8F42KD','Instagram','Followers — Non Drop','1,000','₹598','processing','+92 300 1234567','11:04'],
+  ['GK-7Q19ZX','TikTok','Likes — Premium','2,500','₹771','completed','+92 321 9876543','10:52'],
+  ['GK-3M88TT','YouTube','Views — Non Drop','10,000','₹990','paid','+92 333 5551212','10:40'],
+  ['GK-5B21LM','Instagram','Likes — Real & Active','500','₹164','pending','+92 300 4445566','10:31'],
+  ['GK-9X74PO','Telegram','Members — Premium','1,000','₹773','processing','+92 345 1112233','10:12'],
+  ['GK-2D55RE','Facebook','Page Followers — Non Drop','2,000','₹1,298','completed','+92 311 7778899','09:58'],
+  ['GK-6K30AS','X','Followers — Premium','500','₹697','api_error','+92 302 2223344','09:41'],
+  ['GK-4N67CV','TikTok','Video Views — Non Drop','25,000','₹725','cancelled','+92 334 6667788','09:20']
+];
+var PROVIDERS = [
+  ['MainPanel','https://mainpanel.example/api/v2','₹24,180.50','ok'],
+  ['FastSMM','https://fastsmm.example/api/v2','₹6,942.00','ok'],
+  ['Mock Provider (local)','http://localhost:8001/mock','₹99,999.00','test']
+];
+var SERVICES = [
+  [1042,'Instagram Followers — Non Drop','Instagram','Followers','MainPanel','₹412','₹598','100 / 100,000','active'],
+  [1043,'Instagram Followers — Premium','Instagram','Followers','MainPanel','₹640','₹927','100 / 50,000','active'],
+  [1044,'Instagram Likes — Instant','Instagram','Likes','MainPanel','₹103','₹149','50 / 50,000','active'],
+  [1180,'Instagram Reels Views','Instagram','Views','FastSMM','₹27','₹39','500 / 1,000,000','active'],
+  [2051,'TikTok Followers — Non Drop','TikTok','Followers','MainPanel','₹482','₹699','100 / 100,000','active'],
+  [2052,'TikTok Likes — Premium','TikTok','Likes','FastSMM','₹213','₹308','50 / 50,000','active'],
+  [3010,'YouTube Subscribers','YouTube','Followers','MainPanel','₹1,310','₹1,899','100 / 20,000','inactive'],
+  [3011,'YouTube Views — High Retention','YouTube','Views','FastSMM','₹68','₹99','500 / 1,000,000','active'],
+  [4005,'Facebook Page Followers','Facebook','Followers','MainPanel','₹448','₹649','100 / 50,000','active'],
+  [5002,'X Followers — Premium','X','Followers','FastSMM','₹620','₹899','100 / 25,000','active'],
+  [6001,'Telegram Members — Non Drop','Telegram','Followers','MainPanel','₹344','₹499','100 / 100,000','active'],
+  [6002,'Telegram Post Views','Telegram','Views','MainPanel','₹13','₹19','500 / 500,000','inactive']
+];
+var REMOTE = [
+  [1042,'Instagram Followers | Non Drop | Max 100K | Instant','Instagram Followers',412,100,100000,true],
+  [1043,'Instagram Followers | Premium Quality | Real Looking','Instagram Followers',640,100,50000,true],
+  [1051,'Instagram Followers | Indian | HQ','Instagram Followers',755,100,20000,false],
+  [1044,'Instagram Likes | Instant Start | Non Drop','Instagram Likes',103,50,50000,true],
+  [1061,'Instagram Story Views | Fast','Instagram Likes',58,100,100000,false],
+  [2051,'TikTok Followers | Non Drop | Max 100K','TikTok Followers',482,100,100000,true],
+  [2061,'TikTok Followers | Real & Active | Slow','TikTok Followers',940,50,20000,false],
+  [3011,'YouTube Views | High Retention | Non Drop','YouTube Views',68,500,1000000,true],
+  [3021,'YouTube Likes | Worldwide','YouTube Views',240,50,50000,false],
+  [6001,'Telegram Members | Non Drop | Cheap','Telegram Members',344,100,100000,true],
+  [6011,'Telegram Reactions | Mixed Positive','Telegram Members',171,20,50000,false],
+  [7001,'Spotify Plays | Premium Accounts','Other Services',88,1000,500000,false]
+];
+
+/* ===================== HELPERS ===================== */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function money(n){ return '₹' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function fmt(n){ return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function flash(el, msg){
+  var box = el.closest('.pad, .bulkbar') || document.body;
+  var ok = box.querySelector('.ok');
+  if(!ok) return;
+  ok.textContent = msg; ok.classList.add('show');
+  setTimeout(function(){ ok.classList.remove('show'); }, 2200);
+}
+function act(btn, msg){ flash(btn, '✓ ' + msg); }
+function bulk(msg){
+  var n = document.querySelectorAll('#servicesTbl .rowchk:checked').length;
+  var ok = document.getElementById('bulkOk');
+  ok.textContent = '✓ ' + msg + ' ' + n + ' service' + (n===1?'':'s');
+  ok.classList.add('show');
+  setTimeout(function(){ ok.classList.remove('show'); }, 2200);
+}
+function checkBal(btn){
+  btn.textContent = 'Checking…';
+  setTimeout(function(){ btn.textContent = 'Check balance'; renderProviders(); }, 900);
+}
+function refetch(btn){
+  btn.textContent = 'Fetching…';
+  setTimeout(function(){
+    btn.textContent = 'Refresh from API';
+    document.getElementById('impCached').textContent = 'cached just now';
+    renderImport();
+  }, 900);
+}
+function pickColor(){
+  var v = document.getElementById('themeColor').value;
+  document.getElementById('themeHex').value = v;
+}
+
+/* ===================== RENDER ===================== */
+function stTag(s){ return '<span class="st st-'+s+'">'+s.replace('_',' ')+'</span>'; }
+
+function renderRecent(){
+  var rows = ORDERS.slice(0,5).map(function(o){
+    return '<tr onclick="showView(\'order\')"><td><b>'+o[0]+'</b></td><td>'+o[1]+'</td>'+
+      '<td class="hide-sm">'+esc(o[2])+'</td><td>'+o[4]+'</td><td>'+stTag(o[5])+'</td></tr>';
+  }).join('');
+  document.getElementById('recentTbl').innerHTML =
+    '<thead><tr><th>Code</th><th>Platform</th><th class="hide-sm">Service</th><th>Total</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+function renderProviders(){
+  document.getElementById('provList').innerHTML = PROVIDERS.map(function(p){
+    return '<div class="prov"><div class="pv-main"><b>'+p[0]+'</b><small>'+p[1]+'</small></div>'+
+      '<div class="pv-bal"><b>'+p[2]+'</b><span class="st st-'+(p[3]==='ok'?'completed':'paid')+'">'+p[3]+'</span></div></div>';
+  }).join('');
+}
+function renderOrders(){
+  var q = (document.getElementById('oSearch').value||'').toLowerCase();
+  var st = document.getElementById('fStatus').value;
+  var pl = document.getElementById('fPlat').value;
+  var list = ORDERS.filter(function(o){
+    if(st && o[5] !== st) return false;
+    if(pl && o[1] !== pl) return false;
+    if(q && (o[0]+o[2]+o[6]).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  var rows = list.map(function(o){
+    return '<tr onclick="showView(\'order\')"><td><b>'+o[0]+'</b><small class="sub">'+o[7]+'</small></td>'+
+      '<td>'+o[1]+'</td><td class="hide-sm">'+esc(o[2])+'</td><td>'+o[3]+'</td><td>'+o[4]+'</td>'+
+      '<td class="hide-sm">'+o[6]+'</td><td>'+stTag(o[5])+'</td>'+
+      '<td class="ta-r"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showView(\'order\')">Open</button></td></tr>';
+  }).join('') || '<tr><td colspan="8" class="empty">No orders match these filters.</td></tr>';
+  document.getElementById('ordersTbl').innerHTML =
+    '<thead><tr><th>Code</th><th>Platform</th><th class="hide-sm">Service</th><th>Qty</th><th>Total</th>'+
+    '<th class="hide-sm">WhatsApp</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody>';
+  document.getElementById('oCount').textContent = 'Showing '+list.length+' of 128 orders';
+}
+function resetFilters(){
+  document.getElementById('oSearch').value = '';
+  document.getElementById('fStatus').value = '';
+  document.getElementById('fPlat').value = '';
+  document.getElementById('fDate').value = '';
+  renderOrders();
+}
+function renderServices(){
+  var q = (document.getElementById('sSearch').value||'').toLowerCase();
+  var pl = document.getElementById('sPlat').value;
+  var ct = document.getElementById('sCat').value;
+  var stt = document.getElementById('sState').value;
+  var list = SERVICES.filter(function(s){
+    if(pl && s[2] !== pl) return false;
+    if(ct && s[3] !== ct) return false;
+    if(stt && s[8] !== stt) return false;
+    if(q && s[1].toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  var rows = list.map(function(s){
+    return '<tr><td><input type="checkbox" class="rowchk" onchange="countSel()"></td>'+
+      '<td class="mono">'+s[0]+'</td><td><b>'+esc(s[1])+'</b><small class="sub">'+s[2]+' · '+s[3]+'</small></td>'+
+      '<td class="hide-sm">'+s[4]+'</td><td class="hide-sm">'+s[5]+'</td><td><b>'+s[6]+'</b></td>'+
+      '<td class="hide-sm mono">'+s[7]+'</td><td>'+stTag(s[8]==='active'?'completed':'cancelled').replace(/>[a-z ]+</,'>'+s[8]+'<')+'</td>'+
+      '<td class="ta-r"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">No services match these filters.</td></tr>';
+  document.getElementById('servicesTbl').innerHTML =
+    '<thead><tr><th><input type="checkbox" onchange="toggleAll(this)"></th><th>ID</th><th>Service</th>'+
+    '<th class="hide-sm">Provider</th><th class="hide-sm">Cost</th><th>Price</th>'+
+    '<th class="hide-sm">Min / Max</th><th>State</th><th></th></tr></thead><tbody>'+rows+'</tbody>';
+  countSel();
+}
+function toggleAll(box){
+  var chks = document.querySelectorAll('#servicesTbl .rowchk');
+  for(var i=0;i<chks.length;i++) chks[i].checked = box.checked;
+  countSel();
+}
+function countSel(){
+  var n = document.querySelectorAll('#servicesTbl .rowchk:checked').length;
+  document.getElementById('selCount').textContent = n;
+  document.getElementById('bulkBar').classList.toggle('on', n > 0);
+}
+/* keyword lists kept at the top so they are easy to extend */
+var PLAT_WORDS = [['Instagram',['instagram','insta','ig ']], ['TikTok',['tiktok','tik tok']],
+                  ['YouTube',['youtube','yt ']],            ['Facebook',['facebook','fb ']],
+                  ['Telegram',['telegram','tg ']],          ['X',['twitter',' x ','x.com']]];
+var KIND_WORDS = [['Followers',['follower','member','subscriber','sub ']],
+                  ['Likes',    ['like','reaction','heart']],
+                  ['Views',    ['view','play','impression']]];
+function match(text, table){
+  for(var i=0;i<table.length;i++){
+    var words = table[i][1];
+    for(var j=0;j<words.length;j++){ if(text.indexOf(words[j]) > -1) return table[i][0]; }
+  }
+  return '';
+}
+/* the service name is more specific than the provider's category name
+   ("Telegram Reactions" sits under a category called "Telegram Members"),
+   so the name is matched first and the category is only a fallback */
+function detect(name, cat){
+  var n = ' ' + name.toLowerCase() + ' ', c = ' ' + cat.toLowerCase() + ' ';
+  return [ match(n, PLAT_WORDS) || match(c, PLAT_WORDS),
+           match(n, KIND_WORDS) || match(c, KIND_WORDS) ];
+}
+function renderImport(){
+  var q = (document.getElementById('impSearch').value||'').toLowerCase();
+  var cat = document.getElementById('impCat').value;
+  var auto = document.getElementById('autoDetect').checked;
+  var mk = parseFloat(document.getElementById('markup').value) || 0;
+  var list = REMOTE.filter(function(r){
+    if(cat && r[2] !== cat) return false;
+    if(q && r[1].toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  var rows = list.map(function(r, i){
+    var d = auto ? detect(r[1], r[2]) : ['', ''];
+    var price = Math.round(r[3] * (1 + mk/100));
+    var exists = r[6];
+    return '<tr'+(exists?' class="dim"':'')+'>'+
+      '<td><input type="checkbox" class="impchk" onchange="countImp()"'+(exists?'':' checked')+'></td>'+
+      '<td class="mono">'+r[0]+'</td>'+
+      '<td><b>'+esc(r[1])+'</b><small class="sub">'+esc(r[2])+'</small></td>'+
+      '<td class="hide-sm">'+(d[0] ? '<span class="chipx">'+d[0]+'</span>' : '<span class="muted">—</span>')+'</td>'+
+      '<td class="hide-sm">'+(d[1] ? '<span class="chipx">'+d[1]+'</span>' : '<span class="muted">—</span>')+'</td>'+
+      '<td class="hide-sm">'+money(r[3])+'</td>'+
+      '<td><b>'+money(price)+'</b></td>'+
+      '<td class="hide-sm mono">'+fmt(r[4])+' / '+fmt(r[5])+'</td>'+
+      '<td>'+(exists?'<span class="st st-paid">exists</span>':'<span class="st st-completed">new</span>')+'</td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">Nothing matches this search.</td></tr>';
+  document.getElementById('importTbl').innerHTML =
+    '<thead><tr><th><input type="checkbox" checked onchange="toggleImp(this)"></th><th>ID</th>'+
+    '<th>Provider service</th><th class="hide-sm">Platform</th><th class="hide-sm">Category</th>'+
+    '<th class="hide-sm">Cost</th><th>Your price</th><th class="hide-sm">Min / Max</th><th></th></tr></thead><tbody>'+rows+'</tbody>';
+  document.getElementById('impNote').textContent =
+    'Prices shown include your '+mk+'% markup. '+(auto?'Platform and category are detected from the provider category name.':'Auto-detect is off — assign platform and category after import.');
+  countImp();
+}
+function toggleImp(box){
+  var chks = document.querySelectorAll('#importTbl .impchk');
+  for(var i=0;i<chks.length;i++) chks[i].checked = box.checked;
+  countImp();
+}
+function countImp(){
+  var n = document.querySelectorAll('#importTbl .impchk:checked').length;
+  document.getElementById('impSel').textContent = n + ' selected';
+}
+function doImport(btn){
+  var n = document.querySelectorAll('#importTbl .impchk:checked').length;
+  if(!n){ flash(btn, 'Select at least one service to import.'); return; }
+  btn.textContent = 'Importing…';
+  setTimeout(function(){
+    btn.textContent = 'Import selected services';
+    flash(btn, '✓ Imported ' + n + ' service' + (n===1?'':'s') + ' (existing ones updated)');
+  }, 950);
+}
+
+/* ===================== VIEW SWITCHING ===================== */
+var TITLES = {
+  dashboard:['Dashboard','Overview of today'],
+  orders:['Orders','All customer orders'],
+  order:['Order detail','GK-8F42KD'],
+  services:['Services','What customers can buy'],
+  'import':['Import Services','Pull services from a provider'],
+  settings:['Settings','Site, orders and automation']
+};
+function showView(name){
+  var views = document.querySelectorAll('.view');
+  for(var i=0;i<views.length;i++) views[i].classList.toggle('on', views[i].id === 'v-'+name);
+  var links = document.querySelectorAll('.snav a[data-view]');
+  for(var j=0;j<links.length;j++) links[j].classList.toggle('on', links[j].dataset.view === name);
+  var t = TITLES[name] || ['',''];
+  document.getElementById('viewTitle').textContent = t[0];
+  document.getElementById('viewSub').textContent = t[1];
+  if(window.innerWidth < 1000) closeSide();
+  window.scrollTo(0,0);
+  if(name === 'orders') renderOrders();
+  if(name === 'services') renderServices();
+  if(name === 'import') renderImport();
+}
+function toggleSide(){ document.body.classList.toggle('side-open'); }
+function closeSide(){ document.body.classList.remove('side-open'); }
+document.addEventListener('click', function(e){
+  var a = e.target.closest('a[data-view]');
+  if(a){ e.preventDefault(); showView(a.dataset.view); }
+});
+
+/* ===================== BOOT ===================== */
+renderRecent(); renderProviders(); renderOrders(); renderServices(); renderImport();
+</script>
+
+</body>
+</html>

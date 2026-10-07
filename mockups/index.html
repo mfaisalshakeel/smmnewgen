@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups &mdash; SMM Panel (Phase 1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{--bg:#f6f7fb;--paper:#fff;--ink:#14172a;--ink-2:#454c66;--muted:#7d85a0;
+  --line:#e7eaf2;--acc:#4f46e5;--acc-soft:#eef0fe;--ok:#16a34a;
+  --shadow:0 1px 2px rgba(20,23,42,.04),0 10px 26px rgba(20,23,42,.07)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+  line-height:1.6;font-size:16px}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.02em}
+p{margin:0}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+header{padding:52px 0 34px;text-align:center}
+.tag{display:inline-block;background:var(--acc-soft);color:var(--acc);font-size:12px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:6px 14px;border-radius:999px;margin-bottom:16px}
+h1{font-size:clamp(28px,4.4vw,40px);font-weight:800}
+header p{color:var(--ink-2);max-width:60ch;margin:14px auto 0}
+h2{font-size:19px;font-weight:800;margin:40px 0 4px;display:flex;align-items:center;gap:11px}
+h2 .n{width:28px;height:28px;border-radius:9px;background:var(--acc);color:#fff;display:grid;place-items:center;
+  font-size:14px;font-weight:800;flex:none}
+.sub{color:var(--muted);font-size:14.5px;margin:0 0 18px 39px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;
+  flex-direction:column;transition:transform .18s, box-shadow .18s, border-color .18s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:#d6dbea}
+.card .k{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.card h3{font-size:17px;font-weight:800;margin:7px 0 7px}
+.card p{color:var(--muted);font-size:14px;flex:1}
+.row{display:flex;gap:9px;margin-top:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);
+  border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:700;background:var(--paper);cursor:pointer;
+  transition:all .15s;flex:1}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pri:hover{filter:brightness(1.08);color:#fff}
+.swatch{display:flex;gap:5px;margin-bottom:12px}
+.swatch i{width:20px;height:20px;border-radius:6px;display:block}
+.note{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--acc);
+  border-radius:12px;padding:18px 20px;margin:40px 0 10px}
+.note b{display:block;margin-bottom:6px;font-size:15px}
+.note p{color:var(--ink-2);font-size:14.5px}
+.note ul{margin:9px 0 0;padding-left:19px;color:var(--ink-2);font-size:14.5px}
+.note li{margin-bottom:5px}
+footer{text-align:center;color:var(--muted);font-size:13.5px;padding:40px 0 50px}
+@media (max-width:640px){ .sub{margin-left:0} h2{margin-top:32px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="tag">Phase 1 &bull; design only</span>
+  <h1>SMM Panel &mdash; design mockups</h1>
+  <p>Static HTML only: no PHP, no database, dummy data. Five front-site directions, a matching
+     order &amp; payment page for each, and two admin panel directions. Everything works in the
+     browser &mdash; platform switching, live pricing, modals, filters and the import screen.
+     Pick one front direction and one admin direction (mixing parts is fine).</p>
+</header>
+
+<h2><span class="n">1</span> Front site &mdash; 5 directions</h2>
+<p class="sub">All five share the same content and dummy data, so you are only choosing the look and the flow.</p>
+<div class="grid">
+
+  <div class="card">
+    <div class="swatch"><i style="background:#6c4df6"></i><i style="background:#a06bff"></i><i style="background:#f1ecff"></i><i style="background:#fff;border:1px solid #e7eaf2"></i></div>
+    <span class="k">Direction A</span>
+    <h3>Clean light</h3>
+    <p>Soft purple gradients, rounded cards, friendly and familiar. Closest to the viralborn.com feel.
+       Service cards side by side with the quantity box inside each card.</p>
+    <div class="row"><a class="btn pri" href="front-a.html">Front A</a><a class="btn" href="order-a.html">Order page</a></div>
+  </div>
+
+  <div class="card">
+    <div class="swatch"><i style="background:#00e8a3"></i><i style="background:#7b5cff"></i><i style="background:#10101e"></i><i style="background:#07070f"></i></div>
+    <span class="k">Direction B</span>
+    <h3>Bold dark / neon</h3>
+    <p>Dark background with a neon green accent, grid texture, uppercase headlines and monospace prices.
+       High contrast, looks technical and modern.</p>
+    <div class="row"><a class="btn pri" href="front-b.html">Front B</a><a class="btn" href="order-b.html">Order page</a></div>
+  </div>
+
+  <div class="card">
+    <div class="swatch"><i style="background:#1a1a18"></i><i style="background:#a8743a"></i><i style="background:#fdfcfa"></i><i style="background:#e6e3dc"></i></div>
+    <span class="k">Direction C</span>
+    <h3>Minimal / premium</h3>
+    <p>Lots of whitespace, serif headlines, thin dividing lines and a gold accent. Quiet and expensive
+       looking &mdash; fewer boxes, stronger typography.</p>
+    <div class="row"><a class="btn pri" href="front-c.html">Front C</a><a class="btn" href="order-c.html">Order page</a></div>
+  </div>
+
+  <div class="card">
+    <div class="swatch"><i style="background:#2563eb"></i><i style="background:#60a5fa"></i><i style="background:#e8efff"></i><i style="background:#f4f6fb"></i></div>
+    <span class="k">Direction D</span>
+    <h3>Guided wizard &mdash; easiest</h3>
+    <p>One question per screen with a progress bar: platform &rarr; service &rarr; quality &rarr; quantity
+       &rarr; link &rarr; confirm. Big buttons, a quantity slider, and a review step before payment.
+       Hardest to get wrong for a first-time buyer.</p>
+    <div class="row"><a class="btn pri" href="front-d.html">Front D</a><a class="btn" href="order-d.html">Order page</a></div>
+  </div>
+
+  <div class="card">
+    <div class="swatch"><i style="background:#e1306c"></i><i style="background:#2aabee"></i><i style="background:#ef4444"></i><i style="background:#f6f7f9"></i></div>
+    <span class="k">Direction E</span>
+    <h3>App style &mdash; mobile first</h3>
+    <p>Feels like a phone app: a grid of platform tiles, a segmented service switcher, and a sticky bottom
+       bar that always shows the running total. The whole page re-colours to the chosen platform, and the
+       order form slides up as a bottom sheet.</p>
+    <div class="row"><a class="btn pri" href="front-e.html">Front E</a><a class="btn" href="order-e.html">Order page</a></div>
+  </div>
+
+</div>
+
+<h2><span class="n">2</span> Admin panel &mdash; 2 directions</h2>
+<p class="sub">Same screens in both &mdash; only the sidebar treatment and accent colour differ. Use the sidebar links to move between screens.</p>
+<div class="grid">
+  <div class="card">
+    <div class="swatch"><i style="background:#4f46e5"></i><i style="background:#fff;border:1px solid #e7eaf2"></i><i style="background:#f5f6fa"></i></div>
+    <span class="k">Admin A</span>
+    <h3>Light sidebar</h3>
+    <p>White sidebar, indigo accent. Bright and plain &mdash; easier to read for long sessions.</p>
+    <div class="row"><a class="btn pri" href="admin-a.html">Open Admin A</a></div>
+  </div>
+  <div class="card">
+    <div class="swatch"><i style="background:#0f1729"></i><i style="background:#0ea5e9"></i><i style="background:#f4f6f9"></i></div>
+    <span class="k">Admin B</span>
+    <h3>Dark sidebar</h3>
+    <p>Dark navy sidebar against a light workspace, sky-blue accent. The usual dashboard look.</p>
+    <div class="row"><a class="btn pri" href="admin-b.html">Open Admin B</a></div>
+  </div>
+</div>
+
+<div class="note">
+  <b>What each admin panel contains</b>
+  <ul>
+    <li><b>Dashboard</b> &mdash; stat cards, provider balances with a Check balance button, recent orders</li>
+    <li><b>Orders</b> &mdash; search plus status, platform and date filters, paging</li>
+    <li><b>Order detail</b> &mdash; full order and payment data, provider order ID, profit, activity log, and every action (mark paid, send to provider, sync, refill, cancel, complete, refund)</li>
+    <li><b>Services</b> &mdash; filters and bulk actions (activate, deactivate, set markup, sync prices, delete)</li>
+    <li><b>Import Services</b> &mdash; provider picker, search and category filter, checkbox table, auto-detect toggle for platform and category, markup %, and update-vs-skip for services you already have</li>
+    <li><b>Settings</b> &mdash; site details, theme colour, logo and favicon, contact, head code, order automation and the cron key</li>
+  </ul>
+</div>
+
+<div class="note">
+  <b>Notes on this phase</b>
+  <p>Platform icons are drawn as plain inline SVG glyphs rather than real brand logos, so nothing
+     trademarked ships with the site. Prices are dummy and use &#8377;; the rate per 1,000 and the
+     quantity presets come from one shared data table at the bottom of each file, which is also where
+     the real services will plug in later. Checked at 375px and 1280px wide.</p>
+</div>
+
+<footer>Phase 1 &mdash; design only. No PHP, no database, no installer yet.</footer>
+
+</div>
+</body>
+</html>
