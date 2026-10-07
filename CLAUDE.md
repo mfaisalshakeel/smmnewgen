@@ -5,8 +5,8 @@ describes what is actually there rather than an intention.
 
 ## What this is
 
-A social-media-growth storefront plus admin panel. Plain PHP 8, MySQL, no
-framework, no Composer, no build step. It has to run on ordinary cPanel shared
+A social-media-growth storefront plus admin panel, both complete. Plain PHP 8,
+MySQL, no framework, no Composer, no build step. It has to run on ordinary cPanel shared
 hosting, so: no CLI requirement beyond an optional cron job, no writable paths
 outside `config/`, `storage/` and `uploads/`.
 
@@ -36,6 +36,9 @@ File-based, no route table.
 | `/admin/services` | `controllers/admin/services.php` |
 | `/admin/services/edit/7` | same file, `$params = ['edit', '7']` |
 | `/instagram`, `/instagram/followers`, `/refund-policy` | `controllers/_fallback.php` |
+| `/order`, `/order/GK-8F42KD`, `/order/GK-8F42KD/pay` | `controllers/order.php` |
+| `/api/track` | `controllers/api.php` |
+| `/sitemap.xml`, `/robots.txt` | named in the resolver, since a dot fails the slug rule |
 | anything else | `controllers/_404.php` |
 
 Rules:
@@ -110,6 +113,19 @@ Write a screen by hand only when it needs more than the spec can say — service
   refreshes cost, price and limits but keeps the name and description, because
   an admin may have rewritten them.
 
+## The storefront
+
+- `controllers/home.php` renders `/`, `/{platform}` and `/{platform}/{category}`
+  — `_fallback.php` looks the rows up and leaves them in `$GLOBALS`.
+- Only platforms, categories and services that are active are shown, and a
+  category with no active service is left out of the tabs entirely.
+- The platform strip and the category tabs are **real links**, so the site works
+  and is crawlable without JavaScript. `assets/js/app.js` only adds the live
+  price and the order modal; the order form posts normally when it is blocked.
+- Meta title and description come from the category, then the platform, then a
+  sensible generated line. Every page sets a canonical URL.
+- The theme colour from Settings is written into `--brand` in the layout.
+
 ## Order flow
 
 `pending → paid → processing → completed`, with `api_error` parked to one side.
@@ -150,6 +166,12 @@ These are the rules the code already follows; keep them.
   plain 404, so the endpoint cannot be probed for.
 - **Paths:** `app/`, `config/`, `storage/` and `install/*.sql` are denied in
   `.htaccess`; the nginx equivalent is in the README.
+- **Money:** the order price is recalculated from the service row on the server
+  every time. A price posted by the browser is ignored.
+- **Links:** when a platform sets `url_prefix`, an order's link must be on that
+  host, so an Instagram service cannot be ordered with a TikTok link.
+- **Spam:** the order and contact forms each carry a hidden honeypot field and
+  a per-IP throttle.
 
 ## Style
 

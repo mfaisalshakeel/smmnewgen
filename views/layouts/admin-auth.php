@@ -14,7 +14,7 @@ $siteName = setting('site_name', 'SMM Panel');
 <link rel="stylesheet" href="<?= e(asset('assets/css/admin.css')) ?>">
 </head>
 <body class="auth-body">
-<?php partial('admin/_sprite'); ?>
+<?php partial('partials/icons'); ?>
 <main class="auth-wrap">
   <div class="auth-brand">
     <span class="logo-mark"><svg class="icon"><use href="#i-rocket"></use></svg></span>

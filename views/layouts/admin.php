@@ -51,7 +51,7 @@ $nav = [
 <?php endif; ?>
 </head>
 <body>
-<?php partial('admin/_sprite'); ?>
+<?php partial('partials/icons'); ?>
 
 <div class="shell">
   <aside class="side">

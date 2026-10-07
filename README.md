@@ -4,8 +4,8 @@ A small social-media-growth storefront with an admin panel, written in plain PHP
 with no framework and no Composer. It runs on ordinary shared hosting: upload,
 open the installer, done.
 
-**Status:** the admin panel is complete and tested. The public storefront is a
-placeholder for now — the front site is the next phase.
+**Status:** complete and tested — storefront, ordering, payment, tracking and
+the full admin panel.
 
 ---
 
@@ -13,11 +13,13 @@ placeholder for now — the front site is the next phase.
 
 | | |
 |---|---|
+| **Storefront** | Platform switcher, category tabs, live pricing, order modal, FAQ, content pages, contact form, sitemap |
+| **Ordering** | Order → payment details → transaction id → tracking by code, plus a JSON status endpoint |
 | **Admin** | Dashboard, orders, services, provider import, platforms, categories, pages, FAQs, messages, payment methods, settings |
 | **Providers** | Any SMM API v2 provider. Import a provider's catalogue, mark it up, and resell |
 | **Orders** | Mark paid → send to provider → statuses come back on cron → completed |
 | **Manual services** | A service with no provider is never sent to an API; you deliver it yourself |
-| **Design** | Light sidebar admin (direction A from `mockups/`) |
+| **Design** | Direction A from `mockups/` — clean light front, light sidebar admin |
 
 Requirements: PHP 8.0+, MySQL 5.7+ / MariaDB 10.3+, and the `pdo_mysql`,
 `mbstring`, `json` and `curl` extensions.
@@ -170,6 +172,17 @@ No route table to keep in sync.
 
 ---
 
+## Running it locally
+
+```bash
+php -S 127.0.0.1:8000 tools/dev-router.php   # the site
+php -S 127.0.0.1:8001 tools/mock-provider.php # a fake provider
+```
+
+`tools/dev-router.php` makes PHP's built-in server behave like Apache with the
+shipped `.htaccess`. Without it, a URL with an extension (`/sitemap.xml`) is
+answered from disk and never reaches `index.php`. It is development only.
+
 ## Testing without a real provider
 
 ```bash
@@ -180,3 +193,25 @@ Add a provider with API URL `http://127.0.0.1:8001/` and any key. It returns 40
 realistic services, accepts orders, and walks each order forward on every status
 call, so you can watch the whole flow complete. An order whose link contains
 `fail-me` is refused, which is a quick way to see the `api_error` path.
+
+
+---
+
+## What a customer sees
+
+```
+/                        the default platform
+/instagram               that platform
+/instagram/followers     that platform and category
+/faq  /contact  /track   content and tracking
+/order/GK-8F42KD         their order: summary, payment details, live status
+/api/track?code=...      the same status as JSON
+/sitemap.xml /robots.txt for search engines
+```
+
+The platform strip and the category tabs are real links, so the site works —
+and is crawlable — with JavaScript blocked. The script only adds the live price
+and the order modal; without it the same form posts normally.
+
+The price is recalculated from the service row on every order. Nothing the
+browser says about money is trusted.

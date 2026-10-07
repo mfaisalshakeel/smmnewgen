@@ -7,6 +7,8 @@
  *
  *   /                      -> controllers/home.php
  *   /track                 -> controllers/track.php
+ *   /sitemap.xml           -> controllers/sitemap.php
+ *   /robots.txt            -> controllers/robots.php
  *   /admin                 -> controllers/admin/index.php
  *   /admin/services        -> controllers/admin/services.php
  *   /instagram             -> controllers/_fallback.php   (platform or page)
@@ -22,6 +24,15 @@
 function resolve_request(): void
 {
     $path     = current_path();
+
+    // Two well-known files carry a dot, which the slug rule below rejects, so
+    // they are named here rather than loosening that rule for everything.
+    $wellKnown = ['sitemap.xml' => 'sitemap', 'robots.txt' => 'robots'];
+    if (isset($wellKnown[$path])) {
+        dispatch(CONTROLLER_PATH . '/' . $wellKnown[$path] . '.php', []);
+        return;
+    }
+
     $segments = $path === '' ? [] : explode('/', $path);
 
     // A segment that is not a plain slug can never name a controller file.
