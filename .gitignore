@@ -5,3 +5,4 @@ storage/cache/*
 uploads/branding/*
 !uploads/branding/.gitignore
 .DS_Store
+build/

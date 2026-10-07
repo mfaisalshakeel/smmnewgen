@@ -130,6 +130,14 @@ if ($code === null) {
 }
 
 // ============================================================ one order ====
+// The code is the only thing guarding this page, and the page shows the
+// customer's link and WhatsApp number. A real customer reloads a handful of
+// times; this stops anyone walking the code space looking for them.
+if (!rate_limit('view_order', 60, 600)) {
+    http_response_code(429);
+    view('_404', ['title' => 'Too many requests', 'meta_robots' => 'noindex, nofollow']);
+}
+
 $order = one(
     'SELECT o.*, p.name AS platform_name, pm.name AS payment_name
        FROM orders o

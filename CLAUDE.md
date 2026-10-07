@@ -190,6 +190,13 @@ accent). The front site will follow one of `mockups/front-*.html`. The mockups
 stay in the repository as the visual reference; they ship with no PHP and are
 not part of the deployed site.
 
+## Releasing
+
+`bash tools/build-release.sh` stages only what the live site needs and zips it
+into `build/`. `mockups/` and `tools/` stay in the repository but never ship -
+`tools/mock-provider.php` must not reach a real server. The script fails loudly
+if anything on that list sneaks in.
+
 ## Testing
 
 No test framework. The checks that matter:
@@ -206,3 +213,9 @@ php -S 127.0.0.1:8001 tools/mock-provider.php  # a fake provider
 Then: install from an empty database, add the mock provider, import, place an
 order, mark it paid, run `php cron.php` a few times and watch it complete. An
 order whose link contains `fail-me` exercises the `api_error` path.
+
+Before a release, do that run against the **zip**, not the working copy -
+unpack `build/*.zip` somewhere clean and install it from zero. The one bug that
+only showed up that way was a CRUD form field missing from a POST becoming NULL
+in a NOT NULL column, which the working copy never hit because its forms always
+carried every field.

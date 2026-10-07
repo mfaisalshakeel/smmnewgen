@@ -197,6 +197,18 @@ call, so you can watch the whole flow complete. An order whose link contains
 
 ---
 
+## Building the upload zip
+
+```bash
+bash tools/build-release.sh
+```
+
+Writes `build/smm-panel-YYYY-MM-DD.zip` with only what the live site needs. The
+mockups and the development tools are deliberately left out — the mock provider
+must never reach a real server.
+
+---
+
 ## What a customer sees
 
 ```

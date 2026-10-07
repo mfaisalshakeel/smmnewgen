@@ -174,6 +174,13 @@ function crud_save(array $spec): void
             }
         }
 
+        // A field the request did not carry at all arrives as null, which a
+        // NOT NULL column rejects. Only a select that offers a "none" choice
+        // is meant to store NULL; everything else falls back to its default.
+        if ($value === null || $value === '') {
+            $value = !empty($field['empty']) ? null : ($field['default'] ?? '');
+        }
+
         if (isset($field['save']) && is_callable($field['save'])) {
             $value = $field['save']($value, $_POST);
         }

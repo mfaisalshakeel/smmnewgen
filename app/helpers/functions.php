@@ -258,6 +258,12 @@ function current_path(): string
 /** Render a view file to a string. Views only ever see what they are given. */
 function render(string $name, array $data = []): string
 {
+    // View names are written by us, never taken from a request - this is here
+    // so that stays true even if someone later wires one up to input.
+    if (!preg_match('~^[A-Za-z0-9_/-]+$~', $name) || str_contains($name, '..')) {
+        throw new RuntimeException("Bad view name: {$name}");
+    }
+
     $file = VIEW_PATH . '/' . ltrim($name, '/') . '.php';
     if (!is_file($file)) {
         throw new RuntimeException("View not found: {$name}");
