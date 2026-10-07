@@ -1,0 +1,186 @@
+# CLAUDE.md
+
+Conventions for this codebase. Written from the code that exists, so it
+describes what is actually there rather than an intention.
+
+## What this is
+
+A social-media-growth storefront plus admin panel. Plain PHP 8, MySQL, no
+framework, no Composer, no build step. It has to run on ordinary cPanel shared
+hosting, so: no CLI requirement beyond an optional cron job, no writable paths
+outside `config/`, `storage/` and `uploads/`.
+
+## Shape
+
+```
+index.php              the only web entry point
+cron.php               CLI entry point
+app/core/bootstrap.php config, errors, session, security headers
+app/core/resolver.php  URL -> controller file
+app/helpers/           the function library (see below)
+controllers/           one file per URL
+views/                 one file per screen
+assets/                css + js, no build step
+install/               installer, schema, seed
+```
+
+## Routing
+
+File-based, no route table.
+
+| URL | runs |
+|---|---|
+| `/` | `controllers/home.php` |
+| `/track` | `controllers/track.php` |
+| `/admin` | `controllers/admin/index.php` |
+| `/admin/services` | `controllers/admin/services.php` |
+| `/admin/services/edit/7` | same file, `$params = ['edit', '7']` |
+| `/instagram`, `/instagram/followers`, `/refund-policy` | `controllers/_fallback.php` |
+| anything else | `controllers/_404.php` |
+
+Rules:
+
+- A URL segment must match `^[A-Za-z0-9_-]+$` or the request 404s. This is what
+  stops path traversal — there is no other place to get it wrong.
+- Files starting with `_` are includes, never routes.
+- Every `controllers/admin/*` request runs `controllers/admin/_middleware.php`
+  first. That is where the login check and the CSRF check live, so individual
+  admin controllers never repeat them.
+- Controllers are plain PHP files, not classes. They see `$params` and the
+  helpers. They end by calling `view()` or `redirect()`.
+
+## Helpers
+
+`app/helpers/functions.php` is loaded for every request and holds the whole
+general-purpose set. Add to it rather than writing a one-off inline:
+
+- config / db — `cfg`, `db`, `q`, `one`, `all`, `col`, `insert_row`, `update_row`, `delete_row`
+- settings — `setting`, `set_setting`, `settings_all`
+- output — `e`, `money`, `qty_fmt`, `excerpt`, `when`
+- urls — `base_url`, `url`, `asset`, `redirect`, `current_path`, `is_https`
+- views — `view`, `render`, `partial`
+- forms — `csrf_token`, `csrf_field`, `csrf_verify`, `old`, `keep_old`, `flash`, `flashes`
+- auth — `admin_user`, `is_admin`, `require_admin`
+- misc — `slugify`, `random_code`, `client_ip`, `rate_limit`, `rate_limit_hit`, `log_line`
+
+Loaded on demand by the controllers that need them:
+
+- `crud.php` — the shared admin CRUD (`crud_handle`, `options_from`)
+- `SmmApi.php` — the only class in the codebase
+- `detect.php` — platform/category guessing for the import screen
+- `orders.php` — `send_order_to_provider`, `sync_order_statuses`, `map_provider_status`
+- `cron.php` — `run_cron_tasks`, shared by `cron.php` and `controllers/cron.php`
+
+## Database
+
+- Every query goes through `q`/`one`/`all`/`col`, which prepare and bind. There
+  is no string interpolation of values into SQL anywhere. Where a column or
+  table name is dynamic (the CRUD engine) it comes from a spec written in PHP,
+  never from the request.
+- `settings` is a key/value table read once per request.
+- Order status is an enum: `pending, paid, processing, completed, partial,
+  cancelled, refunded, api_error`.
+- Foreign keys use `ON DELETE SET NULL` where history matters (an order keeps
+  working when its service is deleted) and `CASCADE` where it does not.
+
+## Shared admin CRUD
+
+Simple admin screens describe their table once and `crud_handle()` runs the
+list / new / edit / save / delete / toggle cycle against
+`views/admin/crud/list.php` and `form.php`. Providers, platforms, categories,
+payment methods, pages and FAQs all work this way.
+
+Write a screen by hand only when it needs more than the spec can say — services
+(bulk actions), import, orders (detail with actions), settings, messages.
+
+## Service import
+
+`controllers/admin/import.php`.
+
+- The provider catalogue is fetched once and cached in `storage/cache/` for 30
+  minutes. "Refresh from API" forces a refetch. If the provider is unreachable
+  the cached copy is still shown, with a warning.
+- Auto-detect matches the **service name first, the provider's category name
+  second** — the name is more specific. Word lists live at the top of
+  `detect.php`; matching is whole-word and allows a plural, because providers
+  write "Followers" not "Follower".
+- Markup sets the price: `cost × (1 + markup/100)`.
+- A service already in the catalogue is matched on
+  `(provider_id, provider_service_id)`. Re-importing with "update existing"
+  refreshes cost, price and limits but keeps the name and description, because
+  an admin may have rewritten them.
+
+## Order flow
+
+`pending → paid → processing → completed`, with `api_error` parked to one side.
+
+- `send_order_to_provider()` is the only place an order is handed to an API. A
+  failure stores the provider's own words in `api_error` and leaves the order
+  where it is, so it can be retried.
+- A service with no provider is manual: the order moves to `processing` and a
+  person delivers it. No API call is made.
+- `map_provider_status()` turns provider wording into our enum. **An unknown
+  status maps to `processing`, never to `completed`** — never silently finish an
+  order we are not sure about.
+- `sync_order_statuses()` groups open orders per provider and uses the
+  multi-status call, so a hundred open orders is a handful of requests.
+- Every state change writes an `order_logs` row.
+
+## Security
+
+These are the rules the code already follows; keep them.
+
+- **Output:** everything printed in a view goes through `e()`. The two
+  exceptions are deliberate and commented: page content and `head_code`, both
+  written by an admin.
+- **SQL:** prepared statements only, via the helpers.
+- **CSRF:** every non-GET admin request is checked in `_middleware.php`. Forms
+  use `csrf_field()`. A bad token ends the request with 419.
+- **Passwords:** `password_hash` / `password_verify`, rehashed on login when the
+  algorithm moves on.
+- **Sessions:** `session_regenerate_id(true)` on login and on password change.
+  Cookies are `httponly`, `samesite=Lax`, and `secure` over HTTPS.
+- **Login:** throttled per IP, 8 failures per 10 minutes. Successful logins do
+  not count against the budget. The failure message never says which field was
+  wrong.
+- **Uploads:** accepted only if `getimagesize()` can read them, saved with an
+  extension we chose, and `uploads/.htaccess` turns off the PHP engine.
+- **Installer:** refuses to run once `install/install.lock` exists.
+- **Cron URL:** `/cron/{cron_key}` compared with `hash_equals`; a wrong key is a
+  plain 404, so the endpoint cannot be probed for.
+- **Paths:** `app/`, `config/`, `storage/` and `install/*.sql` are denied in
+  `.htaccess`; the nginx equivalent is in the README.
+
+## Style
+
+- Comments explain **why**, not what. No comment that restates the line below it.
+- Function and variable names are words, not abbreviations.
+- Views contain presentation only; anything that needs a decision belongs in the
+  controller or a helper.
+- Keep the design tokens in `assets/css/admin.css` (`:root`) — do not hard-code
+  colours in markup.
+- British or American spelling, but match the file you are in.
+
+## Design
+
+The admin follows direction A in `mockups/admin-a.html` (light sidebar, indigo
+accent). The front site will follow one of `mockups/front-*.html`. The mockups
+stay in the repository as the visual reference; they ship with no PHP and are
+not part of the deployed site.
+
+## Testing
+
+No test framework. The checks that matter:
+
+```bash
+# syntax
+find . -name '*.php' -not -path './.git/*' -exec php -l {} \;
+
+# a real run
+php -S 127.0.0.1:8000 .                       # the app
+php -S 127.0.0.1:8001 tools/mock-provider.php  # a fake provider
+```
+
+Then: install from an empty database, add the mock provider, import, place an
+order, mark it paid, run `php cron.php` a few times and watch it complete. An
+order whose link contains `fail-me` exercises the `api_error` path.

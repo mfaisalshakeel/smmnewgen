@@ -1,0 +1,7 @@
+config/config.php
+install/install.lock
+storage/logs/*.log
+storage/cache/*
+uploads/branding/*
+!uploads/branding/.gitignore
+.DS_Store
