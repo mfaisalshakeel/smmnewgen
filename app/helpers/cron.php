@@ -42,7 +42,7 @@ function run_cron_tasks(): string
     }
 
     // 4. Housekeeping.
-    q('DELETE FROM rate_limits WHERE created_at < (NOW() - INTERVAL 1 DAY)');
+    q('DELETE FROM rate_limits WHERE created_at < ?', [date('Y-m-d H:i:s', time() - 86400)]);
 
     $lines[] = '[' . date('c') . '] cron done';
     log_line('cron: sent ' . $sent . ', failed ' . $failed);

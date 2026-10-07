@@ -3,10 +3,12 @@
  * The complete helper set. Controllers and views use these and nothing else -
  * if something new is needed it is added here, not invented inline.
  *
- *   config / db     cfg, db, q, one, all, col, insert_row, update_row, delete_row
+ *   config / db     cfg, db, db_driver, sqlite_path, q, one, all, col,
+ *                   insert_row, update_row, delete_row
  *   settings        setting, set_setting, settings_all
  *   output          e, money, qty_fmt, excerpt, when
- *   urls            base_url, url, asset, redirect, current_path, is_https
+ *   urls            app_base_path, base_url, url, asset, redirect, current_path,
+ *                   is_https
  *   views           view, render, partial
  *   forms           csrf_token, csrf_field, csrf_verify, old, flash, flashes
  *   auth            admin_user, is_admin, require_admin
@@ -23,11 +25,48 @@ function cfg(string $key, $default = null)
     return $GLOBALS['__config'][$key] ?? $default;
 }
 
+/** 'mysql' or 'sqlite'. MySQL stays the default for sites installed before
+ *  SQLite was an option and so have no db_driver line in their config. */
+function db_driver(): string
+{
+    return cfg('db_driver', 'mysql') === 'sqlite' ? 'sqlite' : 'mysql';
+}
+
+/**
+ * Absolute path to the SQLite file. A relative db_name is taken as relative to
+ * the project, so the configured value stays short and the file cannot be
+ * pinned to one machine's layout.
+ */
+function sqlite_path(): string
+{
+    $path = (string) cfg('db_name', 'storage/database.sqlite');
+    return str_starts_with($path, '/') || preg_match('~^[A-Za-z]:~', $path)
+        ? $path
+        : BASE_PATH . '/' . ltrim($path, '/');
+}
+
 /** Shared PDO connection, opened on first use. */
 function db(): PDO
 {
     static $pdo = null;
     if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    if (db_driver() === 'sqlite') {
+        $pdo = new PDO('sqlite:' . sqlite_path(), null, null, $options);
+        // SQLite ignores foreign keys unless asked, and the schema relies on them.
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        // Shared hosting means concurrent requests; WAL keeps readers out of
+        // the writer's way and the timeout stops a lock becoming an error.
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        $pdo->exec('PRAGMA busy_timeout = 5000');
         return $pdo;
     }
 
@@ -38,13 +77,7 @@ function db(): PDO
         cfg('db_charset', 'utf8mb4')
     );
 
-    $pdo = new PDO($dsn, cfg('db_user', ''), cfg('db_pass', ''), [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
-
-    return $pdo;
+    return $pdo = new PDO($dsn, cfg('db_user', ''), cfg('db_pass', ''), $options);
 }
 
 /**
@@ -131,10 +164,20 @@ function setting(string $key, $default = null)
     return array_key_exists($key, $all) && $all[$key] !== '' ? $all[$key] : $default;
 }
 
+/**
+ * Upsert, written the long way because MySQL and SQLite spell their upserts
+ * differently and this runs on both.
+ */
 function set_setting(string $key, $value): void
 {
-    q('INSERT INTO settings (`k`, `v`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `v` = VALUES(`v`)',
-        [$key, (string) $value]);
+    $value = (string) $value;
+
+    if (!col('SELECT 1 FROM settings WHERE `k` = ?', [$key])) {
+        insert_row('settings', ['k' => $key, 'v' => $value]);
+    } else {
+        update_row('settings', ['v' => $value], '`k` = ?', [$key]);
+    }
+
     settings_all(true);
 }
 
@@ -195,6 +238,41 @@ function is_https(): bool
     return strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
 }
 
+/**
+ * The URL path the application is mounted at: '' at a domain root,
+ * '/shop' in a subfolder.
+ *
+ * This deliberately does not trust SCRIPT_NAME first. Servers disagree about
+ * it - PHP's built-in server reports the directory index it resolved
+ * (/install/index.php) where Apache reports the rewritten front controller
+ * (/index.php) - and taking its dirname then eats a real URL segment.
+ */
+function app_base_path(): string
+{
+    static $base = null;
+    if ($base !== null) {
+        return $base;
+    }
+
+    // 1. The site URL the installer stored. Its path is the answer.
+    $configured = trim((string) cfg('base_url', ''));
+    if ($configured !== '') {
+        return $base = rtrim((string) (parse_url($configured, PHP_URL_PATH) ?? ''), '/');
+    }
+
+    // 2. Where this project sits inside the document root.
+    $docRoot = str_replace('\\', '/', (string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    $docRoot = rtrim((string) (realpath($docRoot) ?: $docRoot), '/');
+    $appRoot = str_replace('\\', '/', rtrim((string) (realpath(BASE_PATH) ?: BASE_PATH), '/'));
+
+    if ($docRoot !== '' && str_starts_with($appRoot, $docRoot)) {
+        return $base = rtrim(substr($appRoot, strlen($docRoot)), '/');
+    }
+
+    // 3. Nothing else to go on.
+    return $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+}
+
 /** Site root with no trailing slash. */
 function base_url(): string
 {
@@ -210,9 +288,8 @@ function base_url(): string
 
     $scheme = is_https() ? 'https' : 'http';
     $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $dir    = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
 
-    return $base = $scheme . '://' . $host . $dir;
+    return $base = $scheme . '://' . $host . app_base_path();
 }
 
 /** Build an absolute URL for an application path. */
@@ -242,7 +319,7 @@ function current_path(): string
 {
     $uri  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
     $uri  = rawurldecode($uri);
-    $root = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+    $root = app_base_path();
 
     if ($root !== '' && str_starts_with($uri, $root)) {
         $uri = substr($uri, strlen($root));
@@ -416,12 +493,16 @@ function client_ip(): string
  */
 function rate_limit(string $action, int $max, int $windowSeconds, bool $record = true): bool
 {
-    $ip = client_ip();
-    q('DELETE FROM rate_limits WHERE created_at < (NOW() - INTERVAL ? SECOND)', [$windowSeconds]);
+    $ip     = client_ip();
+    // The cutoff is worked out here rather than in SQL, so the query says the
+    // same thing to MySQL and to SQLite.
+    $cutoff = date('Y-m-d H:i:s', time() - $windowSeconds);
+
+    q('DELETE FROM rate_limits WHERE created_at < ?', [$cutoff]);
 
     $used = (int) col(
-        'SELECT COUNT(*) FROM rate_limits WHERE action = ? AND ip = ? AND created_at >= (NOW() - INTERVAL ? SECOND)',
-        [$action, $ip, $windowSeconds], 0
+        'SELECT COUNT(*) FROM rate_limits WHERE action = ? AND ip = ? AND created_at >= ?',
+        [$action, $ip, $cutoff], 0
     );
 
     if ($used >= $max) {

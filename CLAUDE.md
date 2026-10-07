@@ -6,7 +6,7 @@ describes what is actually there rather than an intention.
 ## What this is
 
 A social-media-growth storefront plus admin panel, both complete. Plain PHP 8,
-MySQL, no framework, no Composer, no build step. It has to run on ordinary cPanel shared
+MySQL or SQLite, no framework, no Composer, no build step. It has to run on ordinary cPanel shared
 hosting, so: no CLI requirement beyond an optional cron job, no writable paths
 outside `config/`, `storage/` and `uploads/`.
 
@@ -39,12 +39,21 @@ File-based, no route table.
 | `/order`, `/order/GK-8F42KD`, `/order/GK-8F42KD/pay` | `controllers/order.php` |
 | `/api/track` | `controllers/api.php` |
 | `/sitemap.xml`, `/robots.txt` | named in the resolver, since a dot fails the slug rule |
+| `/install` | `install/index.php`, before any routing exists |
 | anything else | `controllers/_404.php` |
 
 Rules:
 
+- **No URL contains `.php`.** `/install` is a directory with an `index.php`, so
+  every server resolves it without a rewrite rule; `/install/index.php` 301s to
+  `/install`.
 - A URL segment must match `^[A-Za-z0-9_-]+$` or the request 404s. This is what
   stops path traversal — there is no other place to get it wrong.
+- `current_path()` works out the mount point from the configured `base_url`,
+  then from `DOCUMENT_ROOT` vs `BASE_PATH`, and only falls back to
+  `SCRIPT_NAME`. Servers disagree about `SCRIPT_NAME` — PHP's built-in server
+  reports the directory index it resolved, Apache reports the rewritten front
+  controller — and taking its dirname eats a real URL segment.
 - Files starting with `_` are includes, never routes.
 - Every `controllers/admin/*` request runs `controllers/admin/_middleware.php`
   first. That is where the login check and the CSRF check live, so individual
@@ -76,6 +85,13 @@ Loaded on demand by the controllers that need them:
 
 ## Database
 
+- **Two drivers.** `db_driver` in the config is `mysql` or `sqlite`; `db()`
+  builds the right connection, and SQLite gets `foreign_keys`, WAL and a busy
+  timeout turned on. A config with no `db_driver` means MySQL.
+- **Write SQL both understand.** No `NOW()`, no `INTERVAL`, no
+  `ON DUPLICATE KEY UPDATE` — bind a `date('Y-m-d H:i:s')` instead of asking the
+  database for the time, and spell an upsert out. The schema exists twice,
+  `install/schema.sql` and `install/schema.sqlite.sql`; keep them in step.
 - Every query goes through `q`/`one`/`all`/`col`, which prepare and bind. There
   is no string interpolation of values into SQL anywhere. Where a column or
   table name is dynamic (the CRUD engine) it comes from a spec written in PHP,
@@ -206,9 +222,14 @@ No test framework. The checks that matter:
 find . -name '*.php' -not -path './.git/*' -exec php -l {} \;
 
 # a real run
-php -S 127.0.0.1:8000 .                       # the app
-php -S 127.0.0.1:8001 tools/mock-provider.php  # a fake provider
+php -S localhost:8000                          # the app
+php -S localhost:8001 tools/mock-provider.php  # a fake provider
 ```
+
+Run the install-to-completed pass **on both drivers**. The two bugs that only
+one of them showed were `NOW()` left in the installer's admin INSERT, which
+SQLite has no function for, and `current_path()` trusting `SCRIPT_NAME`, which
+only broke once a router script changed what the server reported.
 
 Then: install from an empty database, add the mock provider, import, place an
 order, mark it paid, run `php cron.php` a few times and watch it complete. An

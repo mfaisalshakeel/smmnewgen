@@ -52,4 +52,4 @@ echo
 echo "Built $OUT/$NAME.zip  ($(du -h "$OUT/$NAME.zip" | cut -f1))"
 echo
 echo "Upload it to public_html, unzip, make config/, storage/logs/ and"
-echo "uploads/branding/ writable, then open /install/install.php"
+echo "uploads/branding/ writable, then open /install"

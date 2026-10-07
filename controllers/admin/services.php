@@ -47,8 +47,8 @@ if ($action === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             }
             q("UPDATE services SET price_per_1000 = ROUND(cost_per_1000 * (1 + ? / 100), 4),
-                      updated_at = NOW() WHERE id IN ($in)",
-                array_merge([$markup], $ids));
+                      updated_at = ? WHERE id IN ($in)",
+                array_merge([$markup, date('Y-m-d H:i:s')], $ids));
             flash('success', "Applied a {$markup}% markup to {$count} {$noun}.");
             break;
 

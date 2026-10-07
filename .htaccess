@@ -14,7 +14,8 @@ DirectoryIndex index.php
 </IfModule>
 
 # Application internals are never served directly
-RedirectMatch 404 ^/(app|config|storage|install/schema\.sql)(/|$)
+RedirectMatch 404 ^/(app|config|storage)(/|$)
+RedirectMatch 404 ^/install/.*\.(sql|lock)$
 
 # Never execute anything inside uploads/
 <IfModule mod_rewrite.c>

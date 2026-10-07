@@ -7,6 +7,9 @@
  */
 return [
     // --- database ---------------------------------------------------------
+    // 'mysql' or 'sqlite'. With sqlite, db_name is the file (relative to the
+    // project) and the host, user and password are ignored.
+    'db_driver'  => 'mysql',
     'db_host'    => 'localhost',
     'db_name'    => 'smm_panel',
     'db_user'    => 'smm_user',

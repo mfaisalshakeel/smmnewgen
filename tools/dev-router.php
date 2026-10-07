@@ -29,5 +29,12 @@ if ($path !== '/' && is_file($file)) {
     return false;
 }
 
-// Everything else is the application's.
+// Everything else is the application's. Apache rewrites those to the front
+// controller, so say the same thing here - php -S would otherwise report the
+// directory index it resolved and the app would read the URL differently
+// under the two servers.
+$_SERVER['SCRIPT_NAME']     = '/index.php';
+$_SERVER['PHP_SELF']        = '/index.php';
+$_SERVER['SCRIPT_FILENAME'] = $root . '/index.php';
+
 require $root . '/index.php';

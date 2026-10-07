@@ -12,12 +12,31 @@
 
 declare(strict_types=1);
 
-define('BASE_PATH', dirname(__DIR__));
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', dirname(__DIR__));
+}
 define('LOCK_FILE', __DIR__ . '/install.lock');
 define('CONFIG_FILE', BASE_PATH . '/config/config.php');
 
-session_name('smminstall');
-session_start();
+// This file IS the installer, and /install is its address.
+//
+// Every server resolves /install to this file by itself: Apache and nginx
+// through DirectoryIndex, PHP's built-in server through its directory index.
+// So it has to run standalone - redirecting from here would only loop. The
+// root index.php can also hand over to it, which is what INSTALL_VIA_APP says.
+//
+// The one address worth tidying is /install/index.php: the same page with
+// .php hanging off the end.
+$requestPath = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '');
+if (!defined('INSTALL_VIA_APP') && str_ends_with($requestPath, '/index.php')) {
+    header('Location: ' . substr($requestPath, 0, -strlen('/index.php')), true, 301);
+    exit;
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_name('smminstall');
+    session_start();
+}
 
 // ---------------------------------------------------------------------------
 // Refuse to run twice
@@ -33,7 +52,7 @@ if (is_file(LOCK_FILE) && !$justFinished) {
           <p>If you really need to install again, delete <code>install/install.lock</code>
              and <code>config/config.php</code> first &mdash; that wipes the link to your
              current database, so take a backup.</p>
-          <p class="mt"><a class="btn" href="../admin/login">Go to the admin login</a></p>
+          <p class="mt"><a class="btn" href="' . h(site_url('admin/login')) . '">Go to the admin login</a></p>
         </div>');
     exit;
 }
@@ -45,33 +64,68 @@ $errors = [];
 // Step 2 - database
 // ---------------------------------------------------------------------------
 if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $driver = ($_POST['db_driver'] ?? 'mysql') === 'sqlite' ? 'sqlite' : 'mysql';
     $db = [
         'host' => trim((string) ($_POST['db_host'] ?? 'localhost')),
         'name' => trim((string) ($_POST['db_name'] ?? '')),
         'user' => trim((string) ($_POST['db_user'] ?? '')),
         'pass' => (string) ($_POST['db_pass'] ?? ''),
     ];
-    $baseUrl = rtrim(trim((string) ($_POST['base_url'] ?? '')), '/');
+    $sqliteFile = trim((string) ($_POST['sqlite_file'] ?? 'storage/database.sqlite'));
+    $baseUrl    = rtrim(trim((string) ($_POST['base_url'] ?? '')), '/');
 
-    if ($db['name'] === '') { $errors[] = 'Database name is required.'; }
-    if ($db['user'] === '') { $errors[] = 'Database user is required.'; }
+    if ($driver === 'sqlite') {
+        if ($sqliteFile === '') {
+            $sqliteFile = 'storage/database.sqlite';
+        }
+        if (!extension_loaded('pdo_sqlite')) {
+            $errors[] = 'This server has no pdo_sqlite extension, so SQLite is not available here.';
+        }
+        // The file must stay out of the web root, and storage/ is already
+        // denied by .htaccess. Keep it relative so the config survives a move.
+        if (str_contains($sqliteFile, '..') || preg_match('~^(/|[A-Za-z]:)~', $sqliteFile)) {
+            $errors[] = 'Give a path inside the project, like storage/database.sqlite';
+        }
+    } else {
+        if ($db['name'] === '') { $errors[] = 'Database name is required.'; }
+        if ($db['user'] === '') { $errors[] = 'Database user is required.'; }
+    }
 
     if (!$errors) {
         try {
-            $pdo = new PDO(
-                "mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4",
-                $db['user'],
-                $db['pass'],
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
+            if ($driver === 'sqlite') {
+                $file = BASE_PATH . '/' . ltrim($sqliteFile, '/');
+                $dir  = dirname($file);
+                if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
+                    throw new RuntimeException('Could not create ' . $sqliteFile . ' - check folder permissions.');
+                }
+                if (!is_writable($dir)) {
+                    throw new RuntimeException($dir . ' is not writable, so the database file cannot be created.');
+                }
 
-            run_schema($pdo, __DIR__ . '/schema.sql');
+                $pdo = new PDO('sqlite:' . $file, null, null,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $pdo->exec('PRAGMA foreign_keys = ON');
+
+                run_schema($pdo, __DIR__ . '/schema.sqlite.sql');
+                @chmod($file, 0660);
+            } else {
+                $pdo = new PDO(
+                    "mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4",
+                    $db['user'],
+                    $db['pass'],
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                );
+
+                run_schema($pdo, __DIR__ . '/schema.sql');
+            }
 
             $config = [
-                'db_host'    => $db['host'],
-                'db_name'    => $db['name'],
-                'db_user'    => $db['user'],
-                'db_pass'    => $db['pass'],
+                'db_driver'  => $driver,
+                'db_host'    => $driver === 'sqlite' ? '' : $db['host'],
+                'db_name'    => $driver === 'sqlite' ? $sqliteFile : $db['name'],
+                'db_user'    => $driver === 'sqlite' ? '' : $db['user'],
+                'db_pass'    => $driver === 'sqlite' ? '' : $db['pass'],
                 'db_charset' => 'utf8mb4',
                 'app_key'    => bin2hex(random_bytes(32)),
                 'cron_key'   => bin2hex(random_bytes(16)),
@@ -83,7 +137,7 @@ if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Could not write config/config.php. Make the config/ folder writable (755) and try again.';
             } else {
                 $_SESSION['install_db'] = true;
-                header('Location: install.php?step=3');
+                header('Location: ?step=3');
                 exit;
             }
         } catch (PDOException $e) {
@@ -99,7 +153,7 @@ if ($step === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // ---------------------------------------------------------------------------
 if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_SESSION['install_db']) || !is_file(CONFIG_FILE)) {
-        header('Location: install.php?step=2');
+        header('Location: ?step=2');
         exit;
     }
 
@@ -125,25 +179,37 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         try {
             $config = require CONFIG_FILE;
-            $pdo = new PDO(
-                "mysql:host={$config['db_host']};dbname={$config['db_name']};charset=utf8mb4",
-                $config['db_user'],
-                $config['db_pass'],
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
+            $pdo = connect_from_config($config);
 
             $exists = $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
             if ((int) $exists > 0) {
                 $errors[] = 'An administrator already exists in this database.';
             } else {
+                // The timestamp is bound rather than written as NOW(), which
+                // SQLite does not have.
                 $stmt = $pdo->prepare(
-                    'INSERT INTO admins (username, email, password_hash, created_at) VALUES (?, ?, ?, NOW())'
+                    'INSERT INTO admins (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)'
                 );
-                $stmt->execute([$username, $email, password_hash($pass, PASSWORD_DEFAULT)]);
+                $stmt->execute([
+                    $username,
+                    $email,
+                    password_hash($pass, PASSWORD_DEFAULT),
+                    date('Y-m-d H:i:s'),
+                ]);
 
                 if ($site !== '') {
-                    $pdo->prepare('INSERT INTO settings (`k`,`v`) VALUES (?,?) ON DUPLICATE KEY UPDATE `v` = VALUES(`v`)')
-                        ->execute(['site_name', $site]);
+                    // Spelled out rather than using an upsert, because MySQL
+                    // and SQLite word theirs differently.
+                    $update = $pdo->prepare('UPDATE settings SET v = ? WHERE k = ?');
+                    $update->execute([$site, 'site_name']);
+                    if ($update->rowCount() === 0) {
+                        $exists = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+                        $exists->execute(['site_name']);
+                        if (!$exists->fetchColumn()) {
+                            $pdo->prepare('INSERT INTO settings (k, v) VALUES (?, ?)')
+                                ->execute(['site_name', $site]);
+                        }
+                    }
                 }
 
                 file_put_contents(LOCK_FILE, 'Installed ' . date('c') . PHP_EOL);
@@ -151,7 +217,7 @@ if ($step === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 unset($_SESSION['install_db']);
 
                 $_SESSION['install_done'] = ['cron_key' => $config['cron_key']];
-                header('Location: install.php?step=4');
+                header('Location: ?step=4');
                 exit;
             }
         } catch (Throwable $e) {
@@ -179,18 +245,18 @@ if ($step === 4) {
         ' . $cronLine . '
         <p class="warn"><b>One last step:</b> delete the <code>install/</code> folder from your
            server. Everything still works without it.</p>
-        <p class="mt"><a class="btn" href="../admin/login">Log in to the admin panel</a></p>
+        <p class="mt"><a class="btn" href="' . h(site_url('admin/login')) . '">Log in to the admin panel</a></p>
       </div>');
     exit;
 }
 
 if ($step === 3) {
     if (empty($_SESSION['install_db']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header('Location: install.php?step=2');
+        header('Location: ?step=2');
         exit;
     }
     render_page('Create your administrator', '
-      <form method="post" action="install.php?step=3" class="box">
+      <form method="post" action="?step=3" class="box">
         <h2>Step 3 &mdash; administrator account</h2>
         <p class="sub">This is the account you will use to log in at <code>/admin</code>.</p>
         ' . errors_html($errors) . '
@@ -214,25 +280,81 @@ if ($step === 3) {
 }
 
 if ($step === 2) {
+    $chosen    = ($_POST['db_driver'] ?? 'mysql') === 'sqlite' ? 'sqlite' : 'mysql';
+    $hasSqlite = extension_loaded('pdo_sqlite');
+    $hasMysql  = extension_loaded('pdo_mysql');
+
     render_page('Database', '
-      <form method="post" action="install.php?step=2" class="box">
+      <form method="post" action="?step=2" class="box">
         <h2>Step 2 &mdash; database</h2>
-        <p class="sub">Create an empty MySQL database and user in cPanel first, then paste the
-           details here. The tables are created for you.</p>
+        <p class="sub">Pick where your data lives. MySQL is the usual choice on shared hosting;
+           SQLite needs no database server at all and keeps everything in one file.</p>
         ' . errors_html($errors) . '
-        <label>Database host
-          <input name="db_host" value="' . h($_POST['db_host'] ?? 'localhost') . '" required></label>
-        <label>Database name
-          <input name="db_name" value="' . h($_POST['db_name'] ?? '') . '" required></label>
-        <label>Database user
-          <input name="db_user" value="' . h($_POST['db_user'] ?? '') . '" required></label>
-        <label>Database password
-          <input type="password" name="db_pass" value=""></label>
+
+        <div class="choice">
+          <label class="opt' . ($chosen === "mysql" ? " on" : "") . ($hasMysql ? "" : " off") . '">
+            <input type="radio" name="db_driver" value="mysql"' . ($chosen === "mysql" ? " checked" : "")
+              . ($hasMysql ? "" : " disabled") . '>
+            <b>MySQL / MariaDB</b>
+            <small>' . ($hasMysql
+                ? "Create an empty database and user in cPanel first."
+                : "Not available: this server has no pdo_mysql.") . '</small>
+          </label>
+          <label class="opt' . ($chosen === "sqlite" ? " on" : "") . ($hasSqlite ? "" : " off") . '">
+            <input type="radio" name="db_driver" value="sqlite"' . ($chosen === "sqlite" ? " checked" : "")
+              . ($hasSqlite ? "" : " disabled") . '>
+            <b>SQLite</b>
+            <small>' . ($hasSqlite
+                ? "One file, no server, nothing to set up. Good for a small shop."
+                : "Not available: this server has no pdo_sqlite.") . '</small>
+          </label>
+        </div>
+
+        <div data-for="mysql">
+          <label>Database host
+            <input name="db_host" value="' . h($_POST['db_host'] ?? 'localhost') . '"></label>
+          <label>Database name
+            <input name="db_name" value="' . h($_POST['db_name'] ?? '') . '"></label>
+          <label>Database user
+            <input name="db_user" value="' . h($_POST['db_user'] ?? '') . '"></label>
+          <label>Database password
+            <input type="password" name="db_pass" value=""></label>
+        </div>
+
+        <div data-for="sqlite">
+          <label>Database file <span class="hint">inside the project, kept out of the web root</span>
+            <input name="sqlite_file"
+                   value="' . h($_POST['sqlite_file'] ?? 'storage/database.sqlite') . '"></label>
+          <p class="note">Back this file up the way you would back up a database &mdash; it
+             <em>is</em> your database.</p>
+        </div>
+
         <label>Site URL <span class="hint">leave empty to detect automatically</span>
           <input name="base_url" value="' . h($_POST['base_url'] ?? '') . '"
                  placeholder="' . h(guess_base_url()) . '"></label>
-        <button class="btn" type="submit">Connect and create tables</button>
-      </form>');
+        <button class="btn" type="submit">Create the tables</button>
+      </form>
+
+      <script>
+      /* Show only the fields that belong to the chosen driver. Without this the
+         form still works - both sets post, and the server reads the ones it
+         needs. */
+      (function () {
+        var radios = document.querySelectorAll(\'input[name="db_driver"]\');
+        function sync() {
+          var picked = document.querySelector(\'input[name="db_driver"]:checked\');
+          picked = picked ? picked.value : "mysql";
+          document.querySelectorAll("[data-for]").forEach(function (block) {
+            block.style.display = block.getAttribute("data-for") === picked ? "" : "none";
+          });
+          document.querySelectorAll(".opt").forEach(function (opt) {
+            opt.classList.toggle("on", opt.querySelector("input").value === picked);
+          });
+        }
+        radios.forEach(function (r) { r.addEventListener("change", sync); });
+        sync();
+      })();
+      </script>');
     exit;
 }
 
@@ -257,7 +379,7 @@ render_page('Requirements', '
     <table>' . $rows . '</table>
     ' . ($blocked
         ? '<p class="warn">Fix the items marked &#10007; and reload this page.</p>'
-        : '<a class="btn" href="install.php?step=2">Continue</a>') . '
+        : '<a class="btn" href="?step=2">Continue</a>') . '
   </div>');
 
 
@@ -265,19 +387,63 @@ render_page('Requirements', '
 // Helpers (installer only - the application helpers are not loaded yet)
 // ===========================================================================
 
+/** Open a connection from a written config, for whichever driver it names. */
+function connect_from_config(array $config): PDO
+{
+    $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+
+    if (($config['db_driver'] ?? 'mysql') === 'sqlite') {
+        $file = $config['db_name'];
+        if (!preg_match('~^(/|[A-Za-z]:)~', $file)) {
+            $file = BASE_PATH . '/' . ltrim($file, '/');
+        }
+        $pdo = new PDO('sqlite:' . $file, null, null, $options);
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        return $pdo;
+    }
+
+    return new PDO(
+        "mysql:host={$config['db_host']};dbname={$config['db_name']};charset=utf8mb4",
+        $config['db_user'],
+        $config['db_pass'],
+        $options
+    );
+}
+
 function h($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * The site root, and anything under it.
+ *
+ * Inside the app the helper library has already worked this out, so use it.
+ * Standalone, the site root is the folder above this one - SCRIPT_NAME is
+ * /install/index.php, or /shop/install/index.php in a subfolder.
+ */
+function site_url(string $path = ''): string
+{
+    if (function_exists('url')) {
+        return url($path);
+    }
+
+    $https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off')
+          || ($_SERVER['SERVER_PORT'] ?? '') === '443'
+          || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $dir   = rtrim(str_replace(chr(92), '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? ''))), '/');
+    if ($dir === '.' || $dir === '/') {
+        $dir = '';
+    }
+
+    return ($https ? 'https' : 'http') . '://' . $host . $dir
+         . ($path === '' ? '' : '/' . ltrim($path, '/'));
+}
+
 function guess_base_url(): string
 {
-    $https  = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off')
-           || ($_SERVER['SERVER_PORT'] ?? '') === '443';
-    $scheme = $https ? 'https' : 'http';
-    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $dir    = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? ''))), '/');
-    return $scheme . '://' . $host . $dir;
+    return site_url();
 }
 
 function requirement_checks(): array
@@ -287,8 +453,12 @@ function requirement_checks(): array
     return [
         ['label' => 'PHP 8.0 or newer', 'ok' => PHP_VERSION_ID >= 80000,
          'value' => PHP_VERSION, 'required' => true],
-        ['label' => 'PDO MySQL extension', 'ok' => extension_loaded('pdo_mysql'),
-         'value' => extension_loaded('pdo_mysql') ? 'enabled' : 'missing', 'required' => true],
+        ['label' => 'A database driver (MySQL or SQLite)',
+         'ok' => extension_loaded('pdo_mysql') || extension_loaded('pdo_sqlite'),
+         'value' => implode(' + ', array_filter([
+             extension_loaded('pdo_mysql')  ? 'pdo_mysql'  : null,
+             extension_loaded('pdo_sqlite') ? 'pdo_sqlite' : null,
+         ])) ?: 'neither', 'required' => true],
         ['label' => 'mbstring extension', 'ok' => extension_loaded('mbstring'),
          'value' => extension_loaded('mbstring') ? 'enabled' : 'missing', 'required' => true],
         ['label' => 'JSON extension', 'ok' => extension_loaded('json'),
@@ -333,7 +503,7 @@ function run_schema(PDO $pdo, string $file): void
 
 function write_config(string $path, array $config): bool
 {
-    $lines = ["<?php", "/** Written by install/install.php - edit by hand only when moving servers. */", "return ["];
+    $lines = ["<?php", "/** Written by the installer - edit by hand only when moving servers. */", "return ["];
     foreach ($config as $key => $value) {
         $lines[] = sprintf("    %-12s => %s,", var_export($key, true),
             is_bool($value) ? ($value ? 'true' : 'false') : var_export($value, true));
@@ -386,6 +556,15 @@ td.r{text-align:right;color:#838aa0;font-size:13px}
 .ok{color:#16a34a;font-weight:700}
 .bad{color:#dc2626;font-weight:700}
 .meh{color:#d97706;font-weight:700}
+.choice{display:grid;gap:10px;margin-bottom:20px}
+.opt{display:block;border:1.5px solid #e8eaf1;border-radius:11px;padding:13px 15px;cursor:pointer;
+  margin:0;font-weight:400;transition:border-color .15s,background .15s}
+.opt.on{border-color:#4f46e5;background:#f7f8ff}
+.opt.off{opacity:.5;cursor:not-allowed}
+.opt input{width:auto;display:inline;margin:0 8px 0 0;vertical-align:middle}
+.opt b{font-size:14.5px;font-weight:600;color:#141726}
+.opt small{display:block;color:#838aa0;font-size:12.5px;margin-top:3px;font-weight:400}
+.note{background:#f5f6fa;border-radius:9px;padding:11px 13px;font-size:12.5px;color:#4a5068;margin:0 0 15px}
 .errors{background:#fdeaea;border:1px solid #f6caca;color:#b91c1c;border-radius:9px;
   padding:12px 14px 12px 30px;margin:0 0 18px;font-size:13.5px}
 .warn{background:#fff7e6;border:1px solid #f6e2b8;color:#8a5d2a;border-radius:9px;

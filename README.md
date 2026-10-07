@@ -21,16 +21,21 @@ the full admin panel.
 | **Manual services** | A service with no provider is never sent to an API; you deliver it yourself |
 | **Design** | Direction A from `mockups/` — clean light front, light sidebar admin |
 
-Requirements: PHP 8.0+, MySQL 5.7+ / MariaDB 10.3+, and the `pdo_mysql`,
-`mbstring`, `json` and `curl` extensions.
+Requirements: PHP 8.0+, the `mbstring`, `json` and `curl` extensions, and a
+database — either **MySQL 5.7+ / MariaDB 10.3+** (`pdo_mysql`) or **SQLite**
+(`pdo_sqlite`). SQLite needs no database server at all: the whole thing lives
+in one file under `storage/`, which is already blocked from the web.
 
 ---
 
 ## Installing on cPanel
 
-1. **Create the database.** In cPanel → *MySQL Databases*, create a database and
-   a user, and give the user *All Privileges* on it. Note the three values —
-   cPanel prefixes them, so they look like `myacct_smm`, `myacct_smmuser`.
+1. **Create the database** — only if you want MySQL. In cPanel → *MySQL
+   Databases*, create a database and a user, and give the user *All Privileges*
+   on it. cPanel prefixes the names, so they look like `myacct_smm`,
+   `myacct_smmuser`.
+
+   Picking **SQLite** in the installer instead skips this step entirely.
 
 2. **Upload the files.** Put everything in `public_html` (or a subfolder if the
    panel is not on the main domain). `mockups/` and `tools/` are development
@@ -39,10 +44,12 @@ Requirements: PHP 8.0+, MySQL 5.7+ / MariaDB 10.3+, and the `pdo_mysql`,
 3. **Make three folders writable** (755 is usually enough, 775 if your host is
    strict): `config/`, `storage/logs/`, `uploads/branding/`.
 
-4. **Open `https://yourdomain.com/install/install.php`.** It checks the server,
-   asks for the database details, creates the tables and seed data, then asks
-   for your admin username and password. It writes `config/config.php` with a
-   random app key and cron key, and locks itself afterwards.
+4. **Open `https://yourdomain.com/install`.** It checks the server, lets you
+   choose MySQL or SQLite, creates the tables and seed data, then asks for your
+   admin username and password. It writes `config/config.php` with a random app
+   key and cron key, and locks itself afterwards.
+
+   Visiting any other page before this redirects here, so you cannot miss it.
 
 5. **Delete the `install/` folder.** Everything keeps working without it.
 
@@ -175,13 +182,24 @@ No route table to keep in sync.
 ## Running it locally
 
 ```bash
-php -S 127.0.0.1:8000 tools/dev-router.php   # the site
-php -S 127.0.0.1:8001 tools/mock-provider.php # a fake provider
+php -S localhost:8000                         # the site
+php -S localhost:8001 tools/mock-provider.php # a fake provider
 ```
 
-`tools/dev-router.php` makes PHP's built-in server behave like Apache with the
-shipped `.htaccess`. Without it, a URL with an extension (`/sitemap.xml`) is
-answered from disk and never reaches `index.php`. It is development only.
+That is enough: every page a person clicks works, including `/install`.
+
+The one gap is `/sitemap.xml` and `/robots.txt`. PHP's built-in server answers
+any URL with a file extension straight from disk and never reaches `index.php`,
+so those two 404 locally — they are fine on Apache and nginx, and `/sitemap`
+and `/robots` serve the same thing everywhere. If you want the dotted versions
+locally too:
+
+```bash
+php -S localhost:8000 tools/dev-router.php
+```
+
+which makes the built-in server behave like Apache with the shipped
+`.htaccess`. It is development only and is not in the release zip.
 
 ## Testing without a real provider
 
@@ -216,14 +234,37 @@ must never reach a real server.
 /instagram               that platform
 /instagram/followers     that platform and category
 /faq  /contact  /track   content and tracking
+/install                 the installer, until it locks itself
 /order/GK-8F42KD         their order: summary, payment details, live status
 /api/track?code=...      the same status as JSON
-/sitemap.xml /robots.txt for search engines
+/sitemap.xml /robots.txt for search engines (also at /sitemap and /robots)
 ```
 
-The platform strip and the category tabs are real links, so the site works —
-and is crawlable — with JavaScript blocked. The script only adds the live price
+No URL anywhere has `.php` in it. The platform strip and the category tabs are
+real links, so the site works — and is crawlable — with JavaScript blocked. The script only adds the live price
 and the order modal; without it the same form posts normally.
 
 The price is recalculated from the service row on every order. Nothing the
 browser says about money is trusted.
+
+
+---
+
+## MySQL or SQLite?
+
+Both are first-class; the installer asks once and writes the choice into
+`config/config.php` as `db_driver`.
+
+| | MySQL / MariaDB | SQLite |
+|---|---|---|
+| Setup | create a database and user first | nothing to set up |
+| Where the data lives | on the database server | `storage/database.sqlite` |
+| Backups | export through phpMyAdmin or mysqldump | copy the one file |
+| Good for | any size, several sites sharing a server | a single shop; simplest possible install |
+
+The SQLite file sits in `storage/`, which `.htaccess` and the nginx config
+already deny, so it is not reachable over the web. Back it up the way you would
+back up a database — it *is* the database.
+
+To move between them, install fresh on the other driver and re-import your
+services; there is no converter.

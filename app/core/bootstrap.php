@@ -23,20 +23,20 @@ date_default_timezone_set('UTC');
 
 // ---------------------------------------------------------------------------
 // Configuration
+//
+// The helpers are loaded before the config is read: they only define
+// functions, and the not-installed branch below needs url() and
+// current_path() while there is still no config to read.
 // ---------------------------------------------------------------------------
+$GLOBALS['__config'] = [];
+require APP_PATH . '/helpers/functions.php';
+
 $configFile = CONFIG_PATH . '/config.php';
+$installed  = is_file($configFile);
 
-if (!is_file($configFile)) {
-    // Not installed yet - send everything to the installer.
-    if (is_file(BASE_PATH . '/install/install.php')) {
-        header('Location: ' . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/install/install.php');
-        exit;
-    }
-    http_response_code(500);
-    exit('Configuration missing and the installer is gone. Restore config/config.php.');
+if ($installed) {
+    $GLOBALS['__config'] = require $configFile;
 }
-
-$GLOBALS['__config'] = require $configFile;
 
 // ---------------------------------------------------------------------------
 // Error handling
@@ -71,8 +71,6 @@ set_error_handler(function ($severity, $message, $file, $line) {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-require APP_PATH . '/helpers/functions.php';
-
 // ---------------------------------------------------------------------------
 // Session - started for every request so flash messages and CSRF work
 // ---------------------------------------------------------------------------
@@ -92,3 +90,20 @@ if (session_status() === PHP_SESSION_NONE) {
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+
+// ---------------------------------------------------------------------------
+// The installer
+//
+// It lives at /install - no .php in the address, and the same address on the
+// built-in server, Apache and nginx. index.php hands over to it when this is
+// true; until the site is installed, every other URL is sent there.
+// ---------------------------------------------------------------------------
+define('IS_INSTALL_ROUTE', current_path() === 'install');
+
+if (!$installed && !IS_INSTALL_ROUTE) {
+    if (!is_file(BASE_PATH . '/install/index.php')) {
+        http_response_code(500);
+        exit('Configuration missing and the installer is gone. Restore config/config.php.');
+    }
+    redirect('install');
+}
