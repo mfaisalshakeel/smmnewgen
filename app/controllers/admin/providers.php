@@ -157,7 +157,7 @@ crud_handle([
                                  . 'your markup is applied.'],
         'supports_multi_status' => ['label' => 'Multiple status in one request', 'type' => 'select',
                          'options' => [1 => 'Supported', 0 => 'Not supported'],
-                         'empty' => 'Work it out automatically',
+                         'empty' => 'Work it out automatically', 'nullable' => true,
                          'hint' => 'Most providers take up to 100 order ids at once; some only one. '
                                  . 'Leave it automatic and press Multi-status on the list to ask the '
                                  . 'provider - Check asks as well.'],

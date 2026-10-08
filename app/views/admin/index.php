@@ -1,14 +1,19 @@
 <?php
 /**
  * Dashboard.
+ *
  * @var array $stats  @var array $recent  @var array $providers
+ * @var array $month  @var array $prevMonth  @var array $week  @var array $finish
+ * @var array $charts @var array $statuses  @var array $topServices
+ * @var array $platformMix  @var array $providerSpend
  */
-$delta = static function (float $now, float $before): array {
+$delta = static function (float $now, float $before, string $against = 'yesterday'): array {
     if ($before <= 0) {
-        return $now > 0 ? ['up', 'new today'] : ['muted', 'nothing yet'];
+        // No baseline is not growth; saying so in green would read as one.
+        return ['muted', $now > 0 ? 'nothing to compare with' : 'nothing yet'];
     }
     $pct = round((($now - $before) / $before) * 100);
-    return [$pct >= 0 ? 'up' : 'warn', ($pct >= 0 ? '+' : '') . $pct . '% vs yesterday'];
+    return [$pct >= 0 ? 'up' : 'warn', ($pct >= 0 ? '+' : '') . $pct . '% vs ' . $against];
 };
 
 [$ordersClass, $ordersNote]   = $delta((float) $stats['orders_today'],  (float) $stats['orders_yday']);
@@ -33,9 +38,71 @@ $delta = static function (float $now, float $before): array {
         <?= $stats['pending'] ? 'needs review' : 'all clear' ?></span></div>
   </div>
   <div class="scard">
-    <div class="si si-d"><svg class="icon"><use href="#i-users"></use></svg></div>
-    <div><small>Active services</small><b><?= qty_fmt($stats['services']) ?></b>
-      <span class="muted">across <?= qty_fmt($stats['platforms']) ?> platforms</span></div>
+    <div class="si si-d"><svg class="icon"><use href="#i-up"></use></svg></div>
+    <div><small>Profit, 30 days</small><b><?= e(money($month['profit'])) ?></b>
+      <span class="<?= $month['margin'] >= 0 ? 'up' : 'warn' ?>">
+        <?= e(number_format($month['margin'], 1)) ?>% margin</span></div>
+  </div>
+</div>
+
+<div class="cards4">
+  <div class="scard scard-plain">
+    <div><small>Revenue, 30 days</small><b><?= e(money($month['revenue'])) ?></b>
+      <?php [$monthClass, $monthNote] = $delta($month['revenue'], $prevMonth['revenue'], 'the 30 before'); ?>
+      <span class="<?= e($monthClass) ?>"><?= e($monthNote) ?></span></div>
+  </div>
+  <div class="scard scard-plain">
+    <div><small>Average order</small><b><?= e(money($stats['avg_order'])) ?></b>
+      <span class="muted"><?= qty_fmt($month['orders']) ?> orders in 30 days</span></div>
+  </div>
+  <div class="scard scard-plain">
+    <div><small>Completed</small><b><?= e(number_format($finish['rate'], 1)) ?>%</b>
+      <span class="<?= $finish['failed'] ? 'warn' : 'muted' ?>">
+        <?= qty_fmt($finish['failed']) ?> cancelled, refunded or failed</span></div>
+  </div>
+  <div class="scard scard-plain">
+    <div><small>In progress</small><b><?= qty_fmt($stats['open']) ?></b>
+      <span class="muted"><?= qty_fmt($stats['services']) ?> services on
+        <?= qty_fmt($stats['platforms']) ?> platforms</span></div>
+  </div>
+</div>
+
+<div class="charts2">
+  <div class="box box-pad"><?= $charts['revenue'] ?></div>
+  <div class="box box-pad"><?= $charts['orders'] ?></div>
+</div>
+
+<div class="charts3">
+  <div class="box box-pad">
+    <?= chart_bars(array_map(static function (array $row): array {
+          return [
+            'label' => str_replace('_', ' ', $row['status']),
+            'value' => (float) $row['count'],
+            'badge' => '<span class="st st-' . e($row['status']) . '"></span>',
+          ];
+        }, $statuses), 'Orders by status', static fn(float $v): string => qty_fmt((int) $v)) ?>
+  </div>
+  <div class="box box-pad">
+    <?= chart_bars(array_map(static function (array $row): array {
+          return ['label' => excerpt($row['label'], 34), 'value' => (float) $row['revenue'],
+                  'note' => qty_fmt((int) $row['orders']) . ' orders'];
+        }, $topServices), 'Top services, 30 days', static fn(float $v): string => money($v)) ?>
+  </div>
+  <div class="box box-pad">
+    <?= chart_bars(array_map(static function (array $row): array {
+          return ['label' => $row['label'], 'value' => (float) $row['revenue'],
+                  'note' => qty_fmt((int) $row['orders']) . ' orders'];
+        }, $platformMix), 'Revenue by platform, 30 days', static fn(float $v): string => money($v)) ?>
+  </div>
+</div>
+
+<div class="charts2">
+  <div class="box box-pad"><?= $charts['profit'] ?></div>
+  <div class="box box-pad">
+    <?= chart_bars(array_map(static function (array $row): array {
+          return ['label' => $row['label'], 'value' => (float) $row['cost'],
+                  'note' => qty_fmt((int) $row['orders']) . ' orders'];
+        }, $providerSpend), 'Provider spend, 30 days', static fn(float $v): string => money($v)) ?>
   </div>
 </div>
 

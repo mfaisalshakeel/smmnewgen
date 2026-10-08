@@ -33,7 +33,7 @@ crud_handle([
         'question'    => ['label' => 'Question', 'required' => true],
         'answer'      => ['label' => 'Answer', 'type' => 'textarea', 'rows' => 5, 'required' => true],
         'platform_id' => ['label' => 'Only for platform', 'type' => 'select', 'options' => $platforms,
-                          'empty' => 'Show on every platform'],
+                          'empty' => 'Show on every platform', 'nullable' => true],
         'sort_order'  => ['label' => 'Sort order', 'type' => 'number', 'default' => 0],
         'is_active'   => ['label' => 'Published', 'type' => 'checkbox', 'default' => 1],
     ],

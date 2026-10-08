@@ -377,3 +377,78 @@ svg{max-width:100%}
 .snav a.has-dot{position:relative}
 .updot{width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:auto;flex:none;
   box-shadow:0 0 0 3px var(--acc-soft)}
+
+/* --- dashboard charts -----------------------------------------------------
+   Every chart here plots one measure, so every chart is one colour. The data
+   is the only thing allowed to be loud: hairline grid, thin marks, and the
+   numbers folded underneath for anyone the plot does not reach. */
+.charts2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.charts3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.box-pad{padding:18px}
+.chart{margin:0}
+.chart-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.chart-head b{font-size:14.5px;font-weight:700}
+.chart-top{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.chart-plot{position:relative;height:200px}
+.chart-plot svg{display:block;width:100%;height:100%;overflow:visible}
+.ch-grid{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.ch-area{fill:var(--acc);opacity:.10}
+.ch-line{fill:none;stroke:var(--acc);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;
+  vector-effect:non-scaling-stroke}
+.ch-end{fill:var(--acc);stroke:var(--surface);stroke-width:2;vector-effect:non-scaling-stroke}
+.ch-hit{fill:transparent;cursor:crosshair}
+.chart-axis{display:flex;justify-content:space-between;margin-top:9px;font-size:11.5px;
+  font-weight:600;color:var(--muted)}
+
+/* columns */
+.chart-cols{display:flex;align-items:flex-end;gap:2px}
+.ch-col{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;cursor:crosshair}
+.ch-col i{display:block;width:100%;background:var(--acc);border-radius:4px 4px 0 0;
+  transition:opacity .15s;min-height:0}
+.ch-col:hover i{opacity:.75}
+
+/* tooltip */
+.ch-tip{position:absolute;z-index:5;pointer-events:none;background:var(--ink);color:#fff;
+  border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;white-space:nowrap;
+  transform:translate(-50%,-130%);box-shadow:0 6px 18px rgba(21,21,42,.25)}
+.ch-tip small{display:block;font-weight:600;opacity:.75;font-size:11px}
+
+/* horizontal bars */
+.ch-bars{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+/* The name gets the full width and the bar sits under it: a service name is
+   long enough that a narrow column would clip it, and a clipped label is
+   worse than a taller row. */
+.ch-row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 10px;
+  font-size:13px}
+.ch-name{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--ink-2);min-width:0}
+.ch-name>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-name .st{width:9px;height:9px;padding:0;border-radius:50%;flex:none}
+.ch-val{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ch-track{grid-column:1/-1;height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.ch-track i{display:block;height:100%;border-radius:999px;background:var(--acc)}
+.ch-note{grid-column:1/-1;color:var(--muted);font-size:11.5px;font-weight:600}
+.ch-note:empty{display:none}
+
+/* the same numbers as text */
+.chart-data{margin-top:14px}
+.chart-data summary{font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;
+  list-style:none;display:inline-flex;align-items:center;gap:6px}
+.chart-data summary::before{content:"+";font-size:14px;line-height:1}
+.chart-data[open] summary::before{content:"\2212"}
+.chart-data summary:hover{color:var(--acc)}
+.tbl-plain{min-width:0;margin-top:10px;font-size:12.5px}
+.tbl-plain caption{text-align:left;font-size:11.5px;font-weight:700;padding-bottom:6px}
+.tbl-plain td{padding:6px 0;font-variant-numeric:tabular-nums}
+.tbl-plain tbody tr:hover{background:none;cursor:default}
+.chart-none{color:var(--muted);font-size:13px;font-weight:600;padding:28px 0;text-align:center}
+.scard-plain{display:block;padding:16px 18px}
+.scard b{white-space:nowrap}
+@media (max-width:1400px){ .scard b{font-size:21px} }
+
+@media (max-width:1050px){
+  .charts3{grid-template-columns:1fr 1fr}
+}
+@media (max-width:760px){
+  .charts2,.charts3{grid-template-columns:1fr}
+}

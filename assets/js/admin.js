@@ -165,4 +165,45 @@
       });
     });
   })();
+
+  // --- chart tooltips ------------------------------------------------------
+  //
+  // The values are in the page already - every chart folds a table of them
+  // underneath - so this is an enhancement, not the only way to read them.
+  (function () {
+    function show(plot, element) {
+      var tip = plot.querySelector('[data-tip]');
+      if (!tip) { return; }
+
+      tip.innerHTML = '';
+      var value = document.createElement('span');
+      value.textContent = element.getAttribute('data-value');
+      var label = document.createElement('small');
+      label.textContent = element.getAttribute('data-label');
+      tip.appendChild(value);
+      tip.appendChild(label);
+      tip.hidden = false;
+
+      var box  = plot.getBoundingClientRect();
+      var mark = element.getBoundingClientRect();
+      tip.style.left = (mark.left - box.left + mark.width / 2) + 'px';
+      tip.style.top  = (element.hasAttribute('data-cy')
+        ? (parseFloat(element.getAttribute('data-cy')) / 200) * box.height
+        : mark.top - box.top) + 'px';
+    }
+
+    document.addEventListener('mouseover', function (event) {
+      var mark = event.target.closest('.ch-hit, .ch-col');
+      if (!mark) { return; }
+      var plot = mark.closest('.chart-plot');
+      if (plot) { show(plot, mark); }
+    });
+
+    document.addEventListener('mouseout', function (event) {
+      var plot = event.target.closest('.chart-plot');
+      if (!plot || plot.contains(event.relatedTarget)) { return; }
+      var tip = plot.querySelector('[data-tip]');
+      if (tip) { tip.hidden = true; }
+    });
+  })();
 })();

@@ -175,10 +175,15 @@ function crud_save(array $spec): void
         }
 
         // A field the request did not carry at all arrives as null, which a
-        // NOT NULL column rejects. Only a select that offers a "none" choice
-        // is meant to store NULL; everything else falls back to its default.
+        // NOT NULL column rejects. Only a field that says `nullable` is meant
+        // to store NULL; everything else falls back to its default.
+        //
+        // `empty` is the label on a select's blank choice and says nothing
+        // about the column - "Detect from the balance reply" is an invitation
+        // to leave it blank, not a request to write NULL into a NOT NULL
+        // column.
         if ($value === null || $value === '') {
-            $value = !empty($field['empty']) ? null : ($field['default'] ?? '');
+            $value = !empty($field['nullable']) ? null : ($field['default'] ?? '');
         }
 
         if (isset($field['save']) && is_callable($field['save'])) {

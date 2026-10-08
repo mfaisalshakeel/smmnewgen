@@ -115,6 +115,16 @@ payment methods, pages and FAQs all work this way.
 Write a screen by hand only when it needs more than the spec can say — services
 (bulk actions), import, orders (detail with actions), settings, messages.
 
+Two spec keys are easy to confuse:
+
+- `empty` is only the **label on a select's blank choice**. It says nothing
+  about the column.
+- `nullable` is what stores NULL when the field comes back blank. Without it a
+  blank field falls back to `default`, then to `''`.
+
+Getting that backwards is how "Detect from the balance reply" tried to write
+NULL into `providers.currency`, which is `NOT NULL`.
+
 ## Service import
 
 `controllers/admin/import.php`.
@@ -235,6 +245,29 @@ Write a screen by hand only when it needs more than the spec can say — service
   both drivers end up behaving the same way. `migration_already_done()` holds
   the list of phrases; MySQL and SQLite word them differently, so both
   wordings have to be in it.
+
+## The dashboard
+
+- The figures live in `app/helpers/stats.php`, not the controller, because each
+  one is a decision about what counts and they have to agree with each other.
+  The rule throughout: an order is money only once it is paid, so `pending`,
+  `cancelled` and `refunded` are out of every revenue, cost and profit figure
+  while still counting as orders.
+- **Never put the status list in a statement twice.** Placeholders bind by
+  position, so a second `status IN (?, ?, …)` in the same query silently shifts
+  every later binding and the answer comes back zero — no error, just wrong.
+  Two queries, one clause each.
+- Dates are worked out in PHP and bound. MySQL and SQLite disagree about
+  `INTERVAL`.
+- Charts are inline SVG from `app/helpers/charts.php`; there is no build step
+  and a dashboard is not worth breaking that for. **One measure per chart, so
+  one colour per chart** — orders and revenue are two charts, never one plot
+  with two y-scales, because the alignment between two scales is arbitrary and
+  invents a relationship the data does not have.
+- Every chart folds the same numbers underneath as a table. A value you can
+  only reach by hovering is a value some readers cannot reach at all.
+- Bars for named things are one hue. Shading each bar by its own length would
+  spend the only free channel restating the length.
 
 ## Security
 
