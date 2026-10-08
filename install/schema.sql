@@ -170,6 +170,22 @@ CREATE TABLE IF NOT EXISTS `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --- order activity log ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `service_packages` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `service_id` INT UNSIGNED NOT NULL,
+  `quantity` INT UNSIGNED NOT NULL,
+  `bonus_quantity` INT UNSIGNED NOT NULL DEFAULT 0,
+  `price` DECIMAL(12,2) NOT NULL DEFAULT 0,
+  `badge` VARCHAR(40) NOT NULL DEFAULT '',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  KEY `ix_service_packages_service` (`service_id`, `sort_order`),
+  CONSTRAINT `fk_service_packages_service` FOREIGN KEY (`service_id`)
+    REFERENCES `services` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `order_logs` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `order_id` INT UNSIGNED NOT NULL,

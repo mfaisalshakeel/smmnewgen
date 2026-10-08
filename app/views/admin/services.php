@@ -111,6 +111,8 @@ $query = http_build_query(array_filter($filters, 'strlen'));
             <td><span class="st st-<?= $service['is_active'] ? 'completed' : 'cancelled' ?>">
               <?= $service['is_active'] ? 'active' : 'off' ?></span></td>
             <td class="ta-r" style="white-space:nowrap">
+              <a class="btn btn-ghost btn-sm"
+                 href="<?= e(url('admin/packages?service_id=' . $service['id'])) ?>">Packages</a>
               <a class="btn btn-ghost btn-sm" href="<?= e(url('admin/services/edit/' . $service['id'])) ?>">Edit</a>
             </td>
           </tr>

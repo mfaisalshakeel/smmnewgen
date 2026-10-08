@@ -150,6 +150,20 @@ CREATE INDEX IF NOT EXISTS "ix_orders_status" ON "orders" ("status", "created_at
 CREATE INDEX IF NOT EXISTS "ix_orders_platform" ON "orders" ("platform_id");
 CREATE INDEX IF NOT EXISTS "ix_orders_provider" ON "orders" ("provider_id", "provider_order_id");
 
+CREATE TABLE IF NOT EXISTS "service_packages" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "service_id" INTEGER NOT NULL REFERENCES "services" ("id") ON DELETE CASCADE,
+  "quantity" INTEGER NOT NULL,
+  "bonus_quantity" INTEGER NOT NULL DEFAULT 0,
+  "price" REAL NOT NULL DEFAULT 0,
+  "badge" TEXT NOT NULL DEFAULT '',
+  "is_active" INTEGER NOT NULL DEFAULT 1,
+  "sort_order" INTEGER NOT NULL DEFAULT 0,
+  "created_at" TEXT
+);
+CREATE INDEX IF NOT EXISTS "ix_service_packages_service"
+  ON "service_packages" ("service_id", "sort_order");
+
 CREATE TABLE IF NOT EXISTS "order_logs" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "order_id" INTEGER NOT NULL,

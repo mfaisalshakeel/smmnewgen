@@ -137,4 +137,41 @@ return [
             'UPDATE "payment_methods" SET "driver" = \'manual\' WHERE "driver" = \'\'',
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_service_packages' => [
+        'label' => 'Preset quantity packages per service',
+        'mysql' => [
+            "CREATE TABLE IF NOT EXISTS `service_packages` (
+               `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `service_id` INT UNSIGNED NOT NULL,
+               `quantity` INT UNSIGNED NOT NULL,
+               `bonus_quantity` INT UNSIGNED NOT NULL DEFAULT 0,
+               `price` DECIMAL(12,2) NOT NULL DEFAULT 0,
+               `badge` VARCHAR(40) NOT NULL DEFAULT '',
+               `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+               `sort_order` INT NOT NULL DEFAULT 0,
+               `created_at` DATETIME NULL,
+               PRIMARY KEY (`id`),
+               KEY `ix_service_packages_service` (`service_id`, `sort_order`),
+               CONSTRAINT `fk_service_packages_service` FOREIGN KEY (`service_id`)
+                 REFERENCES `services` (`id`) ON DELETE CASCADE
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ],
+        'sqlite' => [
+            'CREATE TABLE IF NOT EXISTS "service_packages" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "service_id" INTEGER NOT NULL REFERENCES "services" ("id") ON DELETE CASCADE,
+               "quantity" INTEGER NOT NULL,
+               "bonus_quantity" INTEGER NOT NULL DEFAULT 0,
+               "price" REAL NOT NULL DEFAULT 0,
+               "badge" TEXT NOT NULL DEFAULT \'\',
+               "is_active" INTEGER NOT NULL DEFAULT 1,
+               "sort_order" INTEGER NOT NULL DEFAULT 0,
+               "created_at" TEXT
+             )',
+            'CREATE INDEX IF NOT EXISTS "ix_service_packages_service"
+               ON "service_packages" ("service_id", "sort_order")',
+        ],
+    ],
 ];

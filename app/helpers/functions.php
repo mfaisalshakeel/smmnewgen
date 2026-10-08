@@ -546,3 +546,25 @@ function log_line(string $message): void
     $file = STORAGE_PATH . '/logs/app-' . date('Y-m') . '.log';
     @file_put_contents($file, '[' . date('c') . '] ' . $message . PHP_EOL, FILE_APPEND | LOCK_EX);
 }
+
+/**
+ * The preset packages a service is sold in, cheapest first.
+ *
+ * A service with none is sold by quantity alone, which is why this returning
+ * an empty array is an ordinary answer rather than a problem.
+ */
+function service_packages(int $serviceId): array
+{
+    static $cache = [];
+
+    if (!isset($cache[$serviceId])) {
+        $cache[$serviceId] = all(
+            'SELECT * FROM service_packages
+              WHERE service_id = ? AND is_active = 1
+           ORDER BY sort_order, quantity',
+            [$serviceId]
+        );
+    }
+
+    return $cache[$serviceId];
+}

@@ -43,6 +43,21 @@ button,input,select{font:inherit;color:inherit}
 .wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 20px}
 .icon{width:1em;height:1em;display:inline-block;vertical-align:-.125em;fill:currentColor;flex:none}
 
+/* ---------- scrollbars ----------
+   The browser default is a wide grey slab with arrow buttons, and inside a
+   rounded modal it sits right on the corner. This is the one piece of
+   browser chrome a page is allowed to restyle, so it is worth doing. */
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px;
+  border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:padding-box;border-width:2px}
+::-webkit-scrollbar-button{display:none}
+::-webkit-scrollbar-corner{background:transparent}
+/* Keep the modal's bar clear of its rounded corner. */
+.modal{scrollbar-gutter:stable}
+
 /* ---------- buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;
   padding:13px 24px;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;
@@ -169,8 +184,8 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
   cursor:pointer;color:var(--ink-2);white-space:nowrap;transition:background .18s, color .18s}
 .tab:hover{color:var(--brand)}
 .tab.active{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(255,22,128,.26)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:22px}
-.card{min-width:0;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius);padding:26px;
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(248px,100%),1fr));gap:18px}
+.card{container-type:inline-size;min-width:0;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius);padding:26px;
   display:flex;flex-direction:column;position:relative;
   transition:transform .2s, box-shadow .2s, border-color .2s}
 .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--brand-line)}
@@ -184,11 +199,17 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
 .cdesc{color:var(--muted);font-size:13.5px;font-weight:500;min-height:40px}
 
 /* ---- quantity + amount (kept deliberately plain) ---- */
-.qp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0 0}
+.qp{display:grid;grid-template-columns:1fr;gap:10px;margin:20px 0 0;min-width:0}
+.qp-f{min-width:0}
+/* Side by side only where the amount actually fits; stacked otherwise,
+   because a cut-off price is worse than a tall card. A browser without
+   container queries keeps the stacked default, which is never wrong. */
+@container (min-width: 300px){ .qp{grid-template-columns:1fr 1fr} }
 .qp-f>span{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
-.qp input,.qp .price{width:100%;height:58px;border:1.5px solid var(--line);border-radius:14px;
-  padding:0 16px;font-size:21px;font-weight:800;letter-spacing:-.02em;outline:none;
-  background:var(--bg-soft);display:flex;align-items:center;font-family:inherit}
+.qp input,.qp .price{width:100%;min-width:0;height:54px;border:1.5px solid var(--line);
+  border-radius:14px;padding:0 13px;font-size:18px;font-weight:800;letter-spacing:-.02em;
+  outline:none;background:var(--bg-soft);display:flex;align-items:center;font-family:inherit}
+.qp .price{white-space:nowrap;display:block;line-height:52px}
 .qp input{-moz-appearance:textfield}
 .qp input::-webkit-outer-spin-button,.qp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .qp input:focus{border-color:var(--brand);background:#fff}
@@ -199,10 +220,26 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
 .qp-del{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ok);margin-top:14px}
 .feats{list-style:none;padding:0;margin:18px 0;display:grid;gap:9px}
 .feats li{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
-.tick{width:19px;height:19px;border-radius:50%;background:#e8f8ee;color:var(--ok);display:grid;
-  place-items:center;font-size:11px;flex:none}
+.tick{width:19px;height:19px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center;font-size:11px;flex:none}
 .card .btn{margin-top:auto}
 .empty{text-align:center;padding:50px 20px;color:var(--muted);font-weight:600;grid-column:1/-1}
+
+/* ---------- preset packages ----------
+   The gradient head is the card: the name and the quantity sit on it, so the
+   tiers read as a row of price tags rather than a row of paragraphs. */
+.card.pkg{padding:0;overflow:hidden}
+.pkg-head{background:var(--grad);color:#fff;padding:22px 18px;text-align:center;position:relative}
+.pkg-head b{display:block;font-size:17px;font-weight:800;line-height:1.25}
+.pkg-qty{display:block;font-size:31px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px}
+.pkg-badge{position:absolute;top:0;right:0;background:var(--ok);color:#fff;font-size:11px;font-weight:800;
+  padding:5px 11px;border-bottom-left-radius:10px;z-index:2}
+.pkg-body{padding:20px 18px 22px;display:flex;flex-direction:column;flex:1;text-align:center}
+.pkg-line{font-size:14px;font-weight:700;color:var(--ink)}
+.pkg-price{font-size:27px;font-weight:800;letter-spacing:-.025em;margin:8px 0 16px}
+.pkg-body .feats{text-align:left;margin:0 0 18px}
+.pkg-body .qp-del{justify-content:center;margin:0 0 14px}
+.pkg-body .btn{margin-top:auto}
 
 /* ---------- how it works ---------- */
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
@@ -460,8 +497,16 @@ a.tab{display:inline-flex;align-items:center}
   .ogrid{grid-template-columns:1fr}
 }
 @media (max-width:760px){
-  .nav-links,.nav-right .wa-link,.nav-right .btn-ghost{display:none}
-  .burger{display:block;margin-left:auto}
+  .nav-links,.nav-right .wa-link{display:none}
+  .burger{display:block}
+  /* Track Order stays in the bar: it is where someone who has already
+     paid is heading, and a burger hides it behind a guess. */
+  .nav-right{margin-left:auto;gap:8px}
+  .nav-right .btn-ghost{padding:9px 14px;font-size:13.5px}
+  .nav-right .btn-ghost .icon{display:none}
+  /* The profile mock is decoration, and on a phone it is a whole
+     screenful of it between the headline and the thing to tap. */
+  .pcard{display:none}
   .nav{height:64px}
   .hero{padding:34px 0 104px}
   .stats{grid-template-columns:1fr 1fr}

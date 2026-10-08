@@ -21,6 +21,8 @@
   // number actually breaks one.
   function recalc(card) {
     var input = card.querySelector('[data-qty]');
+    if (!input) { return; }        // a package card: its quantity is fixed
+
     var rate  = parseFloat(card.dataset.rate);
     var min   = parseInt(card.dataset.min, 10);
     var max   = parseInt(card.dataset.max, 10);
@@ -73,22 +75,33 @@
     var orderBtn = event.target.closest('[data-order]');
     if (orderBtn) {
       var card = orderBtn.closest('.card');
-      var min  = parseInt(card.dataset.min, 10);
-      var max  = parseInt(card.dataset.max, 10);
-      var qty  = parseInt(card.querySelector('[data-qty]').value, 10);
+      var pkg  = card.dataset.package || '';
+      var qty, price;
 
-      if (isNaN(qty) || qty < min || qty > max) {
-        recalc(card);
-        card.querySelector('[data-qty]').focus();
-        return;
+      if (pkg) {
+        // A package is a fixed quantity at a fixed price; there is nothing
+        // for the customer to get wrong, so nothing to validate.
+        qty   = parseInt(card.dataset.qty, 10);
+        price = card.dataset.price;
+      } else {
+        var min = parseInt(card.dataset.min, 10);
+        var max = parseInt(card.dataset.max, 10);
+        qty = parseInt(card.querySelector('[data-qty]').value, 10);
+
+        if (isNaN(qty) || qty < min || qty > max) {
+          recalc(card);
+          card.querySelector('[data-qty]').focus();
+          return;
+        }
+        price = card.querySelector('[data-price]').textContent;
       }
 
       document.getElementById('omService').value  = card.dataset.service;
+      document.getElementById('omPackage').value  = pkg;
       document.getElementById('omQuantity').value = qty;
       document.getElementById('omTitle').textContent =
         fmt(qty) + ' × ' + card.dataset.name;
-      document.getElementById('omPrice').textContent =
-        card.querySelector('[data-price]').textContent;
+      document.getElementById('omPrice').textContent = price;
       document.getElementById('omDelivery').textContent =
         (card.querySelector('.qp-del') || { textContent: '' }).textContent.trim() || 'Starts shortly';
       document.getElementById('omLinkLabel').textContent = card.dataset.linkLabel;

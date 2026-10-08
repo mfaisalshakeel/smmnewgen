@@ -22,6 +22,7 @@ $nav = [
      'badge' => $unread ?: null],
     ['group' => 'Catalogue'],
     ['key' => 'services',  'label' => 'Services',        'icon' => 'i-list', 'href' => 'admin/services'],
+    ['key' => 'packages',  'label' => 'Packages',        'icon' => 'i-card', 'href' => 'admin/packages'],
     ['key' => 'import',    'label' => 'Import Services', 'icon' => 'i-down', 'href' => 'admin/import'],
     ['key' => 'providers', 'label' => 'Providers',       'icon' => 'i-rocket','href' => 'admin/providers'],
     ['key' => 'platforms', 'label' => 'Platforms',       'icon' => 'i-users','href' => 'admin/platforms'],

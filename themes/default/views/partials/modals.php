@@ -13,6 +13,7 @@
       <?= csrf_field() ?>
       <input type="hidden" name="service_id" id="omService">
       <input type="hidden" name="quantity" id="omQuantity">
+      <input type="hidden" name="package_id" id="omPackage">
 
       <!-- Bots fill this in; people never see it. -->
       <div class="hp" aria-hidden="true">

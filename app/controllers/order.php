@@ -39,6 +39,7 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $serviceId = (int) ($_POST['service_id'] ?? 0);
+    $packageId = (int) ($_POST['package_id'] ?? 0);
     $quantity  = (int) ($_POST['quantity'] ?? 0);
     $link      = trim((string) ($_POST['link'] ?? ''));
     $whatsapp  = trim((string) ($_POST['whatsapp'] ?? ''));
@@ -58,14 +59,36 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $fail('That service is no longer available.');
     }
 
+    // A package fixes both numbers, and both are read back from its own row -
+    // the quantity the browser sent is not even looked at. Its price is a real
+    // price, not a rate, which is how a bigger package can cost less per
+    // thousand.
+    $package = null;
+    if ($packageId > 0) {
+        $package = one(
+            'SELECT * FROM service_packages WHERE id = ? AND service_id = ? AND is_active = 1',
+            [$packageId, (int) $service['id']]
+        );
+        if (!$package) {
+            $fail('That package is no longer available.');
+        }
+        $quantity = (int) $package['quantity'] + (int) $package['bonus_quantity'];
+    }
+
     $min = (int) $service['min_qty'];
     $max = (int) $service['max_qty'];
 
+    // The limits are the provider's, so a package still has to sit inside
+    // them - an admin can type a quantity the provider will refuse.
     if ($quantity < $min) {
-        $fail('The minimum for this service is ' . qty_fmt($min) . '.');
+        $fail($package
+            ? 'That package is below what this service accepts.'
+            : 'The minimum for this service is ' . qty_fmt($min) . '.');
     }
     if ($quantity > $max) {
-        $fail('The maximum for this service is ' . qty_fmt($max) . '.');
+        $fail($package
+            ? 'That package is above what this service accepts.'
+            : 'The maximum for this service is ' . qty_fmt($max) . '.');
     }
 
     if ($link === '' || !filter_var($link, FILTER_VALIDATE_URL)) {
@@ -96,8 +119,12 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // The one number that matters, worked out here and nowhere else.
-    $price = round(((float) $service['price_per_1000'] / 1000) * $quantity, 2);
-    $cost  = round(((float) $service['cost_per_1000'] / 1000) * $quantity, 2);
+    $price = $package !== null
+        ? round((float) $package['price'], 2)
+        : round(((float) $service['price_per_1000'] / 1000) * $quantity, 2);
+
+    // Cost is always the rate: we buy the delivered quantity either way.
+    $cost = round(((float) $service['cost_per_1000'] / 1000) * $quantity, 2);
 
     $orderCode = new_order_code();
     $orderId   = insert_row('orders', [

@@ -153,6 +153,22 @@ Write a screen by hand only when it needs more than the spec can say — service
   the **previous theme's** own, so a colour the admin chose is never
   overwritten.
 
+## Service packages
+
+- A service can be sold in preset packages — "500 followers for 165" — as well
+  as by quantity. A package carries **its own price**, not a rate, which is the
+  whole point: a bigger package can genuinely cost less per thousand, and the
+  admin list shows the per-thousand figure so that discount is visible.
+- `bonus_quantity` is delivered free on top. The order's quantity is
+  `quantity + bonus_quantity`, because that is what the provider is asked for;
+  the cost is still the rate times that, so margin stays honest.
+- The front cards come from `partials/cards.php`: one card per package, then
+  the quantity card headed "Custom quantity". A service with no packages is
+  the single card it always was.
+- `order.php` reads the price **back from the package row**. The quantity the
+  browser sends for a package order is not even looked at, and a package id
+  that does not belong to the service is refused.
+
 ## The storefront
 
 - `controllers/home.php` renders `/`, `/{platform}` and `/{platform}/{category}`
