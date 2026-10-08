@@ -36,9 +36,13 @@ $base    = $spec['base'];
   <?php endif; ?>
 
   <?php foreach ($spec['actions'] ?? [] as $action): ?>
+    <?php if (array_key_exists('when', $action) && !$action['when']): continue; endif; ?>
     <?php if (!empty($action['post'])): ?>
       <form method="post" action="<?= e(url($action['href'])) ?>" style="margin-left:auto">
         <?= csrf_field() ?>
+        <?php foreach ($action['fields'] ?? [] as $fieldName => $fieldValue): ?>
+          <input type="hidden" name="<?= e($fieldName) ?>" value="<?= e($fieldValue) ?>">
+        <?php endforeach; ?>
         <button class="btn btn-ghost" type="submit"><?= e($action['label']) ?></button>
       </form>
     <?php else: ?>

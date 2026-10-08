@@ -2,9 +2,10 @@
 /**
  * One preset package.
  *
- * The price shown is only a convenience - the server reads it back from the
- * package row when the order is placed, so a tampered data attribute buys
- * nothing.
+ * The price shown is only a convenience. A real package is read back from its
+ * own row when the order is placed; a generated tier carries no id, so the
+ * server prices it from the service's rate - the same number the card showed.
+ * Either way a tampered data attribute buys nothing.
  *
  * @var array $package  @var array $service  @var array $platform
  */
@@ -14,7 +15,7 @@ $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
 ?>
 <article class="card pkg<?= $package['badge'] !== '' ? ' pkg-badged' : '' ?>"
          data-service="<?= (int) $service['id'] ?>"
-         data-package="<?= (int) $package['id'] ?>"
+         data-package="<?= $package['id'] ? (int) $package['id'] : '' ?>"
          data-qty="<?= $delivered ?>"
          data-price="<?= e(money($package['price'])) ?>"
          data-name="<?= e($service['name']) ?>"

@@ -27,6 +27,8 @@ $GROUPS = [
             'hint' => 'The second is how the big shops do it: the customer picks a quantity, '
                     . 'not a service. Choose which service backs each category on the '
                     . 'Categories screen.'],
+        'auto_packages' => ['label' => 'Show round quantities for a service with no packages of its own',
+            'type' => 'checkbox'],
     ],
     'Orders and automation' => [
         'auto_send_orders'      => ['label' => 'Send orders to the provider as soon as they are marked paid',

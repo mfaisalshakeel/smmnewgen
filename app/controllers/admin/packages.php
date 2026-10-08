@@ -22,6 +22,48 @@ foreach (all('SELECT s.id, s.name, p.name AS platform
 // it - so a new package should start on that service too.
 $forService = (int) ($_GET['service_id'] ?? 0);
 
+// Write the generated ladder out as real rows, so the prices and badges can
+// then be edited. Until that happens the storefront draws the same ladder on
+// the fly, so this is about taking control of it, not about turning it on.
+if (($params[0] ?? '') === 'generate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $serviceId = (int) ($_POST['service_id'] ?? 0);
+    $service   = one('SELECT * FROM services WHERE id = ?', [$serviceId]);
+
+    if (!$service) {
+        flash('error', 'Pick a service first.');
+        redirect('admin/packages');
+    }
+
+    $quantities = suggested_quantities((int) $service['min_qty'], (int) $service['max_qty']);
+    $rate       = (float) $service['price_per_1000'];
+    $existing   = array_map('strval', array_column(
+        all('SELECT quantity FROM service_packages WHERE service_id = ?', [$serviceId]), 'quantity'));
+    $made       = 0;
+
+    foreach ($quantities as $index => $quantity) {
+        if (in_array((string) $quantity, $existing, true)) {
+            continue;   // leave anything already there alone
+        }
+        insert_row('service_packages', [
+            'service_id'     => $serviceId,
+            'quantity'       => $quantity,
+            'bonus_quantity' => 0,
+            'price'          => round($rate / 1000 * $quantity, 2),
+            'badge'          => '',
+            'is_active'      => 1,
+            'sort_order'     => $index + 1,
+            'created_at'     => date('Y-m-d H:i:s'),
+        ]);
+        $made++;
+    }
+
+    flash($made ? 'success' : 'info', $made
+        ? $made . ' package' . ($made === 1 ? '' : 's') . ' created. Edit the prices to give a '
+          . 'bigger package a better rate.'
+        : 'Every suggested quantity already has a package.');
+    redirect('admin/packages?service_id=' . $serviceId);
+}
+
 crud_handle([
     'table'    => 'service_packages',
     'base'     => 'admin/packages',
@@ -36,6 +78,13 @@ crud_handle([
                                     'options' => $services]],
     'form_note'=> 'The price is what the customer pays for this package, not a rate. Bonus quantity '
                 . 'is delivered on top and shown as "+500 EXTRA".',
+    'actions'  => [[
+        'label' => 'Generate from the service',
+        'href'  => 'admin/packages/generate',
+        'post'  => true,
+        'fields'=> ['service_id' => $forService],
+        'when'  => $forService > 0,
+    ]],
     'columns'  => [
         ['label' => 'Service', 'render' => function ($r) use ($services) {
             return '<b>' . e($services[$r['service_id']] ?? 'service #' . $r['service_id']) . '</b>'

@@ -276,6 +276,7 @@ INSERT INTO `settings` (`k`, `v`) VALUES
   ('allow_manual_services','1'),
   ('order_prefix',         'GK'),
   ('active_theme',         'default'),
+  ('auto_packages',        '1'),
   ('app_version',          '')
 ON DUPLICATE KEY UPDATE `k` = `k`;
 

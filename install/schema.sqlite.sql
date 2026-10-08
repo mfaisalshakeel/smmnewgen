@@ -240,6 +240,7 @@ INSERT OR IGNORE INTO "settings" ("k", "v") VALUES
   ('allow_manual_services','1'),
   ('order_prefix',         'GK'),
   ('active_theme',         'default'),
+  ('auto_packages',        '1'),
   ('app_version',          '');
 
 INSERT OR IGNORE INTO "platforms" ("slug", "name", "icon", "color", "url_prefix", "sort_order", "is_active") VALUES

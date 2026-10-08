@@ -165,6 +165,18 @@ NULL into `providers.currency`, which is `NOT NULL`.
 
 ## Service packages
 
+- **A service with no packages still shows quantity cards.** `service_tiers()`
+  falls back to a ladder of round numbers (`QUANTITY_LADDER`), trimmed to what
+  the provider accepts and spread across the range, priced at the service's own
+  rate. This is what makes a fresh install look like the reference without an
+  admin hand-entering five rows per service; `auto_packages` in Settings turns
+  it off. A generated tier carries **no id**, so the order posts a quantity
+  alone and the server prices it from the rate — the same number the card
+  showed. *Generate from the service* on the Packages screen writes the ladder
+  out as real rows so the prices can then be edited.
+- What tells a fixed-quantity card from a typed one in the script is whether
+  it **has a quantity input**, not whether it has a package id — a generated
+  tier is fixed and has no package behind it.
 - A service can be sold in preset packages — "500 followers for 165" — as well
   as by quantity. A package carries **its own price**, not a rate, which is the
   whole point: a bigger package can genuinely cost less per thousand, and the

@@ -123,23 +123,25 @@
     // open
     var orderBtn = event.target.closest('[data-order]');
     if (orderBtn) {
-      var card = orderBtn.closest('.card');
-      var pkg  = card.dataset.package || '';
+      var card  = orderBtn.closest('.card');
+      var pkg   = card.dataset.package || '';
+      var typed = card.querySelector('[data-qty]');
       var qty, price;
 
-      if (pkg) {
-        // A package is a fixed quantity at a fixed price; there is nothing
-        // for the customer to get wrong, so nothing to validate.
+      // What tells the two cards apart is whether there is a quantity to
+      // type, not whether there is a package id: a generated tier is a fixed
+      // quantity with no package behind it.
+      if (!typed) {
         qty   = parseInt(card.dataset.qty, 10);
         price = card.dataset.price;
       } else {
         var min = parseInt(card.dataset.min, 10);
         var max = parseInt(card.dataset.max, 10);
-        qty = parseInt(card.querySelector('[data-qty]').value, 10);
+        qty = parseInt(typed.value, 10);
 
         if (isNaN(qty) || qty < min || qty > max) {
           recalc(card);
-          card.querySelector('[data-qty]').focus();
+          typed.focus();
           return;
         }
         price = card.querySelector('[data-price]').textContent;

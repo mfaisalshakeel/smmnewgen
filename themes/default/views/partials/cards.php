@@ -2,9 +2,10 @@
 /**
  * The service cards for the platform and category being shown.
  *
- * A service sold in preset packages becomes one card per package. A service
- * with none keeps the single quantity card it always had, so nothing ever
- * disappears from the grid.
+ * A service becomes one card per quantity it is sold at - its own packages
+ * where an admin has set them, otherwise the generated ladder. Only a service
+ * with neither keeps the single quantity card, so nothing ever disappears
+ * from the grid.
  *
  * The services that do have packages then share one custom-quantity panel
  * underneath, rather than each dropping a "custom" card in among the tiers
@@ -13,7 +14,7 @@
  * @var array $services  @var array $platform  @var ?array $category
  */
 $noun   = $category['name'] ?? 'services';
-$packed = [];   // services sold in packages, in the order they are shown
+$packed = [];   // services shown as tiers, in the order they appear
 ?>
 <div class="cards" id="serviceCards">
       <?php if (!$services): ?>
@@ -26,7 +27,7 @@ $packed = [];   // services sold in packages, in the order they are shown
         <?php $GLOBALS['__package_noun'] = trim($platform['name'] . ' ' . ($category['name'] ?? '')); ?>
 
         <?php foreach ($services as $service): ?>
-          <?php $packages = service_packages((int) $service['id']); ?>
+          <?php $packages = service_tiers($service); ?>
 
           <?php if ($packages): ?>
             <?php $packed[] = $service; ?>

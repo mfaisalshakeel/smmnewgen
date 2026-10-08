@@ -190,4 +190,12 @@ return [
             "INSERT INTO settings (`k`, `v`) VALUES ('catalogue_mode', 'services')",
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_auto_packages' => [
+        'label' => 'Default quantity tiers',
+        'both'  => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('auto_packages', '1')",
+        ],
+    ],
 ];

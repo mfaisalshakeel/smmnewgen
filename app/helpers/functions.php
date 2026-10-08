@@ -574,3 +574,83 @@ function service_packages(int $serviceId): array
 
     return $cache[$serviceId];
 }
+
+/**
+ * The round quantities a service is offered at, when nobody has said.
+ *
+ * A shop that sells "followers" sells them in 500s and 1,000s, not at
+ * whatever number the customer types - that is the whole shape of the
+ * reference. Making an admin hand-enter five rows per service before the
+ * storefront looks right is work the panel can do itself, so a service with
+ * no packages of its own gets this ladder, trimmed to what the provider
+ * actually accepts.
+ *
+ * These carry no discount: each is simply the service's own rate times the
+ * quantity, which is exactly what the server charges for it. Real discounts
+ * mean real package rows, which is what Generate packages writes.
+ */
+const QUANTITY_LADDER = [100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+
+function suggested_quantities(int $min, int $max, int $wanted = 5): array
+{
+    $steps = array_values(array_filter(
+        QUANTITY_LADDER,
+        static fn(int $q): bool => $q >= $min && $q <= $max
+    ));
+
+    // A range too narrow for the ladder still deserves a first tier.
+    if (!$steps) {
+        return $min > 0 && $min <= $max ? [$min] : [];
+    }
+
+    if (count($steps) <= $wanted) {
+        return $steps;
+    }
+
+    // Spread the picks across the range rather than taking the smallest few,
+    // so the row reads as a scale from cheap to serious.
+    $picked = [];
+    $last   = count($steps) - 1;
+    for ($i = 0; $i < $wanted; $i++) {
+        $picked[] = $steps[(int) round($i * $last / ($wanted - 1))];
+    }
+
+    return array_values(array_unique($picked));
+}
+
+/**
+ * What to draw as cards for a service: its own packages, or the ladder.
+ *
+ * A generated tier has no id. The order then posts a quantity and no package,
+ * which the server prices from the rate - the same number the card showed.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function service_tiers(array $service): array
+{
+    $packages = service_packages((int) $service['id']);
+    if ($packages) {
+        return $packages;
+    }
+
+    if (setting('auto_packages', '1') !== '1') {
+        return [];
+    }
+
+    $rate  = (float) $service['price_per_1000'];
+    $tiers = [];
+
+    foreach (suggested_quantities((int) $service['min_qty'], (int) $service['max_qty']) as $quantity) {
+        $tiers[] = [
+            'id'             => 0,
+            'service_id'     => (int) $service['id'],
+            'quantity'       => $quantity,
+            'bonus_quantity' => 0,
+            'price'          => round($rate / 1000 * $quantity, 2),
+            'badge'          => '',
+            'is_active'      => 1,
+        ];
+    }
+
+    return $tiers;
+}
