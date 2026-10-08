@@ -23,6 +23,9 @@ $nav = [
     ['group' => 'Catalogue'],
     ['key' => 'services',  'label' => 'Services',        'icon' => 'i-list', 'href' => 'admin/services'],
     ['key' => 'packages',  'label' => 'Packages',        'icon' => 'i-card', 'href' => 'admin/packages'],
+    // Only worth a nav slot while the catalogue is actually sold that way.
+    ['key' => 'mapping',   'label' => 'Service mapping', 'icon' => 'i-list', 'href' => 'admin/mapping',
+     'when' => setting('catalogue_mode', 'services') === 'single'],
     ['key' => 'import',    'label' => 'Import Services', 'icon' => 'i-down', 'href' => 'admin/import'],
     ['key' => 'providers', 'label' => 'Providers',       'icon' => 'i-rocket','href' => 'admin/providers'],
     ['key' => 'platforms', 'label' => 'Platforms',       'icon' => 'i-users','href' => 'admin/platforms'],
@@ -70,6 +73,7 @@ $nav = [
 
     <nav class="snav">
       <?php foreach ($nav as $item): ?>
+        <?php if (array_key_exists('when', $item) && !$item['when']): continue; endif; ?>
         <?php if (isset($item['group'])): ?>
           <span class="sgroup"><?= e($item['group']) ?></span>
         <?php else: ?>

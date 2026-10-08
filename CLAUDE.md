@@ -275,6 +275,30 @@ NULL into `providers.currency`, which is `NOT NULL`.
 - Bars for named things are one hue. Shading each bar by its own length would
   spend the only free channel restating the length.
 
+## Admin components
+
+Three pieces of chrome are drawn by us rather than by the browser, and all
+three work the same way: **the native control stays in the DOM and stays the
+thing that submits.** The enhancement is drawn over it, so a browser that
+never runs the script gets the plain control, styled.
+
+- **`admin/_upload`** — an image field. The file input is moved out of sight
+  and driven by its label, which is what a file input is built to allow. Adds
+  a drop target and a preview.
+- **The searchable select** — every `<select>` in the admin gets a button and
+  a popup; the search box inside appears once there are enough options to
+  scroll, or where the markup says `data-search` (a CRUD field spec asks with
+  `'search' => true`). Choosing writes back to the real select and dispatches
+  `change`, so a filter form still submits itself.
+- **Tabs** — panels are only hidden once the script runs, so without it the
+  page is the long column it used to be. Every field stays in the DOM
+  whichever tab is showing: hiding a panel must never mean dropping what is
+  in it.
+
+`[hidden]` is declared `display:none !important` in both the admin and the
+theme stylesheets, because a rule that sets `display` otherwise wins and the
+attribute silently does nothing.
+
 ## Security
 
 These are the rules the code already follows; keep them.

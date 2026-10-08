@@ -205,7 +205,13 @@ function money($amount): string
     $amount = (float) $amount;
     $text   = number_format($amount, 2, '.', ',');
     $text   = preg_replace('/\.00$/', '', $text);
-    return $symbol . $text;
+
+    // "Rs165" is a typo waiting to happen: a symbol that ends in a letter
+    // needs air before the figure, a glyph like $ or ₹ does not. The space is
+    // non-breaking so a price never wraps between the two.
+    $gap = preg_match('/\p{L}$/u', $symbol) ? "\u{00A0}" : '';
+
+    return $symbol . $gap . $text;
 }
 
 /** Thousands separator for quantities. */

@@ -60,6 +60,7 @@ crud_handle([
         'slug'        => ['label' => 'URL slug', 'required' => true, 'rules' => ['slug'],
                           'hint' => 'Used in the address: /instagram/followers'],
         'service_id'  => ['label' => 'Service shown here', 'type' => 'select', 'options' => $services,
+                          'search' => true,
                           'empty' => 'The first active service in this category', 'nullable' => true,
                           'hint' => 'Only used when the catalogue is set to one service per '
                                   . 'category, in Settings.'],

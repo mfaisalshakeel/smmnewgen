@@ -13,6 +13,7 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--page);color:var(--ink);
   line-height:1.55;font-size:15px;-webkit-font-smoothing:antialiased}
@@ -452,3 +453,155 @@ svg{max-width:100%}
 @media (max-width:760px){
   .charts2,.charts3{grid-template-columns:1fr}
 }
+
+/* ===========================================================================
+   Design pass: the pieces that still looked like a browser default.
+   =========================================================================== */
+
+/* --- selects --------------------------------------------------------------
+   A native select wears the operating system's arrow and ignores everything
+   else on the page. Drawing our own chevron is the only way the control
+   belongs to the panel rather than to Windows. */
+.field select,.filters select,.pm-select{
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  padding-right:38px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23838aa0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:19px}
+.field select::-ms-expand,.filters select::-ms-expand{display:none}
+
+/* --- fields ---------------------------------------------------------------
+   A focus ring you can actually see, and one height for every control so a
+   row of them lines up. */
+.field input,.field select,.field textarea{
+  min-height:44px;border-radius:11px;border-width:1.5px;
+  transition:border-color .15s, box-shadow .15s, background .15s}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--line-2)}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--acc);background:var(--surface);box-shadow:0 0 0 3.5px var(--acc-soft)}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+.field input[type=number]{font-variant-numeric:tabular-nums}
+.filters select,.filters input[type=date],.filters input[type=search]{
+  border-width:1.5px;border-radius:11px;transition:border-color .15s, box-shadow .15s}
+.filters select:focus,.filters input:focus{box-shadow:0 0 0 3.5px var(--acc-soft)}
+.btn:focus-visible,.snav a:focus-visible,.iconbtn:focus-visible{
+  outline:none;box-shadow:0 0 0 3.5px var(--acc-soft)}
+
+/* --- colour ---------------------------------------------------------------
+   A bare colour input renders as a thin strip in some browsers; give it a
+   real swatch with a frame around it. */
+.colorrow input[type=color]{width:58px;min-height:44px;height:44px;padding:4px;border-radius:11px;
+  border:1.5px solid var(--line);background:var(--surface);cursor:pointer}
+.colorrow input[type=color]::-webkit-color-swatch{border:0;border-radius:7px}
+.colorrow input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.colorrow input[type=color]::-moz-color-swatch{border:0;border-radius:7px}
+
+/* --- the image field ------------------------------------------------------
+   The real input is still the thing that submits; it is moved out of sight
+   and driven by the label, which is what a file input is built to allow. */
+.upl-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap}
+.upl .upl-zone{display:flex;align-items:center;gap:14px;width:100%;
+  background:var(--page);border:1.5px dashed var(--line-2);border-radius:14px;
+  padding:14px;cursor:pointer;transition:border-color .15s, background .15s, box-shadow .15s}
+.upl .upl-zone:hover{border-color:var(--acc);background:var(--acc-soft)}
+.upl .upl-input:focus-visible + .upl-zone{border-color:var(--acc);box-shadow:0 0 0 3.5px var(--acc-soft)}
+.upl.is-over .upl-zone{border-color:var(--acc);background:var(--acc-soft);border-style:solid}
+.upl-thumb{width:52px;height:52px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.upl-thumb img{width:100%;height:100%;object-fit:contain;padding:5px}
+.upl-thumb[data-empty]{color:var(--muted);font-size:21px}
+.upl-txt{flex:1;min-width:0}
+.upl-txt b{display:block;font-size:13.5px;font-weight:700;color:var(--ink)}
+.upl-txt small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.upl-browse{flex:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.upl .upl-zone:hover .upl-browse{border-color:var(--acc);color:var(--acc)}
+.upl-chosen{display:flex;align-items:center;gap:9px;margin-top:9px;background:rgba(22,163,74,.1);
+  color:#15803d;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700}
+.upl-chosen span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upl-clear{background:none;border:0;font-size:18px;line-height:1;color:inherit;cursor:pointer;
+  opacity:.7;padding:0 2px}
+.upl-clear:hover{opacity:1}
+.upl .upl-remove{margin-top:11px;font-size:12.5px}
+
+/* --- tables ---------------------------------------------------------------
+   Money and counts align on their digits, and a price never wraps mid-figure. */
+.tbl td b,.tbl td .mono,.pv-bal b,.ch-val,.count b,.drow b{font-variant-numeric:tabular-nums}
+.tbl td{white-space:normal}
+.tbl td b{white-space:nowrap}
+.tbl thead th{background:var(--page)}
+.tbl tbody tr{transition:background .12s}
+
+/* --- cards ----------------------------------------------------------------
+   One soft shadow instead of a flat outline: the panel reads as layered
+   rather than drawn on graph paper. */
+.box{box-shadow:0 1px 2px rgba(23,33,60,.04), 0 8px 24px -14px rgba(23,33,60,.16)}
+.box-head{padding:16px 18px}
+.scard{box-shadow:0 1px 2px rgba(23,33,60,.04), 0 8px 24px -14px rgba(23,33,60,.16)}
+.btn-primary{box-shadow:0 1px 2px rgba(79,70,229,.3), 0 6px 16px -6px rgba(79,70,229,.6)}
+.btn-primary:hover{box-shadow:0 2px 4px rgba(79,70,229,.32), 0 10px 22px -8px rgba(79,70,229,.7)}
+.pad{padding:18px}
+
+/* --- the finished-update notice ------------------------------------------- */
+.upd-done{align-items:center}
+.upd-done .icon{font-size:19px;flex:none}
+.upd-done small{display:block;font-weight:600;opacity:.85}
+
+/* --- searchable select ----------------------------------------------------
+   The native control stays in the DOM and stays what submits; this is drawn
+   over it. So it keeps the same height, radius and focus ring as every other
+   field, and a browser that never runs the script shows the native one. */
+.sel{position:relative}
+.sel .sel-native{position:absolute;opacity:0;pointer-events:none;width:100%;height:0;margin:0;padding:0;border:0}
+.sel-btn{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;
+  background:var(--page);border:1.5px solid var(--line);border-radius:11px;
+  padding:9px 38px 9px 13px;font-size:14.5px;font-weight:500;color:var(--ink);
+  text-align:left;cursor:pointer;transition:border-color .15s, box-shadow .15s, background .15s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23838aa0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:19px}
+.sel-btn:hover{border-color:var(--line-2)}
+.sel.is-open .sel-btn,.sel-btn:focus-visible{border-color:var(--acc);background-color:var(--surface);
+  box-shadow:0 0 0 3.5px var(--acc-soft);outline:none}
+.sel-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-pop{position:absolute;z-index:40;top:calc(100% + 6px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  box-shadow:0 10px 18px -8px rgba(23,33,60,.18), 0 26px 50px -20px rgba(23,33,60,.3);
+  overflow:hidden}
+.sel-search{padding:9px;border-bottom:1px solid var(--line)}
+.sel:not(.sel-searchable) .sel-search{display:none}
+.sel-search input{width:100%;min-height:38px;background:var(--page);border:1.5px solid var(--line);
+  border-radius:9px;padding:8px 12px;font-size:14px;outline:none}
+.sel-search input:focus{border-color:var(--acc);background:var(--surface)}
+.sel-list{list-style:none;margin:0;padding:6px;max-height:240px;overflow-y:auto}
+.sel-opt{padding:9px 11px;border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-opt:hover{background:var(--hover)}
+.sel-opt.is-on{background:var(--acc-soft);color:var(--acc);font-weight:700}
+.sel-none{padding:16px;text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin:0}
+/* Inside a table the popup must not be clipped by the scroll wrapper. */
+.tbl-wrap:has(.sel.is-open){overflow:visible}
+.tbl td:has(.sel.is-open){position:relative;z-index:30}
+
+/* --- tabs -----------------------------------------------------------------
+   Every panel stays in the DOM whichever tab is showing, so one Save still
+   saves the lot. Without the script no panel is hidden and the page is the
+   long column it used to be. */
+.tabstrip{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:5px;
+  margin-bottom:16px;box-shadow:0 1px 2px rgba(23,33,60,.04)}
+.tabstrip::-webkit-scrollbar{display:none}
+.tabitem{flex:none;padding:9px 16px;border-radius:9px;font-size:13.5px;font-weight:700;
+  color:var(--ink-2);white-space:nowrap;transition:background .15s, color .15s}
+.tabitem:hover{background:var(--hover);color:var(--ink)}
+.tabitem.on{background:var(--acc);color:var(--acc-on)}
+.tabpanel[hidden]{display:none}
+
+/* --- the save bar ---------------------------------------------------------
+   Stuck to the bottom, because the settings it saves are now spread across
+   tabs and a button at the end of one of them would be a button you have to
+   go looking for. */
+.savebar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:14px;
+  flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:13px 18px;margin-top:16px;
+  box-shadow:0 -2px 6px rgba(23,33,60,.04), 0 10px 30px -14px rgba(23,33,60,.3)}
+.savebar .btn{margin-left:auto}

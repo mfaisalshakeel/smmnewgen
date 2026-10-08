@@ -11,9 +11,13 @@
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
+  // Matches money() on the server: a symbol ending in a letter needs air
+  // before the figure, a glyph like $ does not.
+  var CURRENCY_GAP = /[^\W\d_]$/.test(CURRENCY) ? '\u00a0' : '';
+
   function money(amount) {
     var text = (Math.round(amount * 100) / 100).toFixed(2).replace(/\.00$/, '');
-    return CURRENCY + text.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return CURRENCY + CURRENCY_GAP + text.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
   // ---------------------------------------------------------------- price --

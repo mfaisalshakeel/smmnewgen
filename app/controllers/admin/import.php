@@ -20,6 +20,12 @@ if (!$providers) {
     redirect('admin/providers');
 }
 
+// Nothing is asked of a provider until the admin names one. Defaulting to
+// the first and fetching its catalogue meant simply opening this page spent
+// a request on an API we were not asked about - and sat on a spinner while
+// it answered.
+$asked = isset($_POST['provider_id']) || isset($_GET['provider_id']);
+
 $providerId = (int) ($_POST['provider_id'] ?? $_GET['provider_id'] ?? $providers[0]['id']);
 $provider   = null;
 foreach ($providers as $candidate) {
@@ -130,7 +136,28 @@ if (($params[0] ?? '') === 'run' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ----------------------------------------------------------------- view ---
-$refresh   = ($params[0] ?? '') === 'refresh';
+$refresh = ($params[0] ?? '') === 'refresh';
+
+if (!$asked && !$refresh) {
+    view('admin/import', [
+        'title'     => 'Import services',
+        'subtitle'  => 'Pull a provider catalogue in',
+        'providers' => $providers,
+        'provider'  => null,
+        'rows'      => [],
+        'categories'=> [],
+        'search'    => '',
+        'category'  => '',
+        'markup'    => (float) setting('default_markup', 35),
+        'autoDetect'=> true,
+        'onlyNew'   => false,
+        'total'     => 0,
+        'cachedAt'  => null,
+        'error'     => null,
+    ], 'layouts/admin');
+    return;
+}
+
 $catalogue = import_catalogue($provider, $refresh);
 
 if ($refresh) {

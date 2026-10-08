@@ -58,7 +58,7 @@ crud_handle([
             . ($r['is_active'] ? 'active' : 'off') . '</span>'],
     ],
     'fields' => [
-        'service_id' => ['label' => 'Service', 'type' => 'select', 'options' => $services,
+        'service_id' => ['label' => 'Service', 'type' => 'select', 'options' => $services, 'search' => true,
                          'required' => true, 'default' => $forService ?: null],
         'quantity'   => ['label' => 'Quantity', 'type' => 'number', 'required' => true,
                          'hint' => 'The headline number on the card.'],

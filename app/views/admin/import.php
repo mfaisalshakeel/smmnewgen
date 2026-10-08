@@ -4,6 +4,31 @@ $platformNames = [];
 foreach (all('SELECT slug, name FROM platforms') as $p) { $platformNames[$p['slug']] = $p['name']; }
 $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'];
 ?>
+<?php if ($provider === null): ?>
+  <div class="box">
+    <div class="box-head"><b>Which provider?</b></div>
+    <div class="pad">
+      <p class="muted" style="margin-bottom:16px">
+        Nothing is asked of a provider until you choose one here. The catalogue is
+        often thousands of rows, so it is fetched once and kept for half an hour.
+      </p>
+      <form method="get" action="<?= e(url('admin/import')) ?>" class="irow">
+        <div class="field">
+          <label for="f-pick">Provider</label>
+          <select id="f-pick" name="provider_id">
+            <?php foreach ($providers as $candidate): ?>
+              <option value="<?= (int) $candidate['id'] ?>"><?= e($candidate['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit">
+          <svg class="icon"><use href="#i-down"></use></svg> Fetch the catalogue
+        </button>
+      </form>
+    </div>
+  </div>
+<?php return; endif; ?>
+
 <?php if ($error): ?>
   <div class="alert alert-warning">
     Could not reach <?= e($provider['name']) ?>: <?= e($error) ?>

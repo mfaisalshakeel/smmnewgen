@@ -124,6 +124,25 @@
             label.textContent = 'Done \u2014 now on version ' + plan.to;
             button.hidden = true;
             doneBox.hidden = false;
+
+            // The version, the banner and the sidebar dot are all rendered
+            // server-side, so the page is out of date the moment the last
+            // step finishes. Reload it rather than leave the admin looking at
+            // a screen that still says an update is waiting.
+            var seconds = 3;
+            var note = doneBox.querySelector('[data-done-note]');
+            var tick = setInterval(function () {
+              seconds--;
+              if (note) {
+                note.textContent = seconds > 0
+                  ? 'Reloading in ' + seconds + '\u2026'
+                  : 'Reloading\u2026';
+              }
+              if (seconds <= 0) {
+                clearInterval(tick);
+                window.location.reload();
+              }
+            }, 1000);
             return;
           }
 
@@ -205,5 +224,295 @@
       var tip = plot.querySelector('[data-tip]');
       if (tip) { tip.hidden = true; }
     });
+  })();
+
+  // --- image fields --------------------------------------------------------
+  //
+  // The input still does the submitting; this only adds the preview and the
+  // drop target. With the script blocked the label opens the picker and the
+  // form works exactly as before.
+  (function () {
+    function bytes(size) {
+      return size > 1048576
+        ? (size / 1048576).toFixed(1) + ' MB'
+        : Math.max(1, Math.round(size / 1024)) + ' KB';
+    }
+
+    function show(field, file) {
+      var chosen = field.querySelector('[data-chosen]');
+      var name   = field.querySelector('[data-chosen-name]');
+      var thumb  = field.querySelector('[data-thumb]');
+      var title  = field.querySelector('[data-upload-title]');
+
+      if (!file) {
+        if (chosen) { chosen.hidden = true; }
+        return;
+      }
+
+      if (name) { name.textContent = file.name + ' \u00b7 ' + bytes(file.size); }
+      if (chosen) { chosen.hidden = false; }
+      if (title) { title.textContent = 'Pick a different image'; }
+
+      if (thumb && file.type.indexOf('image/') === 0) {
+        var url = URL.createObjectURL(file);
+        thumb.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        img.onload = function () { URL.revokeObjectURL(url); };
+        thumb.appendChild(img);
+        thumb.removeAttribute('data-empty');
+      }
+    }
+
+    document.addEventListener('change', function (event) {
+      var input = event.target.closest('[data-upload-input]');
+      if (!input) { return; }
+      show(input.closest('[data-upload]'), input.files && input.files[0]);
+    });
+
+    document.addEventListener('click', function (event) {
+      var clear = event.target.closest('[data-upload-clear]');
+      if (!clear) { return; }
+      var field = clear.closest('[data-upload]');
+      var input = field.querySelector('[data-upload-input]');
+      input.value = '';
+      show(field, null);
+    });
+
+    ['dragenter', 'dragover'].forEach(function (type) {
+      document.addEventListener(type, function (event) {
+        var field = event.target.closest('[data-upload]');
+        if (!field) { return; }
+        event.preventDefault();
+        field.classList.add('is-over');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(function (type) {
+      document.addEventListener(type, function (event) {
+        var field = event.target.closest('[data-upload]');
+        if (!field) { return; }
+        field.classList.remove('is-over');
+      });
+    });
+
+    document.addEventListener('drop', function (event) {
+      var field = event.target.closest('[data-upload]');
+      if (!field || !event.dataTransfer || !event.dataTransfer.files.length) { return; }
+      event.preventDefault();
+
+      var input = field.querySelector('[data-upload-input]');
+      // DataTransfer is the only way to put a dropped file into a file input.
+      try {
+        var carrier = new DataTransfer();
+        carrier.items.add(event.dataTransfer.files[0]);
+        input.files = carrier.files;
+        show(field, input.files[0]);
+      } catch (error) {
+        // An older browser: the picker still works, so say so rather than
+        // leaving a drop that silently did nothing.
+        input.click();
+      }
+    });
+
+    // A page-wide guard, so a file dropped anywhere else does not navigate
+    // away from a half-filled form.
+    ['dragover', 'drop'].forEach(function (type) {
+      document.addEventListener(type, function (event) {
+        if (!event.target.closest('[data-upload]')) { event.preventDefault(); }
+      });
+    });
+  })();
+
+  // --- searchable selects --------------------------------------------------
+  //
+  // The real <select> stays in the DOM and stays the thing that submits: this
+  // draws a button and a popup over it and writes the choice back. With the
+  // script blocked the native control is still there, still styled, still
+  // works - which is why the enhancement is built this way round.
+  //
+  // Every select gets it, so they all look alike; the search box inside
+  // appears once there are enough options for scrolling to be a chore, or
+  // where the markup asks for it with data-search.
+  (function () {
+    var SEARCH_FROM = 8;
+    var open = null;
+
+    function labelOf(select) {
+      var option = select.options[select.selectedIndex];
+      return option ? option.textContent.trim() : '';
+    }
+
+    function close() {
+      if (!open) { return; }
+      open.wrap.classList.remove('is-open');
+      open.button.setAttribute('aria-expanded', 'false');
+      open.pop.hidden = true;
+      open = null;
+    }
+
+    function build(select, searchable) {
+      var wrap = document.createElement('div');
+      wrap.className = 'sel' + (searchable ? ' sel-searchable' : '');
+
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'sel-btn';
+      button.setAttribute('aria-haspopup', 'listbox');
+      button.setAttribute('aria-expanded', 'false');
+      button.innerHTML = '<span class="sel-label"></span>';
+
+      var pop = document.createElement('div');
+      pop.className = 'sel-pop';
+      pop.hidden = true;
+      pop.innerHTML = '<div class="sel-search"><input type="text" placeholder="Search\u2026"'
+                    + ' autocomplete="off" spellcheck="false"></div>'
+                    + '<ul class="sel-list" role="listbox"></ul>'
+                    + '<p class="sel-none" hidden>Nothing matches that.</p>';
+
+      select.parentNode.insertBefore(wrap, select);
+      wrap.appendChild(select);
+      wrap.appendChild(button);
+      wrap.appendChild(pop);
+      select.classList.add('sel-native');
+
+      var search = pop.querySelector('input');
+      var list   = pop.querySelector('.sel-list');
+      var none   = pop.querySelector('.sel-none');
+
+      function paint() {
+        button.querySelector('.sel-label').textContent = labelOf(select);
+      }
+
+      function render(term) {
+        var needle = term.toLowerCase();
+        var shown  = 0;
+        list.innerHTML = '';
+
+        Array.prototype.forEach.call(select.options, function (option, index) {
+          var text = option.textContent.trim();
+          if (needle && text.toLowerCase().indexOf(needle) === -1) { return; }
+
+          var item = document.createElement('li');
+          item.className = 'sel-opt' + (index === select.selectedIndex ? ' is-on' : '');
+          item.setAttribute('role', 'option');
+          item.setAttribute('aria-selected', index === select.selectedIndex ? 'true' : 'false');
+          item.dataset.index = index;
+          item.textContent = text;
+          list.appendChild(item);
+          shown++;
+        });
+
+        none.hidden = shown > 0;
+      }
+
+      function choose(index) {
+        select.selectedIndex = index;
+        paint();
+        close();
+        // Whatever the page already does on change - submit a filter form,
+        // repaint a card - still has to happen.
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      button.addEventListener('click', function () {
+        if (open && open.wrap === wrap) { close(); return; }
+        close();
+        render('');
+        search.value = '';
+        pop.hidden = false;
+        wrap.classList.add('is-open');
+        button.setAttribute('aria-expanded', 'true');
+        open = { wrap: wrap, pop: pop, button: button, list: list };
+        if (searchable) { search.focus(); }
+      });
+
+      search.addEventListener('input', function () { render(search.value); });
+
+      search.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { close(); button.focus(); return; }
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          var first = list.querySelector('.sel-opt');
+          if (first) { choose(parseInt(first.dataset.index, 10)); button.focus(); }
+          return;
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          var item = list.querySelector('.sel-opt');
+          if (item) { item.focus ? item.focus() : null; item.classList.add('is-cursor'); }
+        }
+      });
+
+      list.addEventListener('click', function (event) {
+        var item = event.target.closest('.sel-opt');
+        if (item) { choose(parseInt(item.dataset.index, 10)); button.focus(); }
+      });
+
+      paint();
+      // A select changed by something else (the service picker, a reset) has
+      // to be reflected on the button.
+      select.addEventListener('change', paint);
+    }
+
+    function enhance(root) {
+      var selects = (root || document).querySelectorAll('select:not(.sel-native)');
+      Array.prototype.forEach.call(selects, function (select) {
+        if (select.multiple || select.closest('.sel')) { return; }
+        build(select, select.hasAttribute('data-search') || select.options.length >= SEARCH_FROM);
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      if (open && !event.target.closest('.sel')) { close(); }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { close(); }
+    });
+
+    enhance(document);
+  })();
+
+  // --- tabs ----------------------------------------------------------------
+  // The panels are only hidden once the script runs, so a browser that never
+  // runs it shows them all rather than showing none.
+  (function () {
+    var strip = document.querySelector('[data-tabs]');
+    if (!strip) { return; }
+
+    var items  = strip.querySelectorAll('[data-tab]');
+    var panels = document.querySelectorAll('[data-panel]');
+
+    function select(name, remember) {
+      Array.prototype.forEach.call(items, function (item) {
+        var on = item.getAttribute('data-tab') === name;
+        item.classList.toggle('on', on);
+        item.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(panels, function (panel) {
+        panel.hidden = panel.getAttribute('data-panel') !== name;
+      });
+      if (remember) {
+        try { sessionStorage.setItem('admin-tab:' + location.pathname, name); } catch (error) { /* private mode */ }
+      }
+    }
+
+    strip.addEventListener('click', function (event) {
+      var item = event.target.closest('[data-tab]');
+      if (!item) { return; }
+      event.preventDefault();
+      select(item.getAttribute('data-tab'), true);
+    });
+
+    // Coming back after a save should land on the tab you were editing.
+    var wanted = (location.hash || '').replace('#', '');
+    if (!wanted) {
+      try { wanted = sessionStorage.getItem('admin-tab:' + location.pathname) || ''; } catch (error) { wanted = ''; }
+    }
+    var known = Array.prototype.some.call(items, function (item) {
+      return item.getAttribute('data-tab') === wanted;
+    });
+    select(known ? wanted : items[0].getAttribute('data-tab'), false);
   })();
 })();

@@ -70,8 +70,10 @@
 
           <div class="alert alert-error" data-update-error hidden></div>
           <div class="upd-done" data-update-done hidden>
-            <b>Update finished.</b>
-            <a class="btn btn-ghost btn-sm" href="<?= e(url('admin/update')) ?>">Reload the page</a>
+            <svg class="icon"><use href="#i-check"></use></svg>
+            <span><b>Update finished.</b>
+              <small data-done-note>Reloading in 3&hellip;</small></span>
+            <a class="btn btn-ghost btn-sm" href="<?= e(url('admin/update')) ?>">Reload now</a>
           </div>
         </div>
       <?php endif; ?>

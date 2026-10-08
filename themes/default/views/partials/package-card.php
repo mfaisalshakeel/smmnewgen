@@ -12,7 +12,7 @@ $delivered = (int) $package['quantity'] + (int) $package['bonus_quantity'];
 $feature   = array_values(array_filter(array_map('trim', explode("\n", (string) $service['features']))));
 $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
 ?>
-<article class="card pkg"
+<article class="card pkg<?= $package['badge'] !== '' ? ' pkg-badged' : '' ?>"
          data-service="<?= (int) $service['id'] ?>"
          data-package="<?= (int) $package['id'] ?>"
          data-qty="<?= $delivered ?>"

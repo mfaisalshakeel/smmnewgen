@@ -50,7 +50,9 @@ $value  = static function (string $name, $fallback = '') use ($row) {
                 <?= !empty($field['required']) ? 'required' : '' ?>><?= e($val) ?></textarea>
 
             <?php elseif ($type === 'select'): ?>
-              <select id="f-<?= e($name) ?>" name="<?= e($name) ?>" <?= $error ? 'aria-invalid="true"' : '' ?>>
+              <select id="f-<?= e($name) ?>" name="<?= e($name) ?>"
+                      <?= !empty($field['search']) ? 'data-search' : '' ?>
+                      <?= $error ? 'aria-invalid="true"' : '' ?>>
                 <?php if (!empty($field['empty'])): ?>
                   <option value=""><?= e($field['empty']) ?></option>
                 <?php endif; ?>

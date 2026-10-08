@@ -57,6 +57,5 @@ $feature = array_values(array_filter(array_map('trim', explode("\n", (string) $s
     </ul>
   <?php endif; ?>
 
-  <button class="btn <?= $service['is_featured'] ? 'btn-primary' : 'btn-ghost' ?> btn-block btn-lg"
-          type="button" data-order>Order Now</button>
+  <button class="btn btn-primary btn-block btn-lg" type="button" data-order>Order Now &rarr;</button>
 </article>
