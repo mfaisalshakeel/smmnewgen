@@ -48,6 +48,20 @@ $services = $category
          ORDER BY is_featured DESC, sort_order, id', [$category['id']])
     : [];
 
+// Sold one service per category: the customer is choosing a quantity, not a
+// service, so only the one the category names is shown. Nothing chosen falls
+// back to the first active service rather than showing an empty tab.
+if ($category && setting('catalogue_mode', 'services') === 'single' && $services) {
+    $chosen = null;
+    foreach ($services as $service) {
+        if ((int) $service['id'] === (int) ($category['service_id'] ?? 0)) {
+            $chosen = $service;
+            break;
+        }
+    }
+    $services = [$chosen ?? $services[0]];
+}
+
 $platformRows = all('SELECT * FROM platforms WHERE is_active = 1 ORDER BY sort_order, id');
 
 $faqs = all(

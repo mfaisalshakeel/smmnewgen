@@ -172,6 +172,12 @@ NULL into `providers.currency`, which is `NOT NULL`.
 - `bonus_quantity` is delivered free on top. The order's quantity is
   `quantity + bonus_quantity`, because that is what the provider is asked for;
   the cost is still the rate times that, so margin stays honest.
+- **`catalogue_mode` decides what a category sells.** `services` (the default)
+  shows every service in the category as its own card. `single` shows only the
+  service the category names in `categories.service_id`, so the customer picks
+  a quantity rather than a service — the way the big shops do it. A category
+  that names none falls back to its first active service rather than rendering
+  an empty tab.
 - The front cards come from `partials/cards.php`: one card per package for a
   service that has them, the ordinary quantity card for a service that does
   not, so nothing ever disappears from the grid.

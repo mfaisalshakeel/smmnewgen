@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `name` VARCHAR(60) NOT NULL,
   `meta_title` VARCHAR(190) NOT NULL DEFAULT '',
   `meta_description` VARCHAR(255) NOT NULL DEFAULT '',
+  `service_id` INT UNSIGNED NULL,
   `sort_order` INT NOT NULL DEFAULT 0,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),

@@ -18,6 +18,16 @@ $GROUPS = [
         'whatsapp_number'  => ['label' => 'WhatsApp number', 'hint' => 'With country code, e.g. 923001234567.'],
         'support_email'    => ['label' => 'Support email', 'type' => 'email'],
     ],
+    'Catalogue' => [
+        'catalogue_mode' => ['label' => 'How a category is sold', 'type' => 'select',
+            'options' => [
+                'services' => 'Every service in the category gets its own card',
+                'single'   => 'One service per category, sold as quantity packages',
+            ],
+            'hint' => 'The second is how the big shops do it: the customer picks a quantity, '
+                    . 'not a service. Choose which service backs each category on the '
+                    . 'Categories screen.'],
+    ],
     'Orders and automation' => [
         'auto_send_orders'      => ['label' => 'Send orders to the provider as soon as they are marked paid',
                                     'type' => 'checkbox'],

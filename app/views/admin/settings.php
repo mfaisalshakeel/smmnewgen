@@ -24,8 +24,12 @@
                   <textarea id="s-<?= e($key) ?>" name="<?= e($key) ?>"
                             rows="<?= (int) ($field['rows'] ?? 4) ?>"><?= e($value) ?></textarea>
                 <?php elseif ($type === 'select'): ?>
+                  <?php /* A callable builds its list when the page renders, which a
+                           list of database rows has to; a fixed list is just a list. */ ?>
+                  <?php $options = is_callable($field['options'])
+                      ? ($field['options'])() : (array) $field['options']; ?>
                   <select id="s-<?= e($key) ?>" name="<?= e($key) ?>">
-                    <?php foreach (($field['options'])() as $optValue => $optLabel): ?>
+                    <?php foreach ($options as $optValue => $optLabel): ?>
                       <option value="<?= e($optValue) ?>"<?= $value === (string) $optValue ? ' selected' : '' ?>>
                         <?= e($optLabel) ?></option>
                     <?php endforeach; ?>

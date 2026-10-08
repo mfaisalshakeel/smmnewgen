@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS "categories" (
   "name" TEXT NOT NULL,
   "meta_title" TEXT NOT NULL DEFAULT '',
   "meta_description" TEXT NOT NULL DEFAULT '',
+  "service_id" INTEGER,
   "sort_order" INTEGER NOT NULL DEFAULT 0,
   "is_active" INTEGER NOT NULL DEFAULT 1,
   UNIQUE ("platform_id", "slug"),

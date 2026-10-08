@@ -174,4 +174,20 @@ return [
                ON "service_packages" ("service_id", "sort_order")',
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_catalogue_mode' => [
+        'label' => 'One featured service per category',
+        'mysql' => [
+            "ALTER TABLE `categories` ADD COLUMN `service_id` INT UNSIGNED NULL",
+            "ALTER TABLE `categories` ADD CONSTRAINT `fk_categories_service`
+               FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE SET NULL",
+        ],
+        'sqlite' => [
+            'ALTER TABLE "categories" ADD COLUMN "service_id" INTEGER REFERENCES "services" ("id") ON DELETE SET NULL',
+        ],
+        'both' => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('catalogue_mode', 'services')",
+        ],
+    ],
 ];
