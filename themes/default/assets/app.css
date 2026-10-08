@@ -189,7 +189,9 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
   padding:5px 11px;border-bottom-left-radius:10px;z-index:2}
 .card.pkg-badged .pkg-head{padding-top:28px}
 .pkg-body{padding:20px 18px 22px;display:flex;flex-direction:column;flex:1;text-align:center}
-.pkg-line{font-size:14px;font-weight:700;color:var(--ink)}
+.pkg-line{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.02em;
+  color:var(--ok);background:rgba(22,163,74,.12);border-radius:999px;padding:4px 11px;
+  margin-bottom:8px}
 .pkg-price{font-size:27px;font-weight:800;letter-spacing:-.025em;margin:8px 0 16px}
 .pkg-body .feats{text-align:left;margin:0 0 18px}
 .pkg-body .qp-del{justify-content:center;margin:0 0 14px}

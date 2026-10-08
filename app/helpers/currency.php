@@ -139,3 +139,79 @@ function refresh_currency_rates(): array
             : 'The rate service had nothing for the currencies you have added.',
     ];
 }
+
+/**
+ * The currencies a provider is likely to bill in.
+ *
+ * Only here so an added currency arrives with a name and a symbol rather than
+ * three bare letters. Anything not listed still works - it is named after its
+ * own code until somebody edits it.
+ */
+const KNOWN_CURRENCIES = [
+    'USD' => ['US Dollar', '$'],          'EUR' => ['Euro', '\u{20AC}'],
+    'GBP' => ['British Pound', '\u{A3}'],   'PKR' => ['Pakistani Rupee', 'Rs '],
+    'INR' => ['Indian Rupee', '\u{20B9}'],  'BDT' => ['Bangladeshi Taka', '\u{9F3}'],
+    'NGN' => ['Nigerian Naira', '\u{20A6}'],'TRY' => ['Turkish Lira', '\u{20BA}'],
+    'BRL' => ['Brazilian Real', 'R$'],    'IDR' => ['Indonesian Rupiah', 'Rp'],
+    'PHP' => ['Philippine Peso', '\u{20B1}'],'EGP' => ['Egyptian Pound', 'E\u{A3}'],
+    'SAR' => ['Saudi Riyal', 'SR'],       'AED' => ['UAE Dirham', 'AED '],
+    'RUB' => ['Russian Ruble', '\u{20BD}'], 'CNY' => ['Chinese Yuan', '\u{A5}'],
+    'CAD' => ['Canadian Dollar', 'C$'],   'AUD' => ['Australian Dollar', 'A$'],
+];
+
+/**
+ * Add a currency and go and get its rate.
+ *
+ * Used where a provider turns out to bill in something we have never heard
+ * of: there is nothing useful to show until the rate exists, so the panel
+ * offers to fetch it rather than quietly pricing everything wrong.
+ *
+ * @return array{ok: bool, message: string, rate: float}
+ */
+function currency_add(string $code): array
+{
+    $code = strtoupper(trim($code));
+
+    if (!preg_match('/^[A-Z]{3}$/', $code)) {
+        return ['ok' => false, 'message' => 'A currency code is three letters, like USD.', 'rate' => 0.0];
+    }
+
+    if (isset(currencies(true)[$code])) {
+        return ['ok' => true, 'message' => $code . ' is already in your currencies.',
+                'rate' => currency_rate($code)];
+    }
+
+    [$name, $symbol] = KNOWN_CURRENCIES[$code] ?? [$code, $code . ' '];
+
+    insert_row('currencies', [
+        'code'         => $code,
+        'name'         => $name,
+        'symbol'       => $symbol,
+        'rate_to_base' => 0,
+        'is_base'      => 0,
+        'is_active'    => 1,
+        'sort_order'   => (int) col('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM currencies', [], 1),
+        'updated_at'   => date('Y-m-d H:i:s'),
+    ]);
+    currencies(true);
+
+    $refresh = refresh_currency_rates();
+    $rate    = currency_rate($code);
+
+    if ($rate <= 0) {
+        return [
+            'ok'      => false,
+            'rate'    => 0.0,
+            'message' => $code . ' was added, but no rate came back'
+                       . ($refresh['ok'] ? '' : ': ' . $refresh['message'])
+                       . '. Set it by hand under Currencies.',
+        ];
+    }
+
+    return [
+        'ok'      => true,
+        'rate'    => $rate,
+        'message' => $code . ' added at ' . rtrim(rtrim(number_format($rate, 4), '0'), '.')
+                   . ' ' . base_currency()['code'] . ' per ' . $code . '.',
+    ];
+}

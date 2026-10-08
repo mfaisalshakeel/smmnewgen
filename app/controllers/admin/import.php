@@ -154,11 +154,39 @@ if (!$asked && !$refresh) {
         'total'     => 0,
         'cachedAt'  => null,
         'error'     => null,
+        'billing'   => '',
+        'baseCode'  => strtoupper(base_currency()['code']),
+        'rate'      => 0.0,
+        'currencyProblem' => null,
     ], 'layouts/admin');
     return;
 }
 
-$catalogue = import_catalogue($provider, $refresh);
+// What the provider bills in, and whether we can turn that into our money.
+// Without a rate every figure on this page would be the provider's own
+// number wearing our currency symbol, which is worse than showing nothing.
+$billing  = strtoupper(trim((string) ($provider['currency'] ?? '')));
+$rate     = $billing === '' ? 0.0 : currency_rate($billing);
+$baseCode = strtoupper(base_currency()['code']);
+
+$currencyProblem = null;
+if ($billing === '') {
+    $currencyProblem = [
+        'code'   => '',
+        'title'  => 'We do not know what ' . $provider['name'] . ' bills in',
+        'detail' => 'Run Check on the provider, or set the currency on its form. Until then '
+                  . 'its rates cannot be converted into ' . $baseCode . '.',
+    ];
+} elseif ($rate <= 0) {
+    $currencyProblem = [
+        'code'   => $billing,
+        'title'  => $billing . ' is not in your currencies',
+        'detail' => $provider['name'] . ' prices in ' . $billing . ', and there is no '
+                  . $billing . ' rate to convert that into ' . $baseCode . '.',
+    ];
+}
+
+$catalogue = $currencyProblem ? ['services' => []] : import_catalogue($provider, $refresh);
 
 if ($refresh) {
     isset($catalogue['error'])
@@ -206,7 +234,8 @@ foreach ($services as $item) {
         'id'       => (string) $item['service'],
         'name'     => $name,
         'category' => $cat,
-        'cost'     => (float) ($item['rate'] ?? 0),
+        'cost'     => round((float) ($item['rate'] ?? 0) * $rate, 4),
+        'raw'      => (float) ($item['rate'] ?? 0),
         'min'      => (int) ($item['min'] ?? 0),
         'max'      => (int) ($item['max'] ?? 0),
         'exists'   => $exists,
@@ -233,6 +262,10 @@ view('admin/import', [
     'onlyNew'     => $onlyNew,
     'cachedAt'    => $catalogue['cached_at'] ?? null,
     'error'       => $catalogue['error'] ?? null,
+    'billing'     => $billing,
+    'baseCode'    => $baseCode,
+    'rate'        => $rate,
+    'currencyProblem' => $currencyProblem,
 ], 'layouts/admin');
 
 

@@ -515,4 +515,75 @@
     });
     select(known ? wanted : items[0].getAttribute('data-tab'), false);
   })();
+
+  // --- adding a missing currency from the import screen --------------------
+  //
+  // Three things have to happen before the catalogue means anything: the
+  // currency exists, it has a rate, and the page is re-read with both. The
+  // form posts normally without the script; this only puts the three steps
+  // on screen instead of a wait.
+  (function () {
+    var panel = document.querySelector('[data-currency-fix]');
+    if (!panel) { return; }
+
+    var form    = panel.querySelector('[data-fix-form]');
+    if (!form) { return; }
+
+    var button  = panel.querySelector('[data-fix-go]');
+    var barWrap = panel.querySelector('[data-bar-wrap]');
+    var bar     = panel.querySelector('[data-bar]');
+    var note    = panel.querySelector('[data-bar-note]');
+    var label   = panel.querySelector('[data-bar-label]');
+    var errBox  = panel.querySelector('[data-fix-error]');
+    var code    = panel.getAttribute('data-code');
+
+    function step(percent, text, busy) {
+      bar.style.width = percent + '%';
+      bar.classList.toggle('busy', !!busy);
+      label.textContent = text;
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      button.setAttribute('aria-busy', 'true');
+      button.innerHTML = '<span class="spin"></span> Adding ' + code + '\u2026';
+      errBox.hidden = true;
+      barWrap.hidden = false;
+      note.hidden = false;
+      step(25, 'Adding ' + code + ' to your currencies\u2026', true);
+
+      var body = new FormData(form);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: body,
+        headers: { 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin'
+      }).then(function (response) {
+        if (!response.ok) { throw new Error('The server answered ' + response.status + '.'); }
+        step(65, 'Fetching today\u2019s rate\u2026', true);
+        return response.json();
+      }).then(function (result) {
+        if (!result.ok) { throw new Error(result.message); }
+        step(100, result.message + ' Loading the catalogue\u2026', false);
+        window.location.reload();
+      }).catch(function (error) {
+        bar.classList.remove('busy');
+        bar.classList.add('bad');
+        errBox.textContent = error.message;
+        errBox.hidden = false;
+        button.removeAttribute('aria-busy');
+        button.textContent = 'Try again';
+      });
+    });
+  })();
+
+  // --- the bulk feature-lines box ------------------------------------------
+  document.addEventListener('click', function (event) {
+    var box = document.querySelector('[data-features]');
+    if (!box) { return; }
+    if (event.target.closest('[data-features-open]')) { box.hidden = false; box.querySelector('textarea').focus(); }
+    if (event.target.closest('[data-features-close]')) { box.hidden = true; }
+  });
 })();

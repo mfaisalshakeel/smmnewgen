@@ -29,6 +29,9 @@ $GROUPS = [
                     . 'Categories screen.'],
         'auto_packages' => ['label' => 'Show round quantities for a service with no packages of its own',
             'type' => 'checkbox'],
+        'default_features' => ['label' => 'Default feature lines', 'type' => 'textarea', 'rows' => 5,
+            'hint' => 'The ticked points on a card, one per line. Used by any service that has none '
+                    . 'of its own; set them per service in bulk from the Services screen.'],
     ],
     'Orders and automation' => [
         'auto_send_orders'      => ['label' => 'Send orders to the provider as soon as they are marked paid',

@@ -29,6 +29,52 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
   </div>
 <?php return; endif; ?>
 
+<?php if ($currencyProblem !== null): ?>
+  <div class="box" data-currency-fix
+       data-add="<?= e(url('admin/currencies/add')) ?>"
+       data-token="<?= e(csrf_token()) ?>"
+       data-code="<?= e($currencyProblem['code']) ?>">
+    <div class="box-head"><b>Currency</b></div>
+    <div class="pad">
+      <div class="curfix">
+        <span class="curfix-mark"><svg class="icon"><use href="#i-alert"></use></svg></span>
+        <div>
+          <b><?= e($currencyProblem['title']) ?></b>
+          <p class="muted"><?= e($currencyProblem['detail']) ?></p>
+        </div>
+      </div>
+
+      <div class="bar" data-bar-wrap hidden><div class="bar-fill" data-bar></div></div>
+      <p class="bar-note" data-bar-note hidden><span data-bar-label></span></p>
+      <div class="alert alert-error" data-fix-error hidden></div>
+
+      <div class="curfix-acts">
+        <?php if ($currencyProblem['code'] !== ''): ?>
+          <form method="post" action="<?= e(url('admin/currencies/add')) ?>" data-fix-form>
+            <?= csrf_field() ?>
+            <input type="hidden" name="code" value="<?= e($currencyProblem['code']) ?>">
+            <input type="hidden" name="back"
+                   value="admin/import?provider_id=<?= (int) $provider['id'] ?>">
+            <button class="btn btn-primary" type="submit" data-fix-go>
+              Add <?= e($currencyProblem['code']) ?> and fetch its rate
+            </button>
+          </form>
+          <a class="btn btn-ghost" href="<?= e(url('admin/currencies')) ?>">Open Currencies</a>
+        <?php else: ?>
+          <form method="post" action="<?= e(url('admin/providers/check')) ?>">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= (int) $provider['id'] ?>">
+            <button class="btn btn-primary" type="submit">Ask the provider what it bills in</button>
+          </form>
+          <a class="btn btn-ghost"
+             href="<?= e(url('admin/providers/edit/' . $provider['id'])) ?>">Set it by hand</a>
+        <?php endif; ?>
+        <a class="btn btn-ghost" href="<?= e(url('admin/import')) ?>">Pick another provider</a>
+      </div>
+    </div>
+  </div>
+<?php return; endif; ?>
+
 <?php if ($error): ?>
   <div class="alert alert-warning">
     Could not reach <?= e($provider['name']) ?>: <?= e($error) ?>
@@ -41,6 +87,10 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
     <b>Catalogue &mdash; <?= e($provider['name']) ?></b>
     <span class="muted">
       <?= qty_fmt($total) ?> services
+      <?php if ($billing !== '' && $billing !== $baseCode): ?>
+        &middot; <?= e($billing) ?> converted to <?= e($baseCode) ?>
+        at <?= e(rtrim(rtrim(number_format($rate, 4), '0'), '.')) ?>
+      <?php endif; ?>
       <?php if ($cachedAt): ?>&middot; cached <?= e(when(date('Y-m-d H:i:s', $cachedAt), 'H:i')) ?><?php endif; ?>
     </span>
   </div>
@@ -149,7 +199,7 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
                   <span class="chipx"><?= e($kindNames[$row['kind']]) ?></span>
                 <?php else: ?><span class="muted">&mdash;</span><?php endif; ?>
               </td>
-              <td class="hide-sm"><?= e(money($row['cost'])) ?></td>
+              <td class="hide-sm money"><?= e(money($row['cost'])) ?></td>
               <td><b><?= e(money(round($row['cost'] * (1 + $markup / 100), 2))) ?></b></td>
               <td class="hide-sm mono"><?= qty_fmt($row['min']) ?> / <?= qty_fmt($row['max']) ?></td>
               <td>

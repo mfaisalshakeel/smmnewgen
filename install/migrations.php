@@ -198,4 +198,13 @@ return [
             "INSERT INTO settings (`k`, `v`) VALUES ('auto_packages', '1')",
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_default_features' => [
+        'label' => 'Default card feature lines',
+        'both'  => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('default_features',
+               'High Quality - 100% Real\nFast Delivery\n100% Safe & Secure\nNo Password Required')",
+        ],
+    ],
 ];

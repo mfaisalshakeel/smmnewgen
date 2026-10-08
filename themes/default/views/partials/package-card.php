@@ -10,7 +10,7 @@
  * @var array $package  @var array $service  @var array $platform
  */
 $delivered = (int) $package['quantity'] + (int) $package['bonus_quantity'];
-$feature   = array_values(array_filter(array_map('trim', explode("\n", (string) $service['features']))));
+$feature   = service_feature_lines($service);
 $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
 ?>
 <article class="card pkg<?= $package['badge'] !== '' ? ' pkg-badged' : '' ?>"
@@ -32,11 +32,11 @@ $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
   </div>
 
   <div class="pkg-body">
-    <p class="pkg-line">
-      <?= e(qty_fmt($package['quantity'])) ?><?php if ($package['bonus_quantity'] > 0): ?>
-        + <?= e(qty_fmt($package['bonus_quantity'])) ?> EXTRA<?php endif; ?>
-      <?= e($noun) ?>
-    </p>
+    <?php /* The head already says the quantity and what it buys, so this line
+             only earns its place where there is a bonus to announce. */ ?>
+    <?php if ($package['bonus_quantity'] > 0): ?>
+      <p class="pkg-line">+ <?= e(qty_fmt($package['bonus_quantity'])) ?> EXTRA free</p>
+    <?php endif; ?>
 
     <div class="pkg-price"><?= e(money($package['price'])) ?></div>
 

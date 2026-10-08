@@ -52,6 +52,22 @@ if ($action === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', "Applied a {$markup}% markup to {$count} {$noun}.");
             break;
 
+        case 'features':
+            // The ticked lines on a card. Blank clears them, which puts the
+            // service back on the default set from Settings.
+            $lines = trim((string) ($_POST['bulk_features'] ?? ''));
+            $lines = implode("\n", array_slice(array_values(array_filter(
+                array_map('trim', preg_split('/\r\n|\r|\n/', $lines)),
+                static fn(string $line): bool => $line !== ''
+            )), 0, 8));
+
+            q("UPDATE services SET features = ?, updated_at = ? WHERE id IN ($in)",
+                array_merge([$lines, date('Y-m-d H:i:s')], $ids));
+            flash('success', $lines === ''
+                ? "Cleared the feature lines on {$count} {$noun}; they now show the default set."
+                : "Set the feature lines on {$count} {$noun}.");
+            break;
+
         case 'sync':
             [$synced, $failed] = sync_service_prices($ids);
             $failed === 0

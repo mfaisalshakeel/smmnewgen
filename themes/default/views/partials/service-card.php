@@ -12,7 +12,7 @@ $rate    = (float) $service['price_per_1000'];
 $min     = (int) $service['min_qty'];
 $max     = (int) $service['max_qty'];
 $start   = min($max, max($min, 1000));
-$feature = array_values(array_filter(array_map('trim', explode("\n", (string) $service['features']))));
+$feature = service_feature_lines($service);
 ?>
 <article class="card<?= $service['is_featured'] ? ' featured' : '' ?>"
          data-service="<?= (int) $service['id'] ?>"

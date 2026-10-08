@@ -4,6 +4,26 @@ require_once APP_PATH . '/helpers/crud.php';
 require_once APP_PATH . '/helpers/currency.php';
 
 // --- refresh rates from the public feed -------------------------------------
+// Add one currency and fetch its rate. Answers JSON when asked, because the
+// import screen runs this as a step with a progress bar rather than a
+// round-trip that loses where the admin was.
+if (($params[0] ?? '') === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    ignore_user_abort(true);
+    @set_time_limit(60);
+
+    $result = currency_add((string) ($_POST['code'] ?? ''));
+
+    if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch') {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode($result);
+        exit;
+    }
+
+    flash($result['ok'] ? 'success' : 'error', $result['message']);
+    redirect((string) ($_POST['back'] ?? 'admin/currencies'));
+}
+
 if (($params[0] ?? '') === 'refresh' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = refresh_currency_rates();
     flash($result['ok'] ? 'success' : 'error', $result['message']);

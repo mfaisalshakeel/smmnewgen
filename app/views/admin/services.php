@@ -36,6 +36,19 @@ $query = http_build_query(array_filter($filters, 'strlen'));
   <?= csrf_field() ?>
   <input type="hidden" name="return" value="<?= e($query) ?>">
 
+  <div class="featbox" data-features hidden>
+    <label for="bulkFeatures">Feature lines &mdash; one per line, up to eight. These are the ticked
+      points on the card.</label>
+    <textarea id="bulkFeatures" name="bulk_features" rows="5"
+              placeholder="High Quality - 100% Real&#10;Fast Delivery&#10;100% Safe &amp; Secure&#10;No Password Required"><?= e(setting('default_features', '')) ?></textarea>
+    <div class="featbox-acts">
+      <button class="btn btn-primary btn-sm" type="submit" name="bulk_action" value="features">
+        Apply to the selected services</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-features-close>Cancel</button>
+      <span class="muted">Leave it empty to clear them and fall back to the default set.</span>
+    </div>
+  </div>
+
   <div class="bulkbar" id="bulkBar">
     <b><span id="selCount">0</span> selected</b>
     <button class="btn btn-ghost btn-sm" type="submit" name="bulk_action" value="activate">Activate</button>
@@ -49,6 +62,7 @@ $query = http_build_query(array_filter($filters, 'strlen'));
       <button class="btn btn-ghost btn-sm" type="submit" name="bulk_action" value="markup">Apply markup</button>
     </span>
     <button class="btn btn-ghost btn-sm" type="submit" name="bulk_action" value="sync">Sync prices</button>
+    <button class="btn btn-ghost btn-sm" type="button" data-features-open>Feature lines</button>
     <button class="btn btn-danger btn-sm" type="submit" name="bulk_action" value="delete"
             data-bulk-confirm="Delete the selected services? Ones with orders are deactivated instead.">Delete</button>
   </div>

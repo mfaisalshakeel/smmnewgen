@@ -529,6 +529,8 @@ svg{max-width:100%}
 .tbl td b,.tbl td .mono,.pv-bal b,.ch-val,.count b,.drow b{font-variant-numeric:tabular-nums}
 .tbl td{white-space:normal}
 .tbl td b{white-space:nowrap}
+/* A figure split across two lines is unreadable, whatever column it is in. */
+.tbl td.num,.tbl td.money{white-space:nowrap;font-variant-numeric:tabular-nums}
 .tbl thead th{background:var(--page)}
 .tbl tbody tr{transition:background .12s}
 
@@ -605,3 +607,23 @@ svg{max-width:100%}
   padding:13px 18px;margin-top:16px;
   box-shadow:0 -2px 6px rgba(23,33,60,.04), 0 10px 30px -14px rgba(23,33,60,.3)}
 .savebar .btn{margin-left:auto}
+
+/* --- the missing-currency panel ------------------------------------------- */
+.curfix{display:flex;gap:14px;margin-bottom:16px}
+.curfix-mark{width:42px;height:42px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:rgba(217,119,6,.14);color:var(--warn);font-size:20px}
+.curfix b{display:block;font-size:15.5px;font-weight:700;margin-bottom:3px}
+.curfix p{font-size:13.5px;max-width:64ch}
+.curfix-acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.curfix-acts form{display:contents}
+
+/* --- bulk feature lines ---------------------------------------------------- */
+.featbox{background:var(--acc-soft);border:1px solid rgba(79,70,229,.2);border-radius:13px;
+  padding:16px 18px;margin-bottom:12px}
+.featbox label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px}
+.featbox textarea{width:100%;min-height:118px;background:var(--surface);border:1.5px solid var(--line);
+  border-radius:11px;padding:11px 13px;font-size:14px;outline:none;resize:vertical;
+  transition:border-color .15s, box-shadow .15s}
+.featbox textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3.5px var(--acc-soft)}
+.featbox-acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:11px}
+.featbox-acts .muted{font-size:12px}

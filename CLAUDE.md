@@ -203,6 +203,27 @@ NULL into `providers.currency`, which is `NOT NULL`.
   browser sends for a package order is not even looked at, and a package id
   that does not belong to the service is refused.
 
+## Currency on the import screen
+
+- A provider's catalogue is priced in **its own** currency. Every figure the
+  import screen shows is converted with `currency_rate($provider['currency'])`
+  before it is printed, because otherwise it is the provider's number wearing
+  our symbol — which is worse than showing nothing.
+- No rate means **no listing**. The screen says which currency is missing and
+  offers to add it and fetch today's rate, then re-reads the catalogue. A
+  provider that never said what it bills in is offered Check instead.
+- `currency_add()` inserts the row and calls the rate feed; `KNOWN_CURRENCIES`
+  only exists so it arrives with a name and a symbol rather than three bare
+  letters.
+
+## Card feature lines
+
+The ticked points on a card come from `service_feature_lines()`: the service's
+own `features`, else `default_features` from Settings. A freshly imported
+service therefore has ticks on it without anyone typing them. Set them for
+many services at once from the Services screen's bulk bar; an empty box clears
+them, which puts those services back on the default set.
+
 ## The storefront
 
 - `controllers/home.php` renders `/`, `/{platform}` and `/{platform}/{category}`

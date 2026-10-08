@@ -241,6 +241,10 @@ INSERT OR IGNORE INTO "settings" ("k", "v") VALUES
   ('order_prefix',         'GK'),
   ('active_theme',         'default'),
   ('auto_packages',        '1'),
+  ('default_features',     'High Quality - 100% Real
+Fast Delivery
+100% Safe & Secure
+No Password Required'),
   ('app_version',          '');
 
 INSERT OR IGNORE INTO "platforms" ("slug", "name", "icon", "color", "url_prefix", "sort_order", "is_active") VALUES

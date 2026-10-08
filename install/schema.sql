@@ -277,6 +277,10 @@ INSERT INTO `settings` (`k`, `v`) VALUES
   ('order_prefix',         'GK'),
   ('active_theme',         'default'),
   ('auto_packages',        '1'),
+  ('default_features',     'High Quality - 100% Real
+Fast Delivery
+100% Safe & Secure
+No Password Required'),
   ('app_version',          '')
 ON DUPLICATE KEY UPDATE `k` = `k`;
 

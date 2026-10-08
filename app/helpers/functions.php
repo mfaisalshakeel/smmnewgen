@@ -654,3 +654,23 @@ function service_tiers(array $service): array
 
     return $tiers;
 }
+
+/**
+ * The ticked lines on a card.
+ *
+ * A service that has its own wins; anything else falls back to the shop-wide
+ * set in Settings, so a freshly imported service arrives with ticks on it
+ * rather than a blank space nobody notices until a customer does.
+ *
+ * @return string[]
+ */
+function service_feature_lines(array $service): array
+{
+    $own = trim((string) ($service['features'] ?? ''));
+    $text = $own !== '' ? $own : (string) setting('default_features', '');
+
+    return array_slice(array_values(array_filter(
+        array_map('trim', preg_split('/\r\n|\r|\n/', $text) ?: []),
+        static fn(string $line): bool => $line !== ''
+    )), 0, 8);
+}
