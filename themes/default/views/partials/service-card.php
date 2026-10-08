@@ -7,8 +7,6 @@
  * nothing.
  *
  * @var array $service  @var array $platform
- * @var bool  $custom   true when this sits beside package cards, so the
- *                      heading says what it is for
  */
 $rate    = (float) $service['price_per_1000'];
 $min     = (int) $service['min_qty'];
@@ -29,13 +27,9 @@ $feature = array_values(array_filter(array_map('trim', explode("\n", (string) $s
     <span class="cbadge"><?= e($service['badge']) ?></span>
   <?php endif; ?>
 
-  <h3><?= !empty($custom) ? 'Custom quantity' : e($service['name']) ?></h3>
+  <h3><?= e($service['name']) ?></h3>
 
-  <?php if (!empty($custom)): ?>
-    <p class="cdesc">Any amount between <?= e(qty_fmt($min)) ?> and <?= e(qty_fmt($max)) ?>.</p>
-  <?php endif; ?>
-
-  <?php if (empty($custom) && $service['description'] !== ''): ?>
+  <?php if ($service['description'] !== ''): ?>
     <p class="cdesc"><?= e($service['description']) ?></p>
   <?php endif; ?>
 

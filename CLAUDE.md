@@ -162,9 +162,15 @@ Write a screen by hand only when it needs more than the spec can say — service
 - `bonus_quantity` is delivered free on top. The order's quantity is
   `quantity + bonus_quantity`, because that is what the provider is asked for;
   the cost is still the rate times that, so margin stays honest.
-- The front cards come from `partials/cards.php`: one card per package, then
-  the quantity card headed "Custom quantity". A service with no packages is
-  the single card it always was.
+- The front cards come from `partials/cards.php`: one card per package for a
+  service that has them, the ordinary quantity card for a service that does
+  not, so nothing ever disappears from the grid.
+- The packaged services then share **one** custom-quantity panel underneath,
+  with a service picker when there is more than one. A "custom" card per
+  service sitting among the tiers gave no way to tell which service it
+  belonged to. The panel is an ordinary `.card`, so choosing a service
+  rewrites its `data-` attributes rather than re-rendering: the price maths
+  and the order modal keep working on it unchanged.
 - `order.php` reads the price **back from the package row**. The quantity the
   browser sends for a package order is not even looked at, and a package id
   that does not belong to the service is refused.

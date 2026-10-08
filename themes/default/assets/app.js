@@ -49,6 +49,51 @@
     }
   });
 
+  // ------------------------------------------------- custom order picker --
+  // The panel is an ordinary card, so choosing a different service rewrites
+  // its data attributes rather than re-rendering anything: the price maths
+  // and the order modal keep working on it unchanged.
+  document.addEventListener('change', function (event) {
+    var select = event.target.closest('[data-service-pick]');
+    if (!select) { return; }
+
+    var option = select.options[select.selectedIndex];
+    var card   = select.closest('.card');
+    var input  = card.querySelector('[data-qty]');
+
+    card.dataset.service = option.value;
+    card.dataset.rate    = option.dataset.rate;
+    card.dataset.min     = option.dataset.min;
+    card.dataset.max     = option.dataset.max;
+    card.dataset.name    = option.dataset.name;
+
+    var min = parseInt(option.dataset.min, 10);
+    var max = parseInt(option.dataset.max, 10);
+    input.min = min;
+    input.max = max;
+
+    // The number on screen may be outside what this service accepts; move it
+    // to the nearest end rather than leaving an error the customer did not
+    // cause.
+    var qty = parseInt(input.value, 10);
+    if (isNaN(qty) || qty < min) { input.value = min; }
+    else if (qty > max)          { input.value = max; }
+
+    var lo = card.querySelector('[data-range-min]');
+    var hi = card.querySelector('[data-range-max]');
+    if (lo) { lo.textContent = fmt(min); }
+    if (hi) { hi.textContent = fmt(max); }
+
+    var delivery = card.querySelector('[data-delivery-text]');
+    var deliveryLine = delivery && delivery.closest('.qp-del');
+    if (deliveryLine) {
+      delivery.textContent = option.dataset.delivery || '';
+      deliveryLine.hidden = !option.dataset.delivery;
+    }
+
+    recalc(card);
+  });
+
   // ---------------------------------------------------------------- modal --
   var modal   = document.getElementById('orderModal');
   var form    = document.getElementById('orderForm');
