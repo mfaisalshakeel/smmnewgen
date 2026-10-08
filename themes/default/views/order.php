@@ -214,7 +214,7 @@ $waMessage = rawurlencode(
         <div class="panel">
           <div class="ptitle"><svg class="icon"><use href="#i-check"></use></svg> Payment confirmed</div>
           <div class="psubtitle">Nothing more to do &mdash; your order is on its way.</div>
-          <div class="orow"><span>Method</span><b><?= e($order['payment_name'] ?? '&mdash;') ?></b></div>
+          <div class="orow"><span>Method</span><b><?= $order['payment_name'] ? e($order['payment_name']) : '&mdash;' ?></b></div>
           <?php if ($order['trx_id'] !== ''): ?>
             <div class="orow"><span>Transaction id</span><b><?= e($order['trx_id']) ?></b></div>
           <?php endif; ?>

@@ -98,6 +98,20 @@ again is safe.
 
 ---
 
+## Themes
+
+Two ship: **Clean Light** (soft gradients, light palette) and **Warm Gradient**
+(pink-to-coral hero with the platform chooser sitting across it). Switch in
+*Admin → Themes*; the new theme's own colour is applied unless you have picked
+one yourself in Settings.
+
+To add a third, copy a folder under `themes/`, change `theme.php` and edit what
+you want. A theme only ships the views it changes — anything it leaves out comes
+from the default theme — and no existing file needs touching for it to appear in
+the admin.
+
+---
+
 ## Nginx
 
 There is no `.htaccess` on nginx, so the rewrite and the deny rules have to go

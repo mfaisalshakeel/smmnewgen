@@ -16,6 +16,7 @@
 
 require_once APP_PATH . '/helpers/SmmApi.php';
 require_once APP_PATH . '/helpers/currency.php';
+require_once APP_PATH . '/helpers/orders.php';
 
 /**
  * Put a provider through its paces and record what we learn.
@@ -85,30 +86,19 @@ function provider_check(array $provider): array
     }
 
     // --- 4. multi-order status -------------------------------------------
-    $sample = array_column(all(
-        "SELECT provider_order_id FROM orders
-          WHERE provider_id = ? AND provider_order_id <> ''
-       ORDER BY id DESC LIMIT 2", [$provider['id']]
-    ), 'provider_order_id');
+    //
+    // No orders needed: the probe reads the shape of the reply, so this is
+    // answerable the moment a provider is added.
+    $probe = multi_status_probe($provider);
 
-    if (count($sample) < 2) {
-        $checks[] = ['label' => 'Multiple status in one request', 'ok' => true,
-                     'detail' => 'Not testable yet - it needs two orders already sent to this provider. '
-                               . 'Until then statuses are fetched one at a time.'];
+    if ($probe['supported'] === null) {
+        $checks[] = ['label' => 'Multiple status in one request', 'ok' => false,
+                     'detail' => $probe['detail']];
     } else {
-        $response  = $api->multiStatus($sample);
-        $supported = !isset($response['error'])
-                  && !isset($response['status'])
-                  && isset($response[(string) $sample[0]]);
-
-        $fields['supports_multi_status'] = $supported ? 1 : 0;
-        $checks[] = [
-            'label'  => 'Multiple status in one request',
-            'ok'     => true,
-            'detail' => $supported
-                ? 'Supported - statuses are fetched up to 100 at a time.'
-                : 'Not supported - statuses are fetched one order at a time.',
-        ];
+        $fields['supports_multi_status'] = $probe['supported'] ? 1 : 0;
+        $checks[] = ['label' => 'Multiple status in one request', 'ok' => true,
+                     'detail' => ($probe['supported'] ? 'Supported. ' : 'Not supported. ')
+                               . $probe['detail']];
     }
 
     update_row('providers', $fields, 'id = ?', [$provider['id']]);

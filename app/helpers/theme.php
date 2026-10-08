@@ -52,6 +52,7 @@ function themes_available(bool $fresh = false): array
             'description' => '',
             'author'      => '',
             'version'     => '',
+            'brand'       => '',
             'screenshot'  => is_file($dir . '/screenshot.png') ? 'screenshot.png' : '',
         ];
     }
@@ -120,6 +121,20 @@ function theme_asset(string $file): string
     }
 
     return url('themes/' . $active . '/assets/' . $file);
+}
+
+/**
+ * The colour a theme was designed around, if it says.
+ *
+ * A theme is drawn to suit one accent, and the site has one accent setting.
+ * Switching theme therefore adopts the new theme's colour - but only while
+ * the colour on record is still the old theme's own, so a colour the admin
+ * chose is never overwritten. See controllers/admin/themes.php.
+ */
+function theme_brand(string $slug): string
+{
+    $brand = (string) (themes_available()[$slug]['brand'] ?? '');
+    return preg_match('/^#[0-9a-fA-F]{6}$/', $brand) ? $brand : '';
 }
 
 /** URL for a theme's screenshot, or '' when it has none. */

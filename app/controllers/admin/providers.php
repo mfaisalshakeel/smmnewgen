@@ -36,6 +36,32 @@ if (($params[0] ?? '') === 'check' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('admin/providers');
 }
 
+// Ask one provider, on its own, whether it answers a batch status request.
+// Part of Check as well, but worth its own button: it is the one answer that
+// changes how every later status sync is made, and an admin who has just
+// overridden it by hand wants to put it back without re-running everything.
+if (($params[0] ?? '') === 'multistatus' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $provider = one('SELECT * FROM providers WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
+
+    if (!$provider) {
+        flash('error', 'That provider no longer exists.');
+        redirect('admin/providers');
+    }
+
+    $probe = multi_status_probe($provider);
+
+    if ($probe['supported'] === null) {
+        flash('warning', $provider['name'] . ': ' . $probe['detail']);
+    } else {
+        update_row('providers', ['supports_multi_status' => $probe['supported'] ? 1 : 0],
+            'id = ?', [$provider['id']]);
+        flash('success', $provider['name'] . ': multiple status in one request is '
+            . ($probe['supported'] ? 'supported' : 'not supported') . '. ' . $probe['detail']);
+    }
+
+    redirect('admin/providers');
+}
+
 // Sync one provider's catalogue now.
 if (($params[0] ?? '') === 'sync' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $provider = one('SELECT * FROM providers WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
@@ -80,7 +106,9 @@ crud_handle([
                  . '<input type="hidden" name="id" value="' . (int) $r['id'] . '">'
                  . '<button class="btn btn-ghost btn-sm" type="submit">' . e($label) . '</button></form>';
         };
-        return $form('admin/providers/check', 'Check') . $form('admin/providers/sync', 'Sync');
+        return $form('admin/providers/check', 'Check')
+             . $form('admin/providers/multistatus', 'Multi-status')
+             . $form('admin/providers/sync', 'Sync');
     },
     'form_note'=> 'The API URL is usually the provider\'s /api/v2 endpoint. Your key is stored as given '
                 . 'and only ever sent to that provider.',
@@ -131,7 +159,8 @@ crud_handle([
                          'options' => [1 => 'Supported', 0 => 'Not supported'],
                          'empty' => 'Work it out automatically',
                          'hint' => 'Most providers take up to 100 order ids at once; some only one. '
-                                 . 'Check sets this for you.'],
+                                 . 'Leave it automatic and press Multi-status on the list to ask the '
+                                 . 'provider - Check asks as well.'],
         'auto_sync'  => ['label' => 'Include in the scheduled service sync', 'type' => 'checkbox', 'default' => 1],
         'sort_order' => ['label' => 'Sort order', 'type' => 'number', 'default' => 0],
         'is_active'  => ['label' => 'Active', 'type' => 'checkbox', 'default' => 1,

@@ -246,7 +246,7 @@ INSERT INTO `settings` (`k`, `v`) VALUES
   ('site_tagline',         'Buy social media growth, safely'),
   ('currency_symbol',      'Rs '),
   ('default_platform',     'instagram'),
-  ('theme_color',          '#4f46e5'),
+  ('theme_color',          '#6c4df6'),
   ('whatsapp_number',      ''),
   ('support_email',        ''),
   ('logo_path',            ''),

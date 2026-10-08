@@ -128,38 +128,106 @@ function send_order_to_provider(int $orderId): array
 }
 
 /**
+ * Ask a provider whether it answers a multi-order status request.
+ *
+ * Some do, some do not, and the only honest way to find out is to ask. What
+ * gives the answer away is the shape of the reply, not its contents: a
+ * provider that understands `orders` answers with an object keyed by order
+ * id, one that does not answers with a flat status object (it read `order`
+ * and ignored the rest) or with a single error.
+ *
+ * That means the probe does not need real orders. Where none have been sent
+ * yet it asks about two ids that will not exist, and a reply still keyed by
+ * those ids proves the batch form was understood. One case stays genuinely
+ * unanswerable: a provider that batches but collapses a request of entirely
+ * unknown ids into one error looks exactly like a provider that does not
+ * batch. So a real order id is mixed in whenever one exists, and when none
+ * does and the reply is a flat error the answer is "cannot tell yet" rather
+ * than a guess recorded as fact.
+ *
+ * @param string[] $sampleOrderIds provider order ids already known to be real
+ * @return array{supported: ?bool, detail: string}  supported null = no answer
+ */
+function multi_status_probe(array $provider, array $sampleOrderIds = []): array
+{
+    $real = array_values(array_filter(array_map('strval', $sampleOrderIds), 'strlen'));
+
+    if (!$real) {
+        $real = array_column(all(
+            "SELECT provider_order_id FROM orders
+              WHERE provider_id = ? AND provider_order_id <> ''
+           ORDER BY id DESC LIMIT 2", [$provider['id']]
+        ), 'provider_order_id');
+        $real = array_map('strval', $real);
+    }
+
+    $real  = array_slice(array_unique($real), 0, 2);
+    $probe = $real;
+
+    // A status call changes nothing, so an id that belongs to nobody is a
+    // safe second subject; 12 digits is well past any live order number.
+    while (count($probe) < 2) {
+        $probe[] = (string) random_int(100000000000, 999999999999);
+    }
+
+    $response = (new SmmApi($provider['api_url'], $provider['api_key']))->multiStatus($probe);
+
+    if (!is_array($response)) {
+        return ['supported' => null, 'detail' => 'The provider sent back something unreadable.'];
+    }
+
+    // Keyed by the ids we asked about - the batch form was understood, even
+    // if every entry is "no such order".
+    foreach ($probe as $id) {
+        if (isset($response[$id])) {
+            return ['supported' => true, 'detail' => 'Statuses are fetched up to 100 at a time.'];
+        }
+    }
+
+    if (isset($response['status'])) {
+        return ['supported' => false,
+                'detail' => 'It answered about one order only, so statuses are fetched one at a time.'];
+    }
+
+    if ($real) {
+        return ['supported' => false,
+                'detail' => 'It did not answer a batch of real order ids, so statuses are fetched '
+                          . 'one at a time.'];
+    }
+
+    return ['supported' => null,
+            'detail' => 'It rejected the whole batch: ' . (string) ($response['error'] ?? 'no reason given')
+                      . '. That is also what a provider says when it does not know the ids at all, so '
+                      . 'this is not an answer yet - check again once an order has been sent.'];
+}
+
+/**
  * Does this provider answer a multi-order status request?
  *
- * Some do, some do not, and the only honest way to find out is to ask. The
- * answer is cached on the provider row: null means "not asked yet", 1 yes,
- * 0 no. An admin can override it on the provider form.
- *
- * The test sends two real order ids and looks at the shape of the reply: a
- * provider that supports it returns an object keyed by order id, one that
- * does not returns an error or a single flat status object.
+ * The answer is cached on the provider row: null means "not asked yet", 1
+ * yes, 0 no. An admin can override it on the provider form, and the Providers
+ * screen has a button that re-asks.
  */
-function provider_supports_multi_status(array $provider, array $sampleOrderIds): bool
+function provider_supports_multi_status(array $provider, array $sampleOrderIds = []): bool
 {
     if ($provider['supports_multi_status'] !== null) {
         return (bool) $provider['supports_multi_status'];
     }
-    if (count($sampleOrderIds) < 2) {
-        // Nothing to test with - assume not, and ask again another time.
+
+    $probe = multi_status_probe($provider, $sampleOrderIds);
+
+    if ($probe['supported'] === null) {
+        // Nothing learned, so nothing recorded - one order at a time for now
+        // and the question gets asked again next time.
         return false;
     }
 
-    $api      = new SmmApi($provider['api_url'], $provider['api_key']);
-    $sample   = array_slice($sampleOrderIds, 0, 2);
-    $response = $api->multiStatus($sample);
+    update_row('providers', ['supports_multi_status' => $probe['supported'] ? 1 : 0],
+        'id = ?', [$provider['id']]);
+    log_line(sprintf('Provider %s multi-status support: %s',
+        $provider['name'], $probe['supported'] ? 'yes' : 'no'));
 
-    $supported = !isset($response['error'])
-              && !isset($response['status'])            // a flat reply means it ignored `orders`
-              && isset($response[(string) $sample[0]]); // keyed by order id is the real thing
-
-    update_row('providers', ['supports_multi_status' => $supported ? 1 : 0], 'id = ?', [$provider['id']]);
-    log_line(sprintf('Provider %s multi-status support: %s', $provider['name'], $supported ? 'yes' : 'no'));
-
-    return $supported;
+    return $probe['supported'];
 }
 
 /**

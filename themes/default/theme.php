@@ -10,6 +10,7 @@ return [
     'description' => 'Soft gradients, rounded cards and a light palette. '
                    . 'The platform switcher and category tabs are real links, so it works '
                    . 'without JavaScript.',
+    'brand'       => '#6c4df6',
     'author'      => 'GrowKit',
     'version'     => '1.0',
 ];

@@ -132,6 +132,27 @@ Write a screen by hand only when it needs more than the spec can say — service
   refreshes cost, price and limits but keeps the name and description, because
   an admin may have rewritten them.
 
+## Themes
+
+- A theme is a folder under `themes/` with `theme.php` beside `views/` and
+  `assets/`. Nothing keeps a list — `themes_available()` scans the directory —
+  so adding one never means editing a file that already exists.
+- `render()` looks in the active theme's views, then the **default theme's**,
+  then `app/views`. A theme therefore ships only the views whose structure
+  differs and inherits the rest; `viralborn` ships four files and gets the
+  order page, the tracking page and the modal from `default`.
+- Because inherited views come with the default theme's class names, a theme's
+  stylesheet has to cover that whole vocabulary. Both shipped themes are
+  written in the same order so they read side by side.
+- `theme_asset()` falls back the same way, so a theme with no `app.js` of its
+  own still gets one — which is why a theme must keep the ids the script
+  needs: `#platStrip`, `#catTabs`, `#serviceCards`, `#heroTitle` with its
+  `.grad` span, `#heroCta`, `#svcTitle`, and the card's `data-` attributes.
+- A manifest may declare `brand`, the colour the theme was drawn around.
+  Activating a theme adopts it — but only while the colour on record is still
+  the **previous theme's** own, so a colour the admin chose is never
+  overwritten.
+
 ## The storefront
 
 - `controllers/home.php` renders `/`, `/{platform}` and `/{platform}/{category}`
@@ -159,6 +180,14 @@ Write a screen by hand only when it needs more than the spec can say — service
   order we are not sure about.
 - `sync_order_statuses()` groups open orders per provider and uses the
   multi-status call, so a hundred open orders is a handful of requests.
+- Whether a provider answers a batch is read from the **shape** of its reply,
+  not its contents: keyed by order id means yes, a flat status object means it
+  read `order` and ignored `orders`. `multi_status_probe()` therefore needs no
+  real orders — it asks about ids that will not exist — so a provider can be
+  checked the moment it is added. The one reply it cannot read is a flat error
+  for a batch of unknown ids, which is also what a batching provider says; that
+  answers "cannot tell yet" and records nothing rather than guessing. Providers
+  has its own **Multi-status** button, and Check asks as well.
 - Every state change writes an `order_logs` row.
 
 ## Versions and updating
