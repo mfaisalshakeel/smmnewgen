@@ -15,6 +15,7 @@ require_once APP_PATH . '/helpers/notify.php';
 require_once APP_PATH . '/helpers/guard.php';
 require_once APP_PATH . '/helpers/audit.php';
 require_once APP_PATH . '/helpers/margin.php';
+require_once APP_PATH . '/helpers/payfields.php';
 
 $code = $params[0] ?? null;
 
@@ -207,8 +208,8 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'link'       => $link,
         'status'     => 'Awaiting payment',
         'order_url'  => url('order/' . $orderCode),
-        'admin_url'  => url('admin/orders/view/' . $orderId),
-        'admin_link' => 'admin/orders/view/' . $orderId,
+        'admin_url'  => url('admin/orders/' . $orderId),
+        'admin_link' => 'admin/orders/' . $orderId,
         'email'      => $email,
     ];
     notify('admin_new_order', $tokens);
@@ -294,9 +295,23 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('order/' . $order['code']);
     }
 
+    // What this method asks for is read from the method, never from the form:
+    // a posted field nobody defined does not exist, and a required one cannot
+    // be skipped by removing it from the markup.
+    $collected = payfields_collect($method, $_POST, $_FILES, (string) $order['code']);
+
+    if (!$collected['ok']) {
+        keep_old($_POST);
+        $_SESSION['_pay_errors'] = $collected['errors'];
+        flash('error', 'Please check the payment details: ' . implode(' ', $collected['errors']));
+        redirect('order/' . $order['code']);
+    }
+
     // The gateway decides what counts as a valid submission. The manual one
-    // just wants a transaction id; a hosted one may check for real.
-    $check = payment_verify($method, $order, ['trx_id' => $trx, 'paid_amount' => $amount]);
+    // just wants a reference; a hosted one may check for real.
+    $check = payment_verify($method, $order,
+        ['trx_id' => $collected['reference'] !== '' ? $collected['reference'] : $trx,
+         'paid_amount' => $amount]);
 
     if (!$check['ok']) {
         flash('error', $check['message'] !== '' ? $check['message'] : 'That payment could not be accepted.');
@@ -309,6 +324,10 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'payment_method_id' => (int) $method['id'],
         'trx_id'            => $reference,
         'paid_amount'       => $amount > 0 ? $amount : null,
+        'payment_details'   => $collected['answers']
+                                 ? json_encode($collected['answers'],
+                                     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                                 : null,
         'updated_at'        => date('Y-m-d H:i:s'),
     ];
 
@@ -344,8 +363,8 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'amount'     => money($amount > 0 ? $amount : (float) $order['price']),
         'method'     => $method['name'],
         'reference'  => $reference !== '' ? $reference : 'none given',
-        'admin_url'  => url('admin/orders/view/' . $order['id']),
-        'admin_link' => 'admin/orders/view/' . $order['id'],
+        'admin_url'  => url('admin/orders/' . $order['id']),
+        'admin_link' => 'admin/orders/' . $order['id'],
     ]);
 
     if (!empty($check['confirmed'])) {
@@ -420,4 +439,11 @@ view('order', [
         }
     )),
     'gateways'    => payment_gateways(),
+    // Kept for one redirect, like the other validation errors, so a rejected
+    // payment comes back with the message under the field it is about.
+    'payErrors'   => (static function (): array {
+        $errors = $_SESSION['_pay_errors'] ?? [];
+        unset($_SESSION['_pay_errors']);
+        return is_array($errors) ? $errors : [];
+    })(),
 ]);

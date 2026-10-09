@@ -80,6 +80,31 @@ $button = static function (string $do, string $label, string $class = 'btn-ghost
         <div class="drow"><span>Amount sent</span>
           <b><?= $order['paid_amount'] === null ? '-' : e(money($order['paid_amount'])) ?></b></div>
         <div class="drow"><span>Confirmed at</span><b><?= e(when($order['paid_at'])) ?></b></div>
+
+        <?php /* Whatever this method asked for. The labels come from the
+                 definition stored at the time, so an order still reads the
+                 same after the admin renames or removes a field. */ ?>
+        <?php $answers = payfields_stored($order); ?>
+        <?php if ($answers): ?>
+          <dl class="pfa">
+            <?php foreach ($answers as $key => $answer): ?>
+              <div>
+                <dt><?= e($answer['label'] ?? $key) ?></dt>
+                <dd>
+                  <?php if (($answer['type'] ?? '') === 'image'): ?>
+                    <a class="pf-proof" target="_blank" rel="noopener"
+                       href="<?= e(url('admin/orders/proof/' . (int) $order['id'] . '/' . $key)) ?>">
+                      <img src="<?= e(url('admin/orders/proof/' . (int) $order['id'] . '/' . $key)) ?>"
+                           alt="<?= e($answer['label'] ?? 'Payment screenshot') ?>" loading="lazy">
+                    </a>
+                  <?php else: ?>
+                    <?= e((string) ($answer['value'] ?? '')) ?>
+                  <?php endif; ?>
+                </dd>
+              </div>
+            <?php endforeach; ?>
+          </dl>
+        <?php endif; ?>
       </div>
     </div>
   </div>

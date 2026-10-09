@@ -412,4 +412,11 @@ return [
             "INSERT INTO settings (`k`, `v`) VALUES ('rate_sanity_factor', '5')",
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_payment_fields' => [
+        'label' => 'What a manual payment asks for',
+        'mysql' => ["ALTER TABLE `orders` ADD COLUMN `payment_details` TEXT NULL"],
+        'sqlite' => ['ALTER TABLE "orders" ADD COLUMN "payment_details" TEXT'],
+    ],
 ];

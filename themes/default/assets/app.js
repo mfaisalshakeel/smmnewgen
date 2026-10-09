@@ -189,6 +189,7 @@
       document.querySelectorAll('[data-pm]').forEach(function (block) {
         block.classList.toggle('on', block.contains(pmRadio));
       });
+      syncPaymentFields();
     }
 
     // FAQ accordion
@@ -211,6 +212,26 @@
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') { closeModal(); }
   });
+
+
+  // ------------------------------------------------ payment method fields --
+  // Each manual method asks its own questions. Only the chosen method's are
+  // sent: the rest are disabled, which also stops a hidden required field
+  // blocking the submit. Without this script every field posts and the server
+  // reads only the ones the chosen method defines, so nothing is lost.
+  function syncPaymentFields() {
+    var chosen   = document.querySelector('[data-pm-radio]:checked');
+    var chosenId = chosen ? chosen.value : null;
+
+    document.querySelectorAll('[data-pf-for]').forEach(function (group) {
+      var mine = group.getAttribute('data-pf-for') === chosenId;
+      group.querySelectorAll('input, select, textarea').forEach(function (input) {
+        input.disabled = !mine;
+        input.required = mine && input.hasAttribute('data-pf-required');
+      });
+    });
+  }
+  syncPaymentFields();
 
 
   // --------------------------------------------------------- link check --

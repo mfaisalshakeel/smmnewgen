@@ -139,7 +139,8 @@ $waMessage = rawurlencode(
               </span>
             </div>
           <?php else: ?>
-            <form method="post" action="<?= e(url('order/' . $order['code'] . '/pay')) ?>" id="payForm">
+            <form method="post" action="<?= e(url('order/' . $order['code'] . '/pay')) ?>" id="payForm"
+                  enctype="multipart/form-data">
               <?= csrf_field() ?>
 
               <div class="pm">
@@ -190,6 +191,53 @@ $waMessage = rawurlencode(
                         <div class="note"><svg class="icon"><use href="#i-chat"></use></svg>
                           <span><?= e($method['instructions']) ?></span></div>
                       <?php endif; ?>
+
+                      <?php /* This method's own questions. They live inside its block
+                               so only the chosen method's are asked, and the script
+                               disables the others so they are not even sent. With no
+                               script every field posts and the server reads only the
+                               ones the chosen method defines. */ ?>
+                      <div class="pf-ask" data-pf-for="<?= (int) $method['id'] ?>">
+                        <?php foreach (payfields($method) as $field): ?>
+                          <?php $id = 'pf-' . (int) $method['id'] . '-' . $field['key']; ?>
+                          <div class="field">
+                            <label for="<?= e($id) ?>">
+                              <?= e($field['label']) ?><?= $field['required'] ? '' : ' (optional)' ?>
+                            </label>
+                            <?php if ($field['type'] === 'textarea'): ?>
+                              <textarea id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>" rows="3"
+                                <?= $field['required'] ? 'data-pf-required' : '' ?>
+                                ><?= e(old('pf_' . $field['key'], '')) ?></textarea>
+                            <?php elseif ($field['type'] === 'select'): ?>
+                              <select id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>"
+                                      <?= $field['required'] ? 'data-pf-required' : '' ?>>
+                                <option value="">Choose one</option>
+                                <?php foreach ($field['options'] as $option): ?>
+                                  <option value="<?= e($option) ?>"
+                                    <?= old('pf_' . $field['key'], '') === $option ? ' selected' : '' ?>>
+                                    <?= e($option) ?></option>
+                                <?php endforeach; ?>
+                              </select>
+                            <?php elseif ($field['type'] === 'image'): ?>
+                              <input id="<?= e($id) ?>" type="file" name="pf_<?= e($field['key']) ?>"
+                                     accept="image/png,image/jpeg,image/gif,image/webp"
+                                     <?= $field['required'] ? 'data-pf-required' : '' ?>>
+                            <?php else: ?>
+                              <input id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>"
+                                     type="<?= e($field['type'] === 'number' ? 'text' : $field['type']) ?>"
+                                     <?= $field['type'] === 'number' ? 'inputmode="decimal"' : '' ?>
+                                     value="<?= e(old('pf_' . $field['key'], '')) ?>"
+                                     <?= $field['required'] ? 'data-pf-required' : '' ?>>
+                            <?php endif; ?>
+                            <?php if ($field['hint'] !== ''): ?>
+                              <small class="hint"><?= e($field['hint']) ?></small>
+                            <?php endif; ?>
+                            <?php if (!empty($payErrors[$field['key']])): ?>
+                              <small class="err"><?= e($payErrors[$field['key']]) ?></small>
+                            <?php endif; ?>
+                          </div>
+                        <?php endforeach; ?>
+                      </div>
                       <?php endif; ?>
                     </div>
                   </div>
@@ -203,13 +251,6 @@ $waMessage = rawurlencode(
               </div>
 
               <div class="stack" data-manual-fields>
-                <div class="field" style="margin-bottom:0">
-                  <label for="trx">Transaction id<?= setting('require_trx_id', '1') === '1' ? '' : ' (optional)' ?></label>
-                  <input id="trx" name="trx_id" value="<?= e($order['trx_id']) ?>"
-                         placeholder="e.g. 102938475601"
-                         <?= setting('require_trx_id', '1') === '1' ? 'required' : '' ?>>
-                  <small>You get this in the SMS or app receipt after sending the payment.</small>
-                </div>
                 <div class="field" style="margin-bottom:0">
                   <label for="amt">Amount you sent</label>
                   <input id="amt" name="paid_amount" inputmode="decimal"

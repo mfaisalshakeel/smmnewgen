@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `whatsapp` VARCHAR(40) NOT NULL DEFAULT '',
   `email` VARCHAR(190) NOT NULL DEFAULT '',
   `sending_at` DATETIME NULL,
+  `payment_details` TEXT NULL,
   `price` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `cost` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `status` ENUM('pending','paid','processing','completed','partial','cancelled','refunded','api_error')

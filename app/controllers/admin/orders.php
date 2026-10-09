@@ -4,8 +4,40 @@ require_once APP_PATH . '/helpers/orders.php';
 require_once APP_PATH . '/helpers/crud.php';   // options_from()
 require_once APP_PATH . '/helpers/guard.php';
 require_once APP_PATH . '/helpers/audit.php';
+require_once APP_PATH . '/helpers/payfields.php';
 
 $action = $params[0] ?? 'index';
+
+// --- a payment screenshot --------------------------------------------------
+// Served through here rather than from a public folder: these are kept under
+// storage/, which .htaccess denies, because a payment screenshot carries a
+// bank balance and a person's name and a guessable URL would hand that to
+// anyone who tried one. Reaching this line already means a signed-in admin -
+// _middleware.php saw to that.
+if ($action === 'proof') {
+    $order = one('SELECT payment_details FROM orders WHERE id = ?', [(int) ($params[1] ?? 0)]);
+    $key   = (string) ($params[2] ?? '');
+    $answer = payfields_stored($order ?? [])[$key] ?? null;
+
+    if (!$answer || ($answer['type'] ?? '') !== 'image') {
+        http_response_code(404);
+        exit;
+    }
+    $path = payfield_image_path((string) $answer['value']);
+    if ($path === null) {
+        http_response_code(404);
+        exit;
+    }
+
+    $info = @getimagesize($path);
+    header('Content-Type: ' . ($info['mime'] ?? 'application/octet-stream'));
+    header('Content-Length: ' . filesize($path));
+    header('Content-Disposition: inline; filename="' . basename($path) . '"');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, max-age=600');
+    readfile($path);
+    exit;
+}
 
 // --------------------------------------------------------------- actions --
 if ($action === 'action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -32,7 +64,7 @@ if ($action === 'action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$tookIt) {
                 flash('error', 'That order is already paid - somebody got there first.');
-                redirect('admin/orders/view/' . $id);
+                redirect('admin/orders/' . $id);
             }
 
             order_log($id, 'Payment confirmed by admin.');

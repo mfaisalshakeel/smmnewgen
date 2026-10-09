@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
   "whatsapp" TEXT NOT NULL DEFAULT '',
   "email" TEXT NOT NULL DEFAULT '',
   "sending_at" TEXT,
+  "payment_details" TEXT,
   "price" REAL NOT NULL DEFAULT 0,
   "cost" REAL NOT NULL DEFAULT 0,
   "status" TEXT NOT NULL DEFAULT 'pending'

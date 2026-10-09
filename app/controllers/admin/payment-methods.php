@@ -8,6 +8,7 @@
  */
 require_once APP_PATH . '/helpers/crud.php';
 require_once APP_PATH . '/helpers/payments.php';
+require_once APP_PATH . '/helpers/payfields.php';
 
 $gateways = payment_gateways(true);
 $action   = $params[0] ?? 'index';
@@ -45,6 +46,34 @@ if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Manual methods need somewhere to send the money.
     if ($gateways[$driver]['kind'] === 'manual' && trim((string) ($_POST['account_number'] ?? '')) === '') {
         $errors['account_number'] = 'A manual method needs an account number.';
+    }
+
+    // What this method asks the customer. Only for a manual one: a gateway
+    // collects its own details on its own page, so asking twice would mean
+    // asking for something we then cannot check.
+    if ($gateways[$driver]['kind'] === 'manual') {
+        $built = [];
+        foreach ((array) ($_POST['pf_label'] ?? []) as $index => $label) {
+            $field = payfield_clean([
+                'label'     => $label,
+                'key'       => $_POST['pf_key'][$index] ?? '',
+                'type'      => $_POST['pf_type'][$index] ?? 'text',
+                'hint'      => $_POST['pf_hint'][$index] ?? '',
+                'options'   => $_POST['pf_options'][$index] ?? '',
+                'required'  => !empty($_POST['pf_required'][$index]),
+                'reference' => (string) ($_POST['pf_reference'] ?? '') === (string) $index,
+            ]);
+            if ($field === null) {
+                continue;        // a row with no label is not a field
+            }
+            if (isset($built[$field['key']])) {
+                $errors['pf'] = 'Two fields ended up with the same name ('
+                    . $field['key'] . '). Give them different labels.';
+                continue;
+            }
+            $built[$field['key']] = $field;
+        }
+        $config['fields'] = array_values($built);
     }
 
     if ($errors) {
@@ -98,6 +127,8 @@ if ($action === 'new' || $action === 'edit') {
         'id'       => $id,
         'config'   => payment_config($row),
         'gateways' => $gateways,
+        'payfields'=> array_values(payfields($row)),
+        'pftypes'  => payfield_types(),
         'errors'   => crud_errors(),
     ], 'layouts/admin');
 }

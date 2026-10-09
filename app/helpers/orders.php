@@ -235,8 +235,8 @@ function send_order_to_provider(int $orderId): array
             'service'    => $order['service_label'] ?: $order['service_name'],
             'provider'   => $provider['name'],
             'error'      => $message,
-            'admin_url'  => url('admin/orders/view/' . $orderId),
-            'admin_link' => 'admin/orders/view/' . $orderId,
+            'admin_url'  => url('admin/orders/' . $orderId),
+            'admin_link' => 'admin/orders/' . $orderId,
         ]);
 
         return [false, $message];

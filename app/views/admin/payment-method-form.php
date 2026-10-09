@@ -91,6 +91,74 @@ $current = (string) $val('driver', 'manual');
         </div>
       </div>
     </div>
+
+    <div class="box" data-manual-only>
+      <div class="box-head">
+        <b>What the customer is asked</b>
+        <button class="btn btn-ghost btn-sm" type="button" data-pf-add>+ Add a field</button>
+      </div>
+      <div class="pad">
+        <p class="muted small" style="margin-bottom:12px">
+          The customer fills these in after paying. Mark one as the reference and
+          it shows in the orders list. An image field takes a screenshot - those
+          are kept outside the public folder and only ever shown to you.
+        </p>
+        <?php if ($err('pf')): ?>
+          <div class="alert alert-error"><?= e($err('pf')) ?></div>
+        <?php endif; ?>
+
+        <div class="pf-list" data-pf-list>
+          <?php foreach ($payfields as $index => $field): ?>
+            <div class="pf-row" data-pf-row>
+              <div class="pf-grid">
+                <div class="field">
+                  <label>Label</label>
+                  <input name="pf_label[]" value="<?= e($field['label']) ?>" placeholder="Transaction ID">
+                </div>
+                <div class="field">
+                  <label>Type</label>
+                  <select name="pf_type[]" data-pf-type>
+                    <?php foreach ($pftypes as $key => $type): ?>
+                      <option value="<?= e($key) ?>"<?= $field['type'] === $key ? ' selected' : '' ?>>
+                        <?= e($type['label']) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Hint under the box <span class="opt-tag">optional</span></label>
+                <input name="pf_hint[]" value="<?= e($field['hint']) ?>">
+              </div>
+              <div class="field" data-pf-options<?= $field['type'] === 'select' ? '' : ' hidden' ?>>
+                <label>The choices, one per line</label>
+                <textarea name="pf_options[]" rows="3"><?= e(implode("\n", $field['options'])) ?></textarea>
+              </div>
+              <input type="hidden" name="pf_key[]" value="<?= e($field['key']) ?>">
+              <div class="pf-foot">
+                <label class="check">
+                  <input type="checkbox" name="pf_required[<?= $index ?>]" value="1"
+                         <?= $field['required'] ? 'checked' : '' ?>>
+                  <span>Required</span>
+                </label>
+                <label class="check">
+                  <input type="radio" name="pf_reference" value="<?= $index ?>"
+                         <?= $field['reference'] ? 'checked' : '' ?>>
+                  <span>This is the reference</span>
+                </label>
+                <button class="iact iact-danger" type="button" data-pf-remove
+                        title="Remove this field" aria-label="Remove this field">
+                  <svg class="icon"><use href="#i-trash"></use></svg>
+                </button>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+        <p class="muted small" data-pf-empty<?= $payfields ? ' hidden' : '' ?>>
+          No fields yet, so the customer is only asked for a transaction id.
+        </p>
+      </div>
+    </div>
   </div>
 
   <div>
@@ -162,5 +230,77 @@ $current = (string) $val('driver', 'manual');
     r.addEventListener('change', sync);
   });
   sync();
+
+  // ---- the field builder ----
+  // Rows are cloned from the one already in the page rather than built from a
+  // template string, so the markup exists in exactly one place: the PHP above.
+  var list  = document.querySelector('[data-pf-list]');
+  var empty = document.querySelector('[data-pf-empty]');
+
+  function renumber() {
+    list.querySelectorAll('[data-pf-row]').forEach(function (row, i) {
+      var req = row.querySelector('input[name^="pf_required"]');
+      if (req) { req.name = 'pf_required[' + i + ']'; }
+      var ref = row.querySelector('input[name="pf_reference"]');
+      if (ref) { ref.value = i; }
+    });
+    if (empty) { empty.hidden = list.querySelector('[data-pf-row]') !== null; }
+  }
+
+  function blankRow() {
+    var first = list.querySelector('[data-pf-row]');
+    var row;
+    if (first) {
+      row = first.cloneNode(true);
+      row.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(function (i) {
+        i.value = '';
+      });
+      row.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function (i) {
+        i.checked = false;
+      });
+      var key = row.querySelector('input[name="pf_key[]"]');
+      if (key) { key.value = ''; }          // a new row gets a key from its label
+      var type = row.querySelector('[data-pf-type]');
+      if (type) { type.selectedIndex = 0; }
+    } else {
+      // Nothing to clone from: ask the server for the markup by reloading
+      // with one empty row, which is simpler than keeping a second copy here.
+      row = null;
+    }
+    return row;
+  }
+
+  document.querySelectorAll('[data-pf-add]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var row = blankRow();
+      if (!row) { window.location.search = '?addfield=1'; return; }
+      list.appendChild(row);
+      wire(row);
+      renumber();
+      row.querySelector('input').focus();
+    });
+  });
+
+  function wire(row) {
+    var remove = row.querySelector('[data-pf-remove]');
+    if (remove) {
+      remove.addEventListener('click', function () {
+        row.remove();
+        renumber();
+      });
+    }
+    var type = row.querySelector('[data-pf-type]');
+    if (type) {
+      type.addEventListener('change', function () {
+        var options = row.querySelector('[data-pf-options]');
+        if (options) { options.hidden = type.value !== 'select'; }
+      });
+    }
+  }
+
+  if (list) {
+    list.querySelectorAll('[data-pf-row]').forEach(wire);
+    renumber();
+  }
 })();
 </script>

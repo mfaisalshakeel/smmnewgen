@@ -872,3 +872,24 @@ svg{max-width:100%}
   border-radius:999px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;
   line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--surface)}
 .iconbtn.has-dot{border-color:var(--danger-soft)}
+
+/* ---- the manual payment field builder ---- */
+.pf-list{display:grid;gap:12px}
+.pf-row{border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:var(--page)}
+.pf-row .field{margin-bottom:10px}
+.pf-row .field:last-of-type{margin-bottom:0}
+.pf-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
+.pf-foot{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:10px;
+  padding-top:11px;border-top:1px dashed var(--line)}
+.pf-foot .iact{margin-left:auto}
+@media (max-width:760px){ .pf-grid{grid-template-columns:minmax(0,1fr)} }
+
+/* ---- the answers, on the order ---- */
+.pfa{display:grid;gap:1px;background:var(--line);border-radius:12px;overflow:hidden;margin-top:4px}
+.pfa>div{background:var(--surface);padding:11px 14px;display:flex;justify-content:space-between;
+  gap:16px;align-items:flex-start}
+.pfa dt{margin:0;font-size:13px;font-weight:700;color:var(--muted)}
+.pfa dd{margin:0;font-size:14px;font-weight:700;text-align:right;word-break:break-word}
+.pf-proof{display:inline-block;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  max-width:220px;line-height:0}
+.pf-proof img{max-width:100%;height:auto;display:block}
