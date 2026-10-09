@@ -105,9 +105,7 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // an Instagram order being placed with a TikTok link.
     $prefix = trim((string) ($service['url_prefix'] ?? ''));
     if ($prefix !== '') {
-        $host = strtolower((string) parse_url($link, PHP_URL_HOST));
-        $host = preg_replace('/^www\./', '', $host);
-        if ($host === '' || !str_contains($host, strtolower($prefix))) {
+        if (!link_is_on_host($link, $prefix)) {
             $fail('That does not look like a link to ' . $service['platform_name']
                 . '. It should be on ' . $prefix . '.');
         }

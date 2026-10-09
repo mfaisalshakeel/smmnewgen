@@ -161,6 +161,9 @@
         (card.querySelector('.qp-del') || { textContent: '' }).textContent.trim() || 'Starts shortly';
       document.getElementById('omLinkLabel').textContent = card.dataset.linkLabel;
       document.getElementById('omLink').placeholder      = card.dataset.linkHint;
+      // Carried on the form so the check below knows which host to insist on.
+      form.dataset.linkHost = card.dataset.linkHost || '';
+      form.dataset.platform = card.dataset.platform || '';
       document.getElementById('omError').classList.remove('show');
       openModal();
       return;
@@ -206,6 +209,47 @@
     if (event.key === 'Escape') { closeModal(); }
   });
 
+
+  // --------------------------------------------------------- link check --
+  // The same rule the server applies: the host has to BE the platform's host
+  // or a subdomain of it. "Contains" would let instagram.com.example.net
+  // through. This only moves the answer earlier - the server still decides.
+  function linkIsOnHost(value, host) {
+    if (!host) { return true; }
+    var parsed;
+    try { parsed = new URL(value); } catch (error) { return false; }
+
+    var actual = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    host = host.toLowerCase().replace(/^www\./, '');
+    return actual === host || actual.endsWith('.' + host);
+  }
+
+  function checkLink() {
+    var field = document.getElementById('omLink');
+    var error = document.getElementById('omError');
+    if (!field || !form) { return true; }
+
+    var host  = form.dataset.linkHost || '';
+    var value = field.value.trim();
+    if (value === '' || linkIsOnHost(value, host)) {
+      field.removeAttribute('aria-invalid');
+      if (error.dataset.from === 'link') { error.classList.remove('show'); }
+      return true;
+    }
+
+    field.setAttribute('aria-invalid', 'true');
+    // Named rather than articled, so neither 'a Instagram' nor a guess at
+    // which article a platform's name wants.
+    error.textContent = (form.dataset.platform || 'These') + ' links are on ' + host
+      + '. That one is not.';
+    error.dataset.from = 'link';
+    error.classList.add('show');
+    return false;
+  }
+
+  document.addEventListener('input', function (event) {
+    if (event.target.id === 'omLink') { checkLink(); }
+  });
   // ------------------------------------------------------- submit (ajax) --
   // Posting over fetch keeps the typed link and number on screen when the
   // server rejects something. Without JS the same form posts normally and the
@@ -214,6 +258,11 @@
     var useFetch = true;
 
     form.addEventListener('submit', function (event) {
+      if (!checkLink()) {
+        event.preventDefault();
+        document.getElementById('omLink').focus();
+        return;
+      }
       if (!useFetch) { return; }        // the retry below submits normally
       event.preventDefault();
 

@@ -32,7 +32,9 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
        data-name="<?= e($first['name']) ?>"
        data-label="<?= e(trim($platform['name'] . ' ' . ($category['name'] ?? ''))) ?>"
        data-link-label="<?= e($linkLabel) ?>"
-       data-link-hint="<?= e($linkHint) ?>">
+       data-link-hint="<?= e($linkHint) ?>"
+       data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
+       data-platform="<?= e($platform['name']) ?>">
 
     <h3>Custom <?= e(strtolower($category['name'] ?? 'order')) ?></h3>
     <p class="cdesc">Want a number that is not on a package? Type it here.</p>

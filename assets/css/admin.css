@@ -627,3 +627,24 @@ svg{max-width:100%}
 .featbox textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3.5px var(--acc-soft)}
 .featbox-acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:11px}
 .featbox-acts .muted{font-size:12px}
+
+/* --- the "how this works" note --------------------------------------------
+   Open the first time, shut once it has been read: the admin who needs it
+   needs it on day one, and the one who does not should not scroll past it
+   every day after. */
+.explain{background:var(--acc-soft);border:1px solid rgba(79,70,229,.18);border-radius:13px;
+  margin-bottom:16px;overflow:hidden}
+.explain summary{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
+  list-style:none;user-select:none}
+.explain summary::-webkit-details-marker{display:none}
+.explain summary b{font-size:14px;font-weight:700;color:var(--acc-ink)}
+.explain summary small{margin-left:auto;font-size:12px;font-weight:700;color:var(--acc)}
+.explain[open] summary small::after{content:" \25B4"}
+.explain:not([open]) summary small::after{content:" \25BE"}
+.explain-mark{width:28px;height:28px;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:var(--surface);color:var(--acc);font-size:15px}
+.explain-body{padding:0 16px 15px 56px}
+.explain-body ul{margin:0;padding-left:17px;display:grid;gap:7px}
+.explain-body li{font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.explain-body b{color:var(--ink)}
+.explain-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}

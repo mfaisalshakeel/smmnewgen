@@ -586,4 +586,24 @@
     if (event.target.closest('[data-features-open]')) { box.hidden = false; box.querySelector('textarea').focus(); }
     if (event.target.closest('[data-features-close]')) { box.hidden = true; }
   });
+
+  // --- the "how this works" note -------------------------------------------
+  // Open until it has been read once, then shut on every later visit.
+  (function () {
+    var notes = document.querySelectorAll('[data-explain]');
+    if (!notes.length) { return; }
+
+    Array.prototype.forEach.call(notes, function (note) {
+      var key = 'admin-explain:' + note.getAttribute('data-explain');
+      var seen;
+      try { seen = localStorage.getItem(key); } catch (error) { seen = null; }
+      note.open = !seen;
+
+      note.addEventListener('toggle', function () {
+        try {
+          if (note.open) { localStorage.removeItem(key); } else { localStorage.setItem(key, '1'); }
+        } catch (error) { /* private mode: it just opens every time */ }
+      });
+    });
+  })();
 })();

@@ -216,6 +216,15 @@ NULL into `providers.currency`, which is `NOT NULL`.
   only exists so it arrives with a name and a symbol rather than three bare
   letters.
 
+## Explaining the settings to the admin
+
+Two settings between them decide whether a service is shown at all and what
+shape it takes, and neither is visible from the screen you are standing on.
+`catalogue_explainer()` writes that in words **once**, and Services and Import
+both render it through `admin/_explain` — so the two screens cannot drift into
+describing the same system differently. The note opens the first time and
+stays shut after, remembered per screen.
+
 ## Service names on the storefront
 
 A card carries two names: `data-name`, the raw one the provider gave
@@ -369,6 +378,10 @@ These are the rules the code already follows; keep them.
   every time. A price posted by the browser is ignored.
 - **Links:** when a platform sets `url_prefix`, an order's link must be on that
   host, so an Instagram service cannot be ordered with a TikTok link.
+  `link_is_on_host()` is the rule: the host must **be** that host or a
+  subdomain of it. "Contains" is not good enough — `instagram.com.example.net`
+  contains `instagram.com`. The browser applies the same rule as you type, but
+  only to answer sooner; the server still decides.
 - **Spam:** the order and contact forms each carry a hidden honeypot field and
   a per-IP throttle.
 

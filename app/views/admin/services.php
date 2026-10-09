@@ -1,7 +1,18 @@
 <?php
 /** Services list with filters and bulk actions. */
-$query = http_build_query(array_filter($filters, 'strlen'));
+$query     = http_build_query(array_filter($filters, 'strlen'));
+$catalogue = catalogue_explainer();
 ?>
+<?php partial('admin/_explain', [
+    'key'   => 'services',
+    'title' => 'What a service becomes on the front site: ' . lcfirst($catalogue['title']),
+    'lines' => array_merge([
+        'A service is one thing you buy from a provider. Everything a customer sees is built '
+            . 'from it: the cards, the prices and the limits.',
+    ], $catalogue['lines']),
+    'links' => ['Settings' => 'admin/settings'] + ($catalogue['mode'] === 'single'
+        ? ['Service mapping' => 'admin/mapping'] : []) + ['Packages' => 'admin/packages'],
+]); ?>
 <form class="filters" method="get" action="<?= e(url('admin/services')) ?>">
   <div class="search wide">
     <svg class="icon"><use href="#i-search"></use></svg>

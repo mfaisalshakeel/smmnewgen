@@ -674,3 +674,71 @@ function service_feature_lines(array $service): array
         static fn(string $line): bool => $line !== ''
     )), 0, 8);
 }
+
+/**
+ * What the current catalogue settings actually mean, in words.
+ *
+ * The two settings between them decide whether a service appears on the
+ * front site at all and what shape it takes there, and neither is obvious
+ * from the screen you are standing on. Written once here so Services,
+ * Import and Packages cannot drift into describing it differently.
+ *
+ * @return array{mode: string, title: string, lines: string[]}
+ */
+function catalogue_explainer(): array
+{
+    $single = setting('catalogue_mode', 'services') === 'single';
+    $auto   = setting('auto_packages', '1') === '1';
+
+    $lines = $single
+        ? [
+            'Each category shows <b>one</b> service, so the customer picks a quantity '
+                . 'rather than a service.',
+            'Which one is set on <b>Service mapping</b>. A category that names none falls back '
+                . 'to its first active service.',
+            'The other services in that category are not shown to customers at all. They stay '
+                . 'here so you can map them later and so their orders keep their history.',
+          ]
+        : [
+            'Every active service in a category gets its own card, so the customer picks a '
+                . 'service first and then a quantity.',
+            'Switch to one service per category in <b>Settings</b> if you would rather they '
+                . 'only chose an amount.',
+          ];
+
+    $lines[] = $auto
+        ? 'A service with no packages of its own is shown at round quantities within its own '
+            . 'minimum and maximum, priced at its rate. Give it packages to set real prices '
+            . '&mdash; that is the only way a bigger package can cost less per thousand.'
+        : 'Round quantities are turned off, so a service shows a quantity box unless you give '
+            . 'it packages of its own.';
+
+    return [
+        'mode'  => $single ? 'single' : 'services',
+        'title' => $single
+            ? 'One service per category'
+            : 'Every service gets its own card',
+        'lines' => $lines,
+    ];
+}
+
+/**
+ * Is this link on the platform's own host?
+ *
+ * "Contains" is not good enough: instagram.com.example.net contains
+ * "instagram.com" and is not Instagram. The host has to BE the platform's
+ * host, or a subdomain of it.
+ */
+function link_is_on_host(string $link, string $host): bool
+{
+    $host = strtolower(trim($host));
+    if ($host === '') {
+        return true;    // the platform does not claim one
+    }
+
+    $actual = strtolower((string) parse_url($link, PHP_URL_HOST));
+    $actual = preg_replace('/^www\./', '', $actual);
+    $host   = preg_replace('/^www\./', '', $host);
+
+    return $actual !== '' && ($actual === $host || str_ends_with($actual, '.' . $host));
+}

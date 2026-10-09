@@ -29,6 +29,23 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
   </div>
 <?php return; endif; ?>
 
+<?php $catalogue = catalogue_explainer(); ?>
+<?php partial('admin/_explain', [
+    'key'   => 'import',
+    'title' => 'What importing does, and what happens next',
+    'lines' => array_merge([
+        'Importing copies a provider\'s service into your catalogue as an <b>active</b> '
+            . 'service. Nothing is bought and no customer sees it until it is shown somewhere.',
+        'Prices here are the provider\'s own rate converted into your base currency, with your '
+            . 'markup added. Re-importing an existing service refreshes its cost, price and '
+            . 'limits but keeps the name and description you may have rewritten.',
+        'Auto-detect reads the service name first and the provider\'s category second, so a '
+            . 'platform and category are filled in for you. Check them before importing.',
+    ], $catalogue['lines']),
+    'links' => ['Services' => 'admin/services', 'Settings' => 'admin/settings']
+        + ($catalogue['mode'] === 'single' ? ['Service mapping' => 'admin/mapping'] : []),
+]); ?>
+
 <?php if ($currencyProblem !== null): ?>
   <div class="box" data-currency-fix
        data-add="<?= e(url('admin/currencies/add')) ?>"

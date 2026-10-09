@@ -21,7 +21,9 @@ $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
          data-name="<?= e($service['name']) ?>"
          data-label="<?= e($noun) ?>"
          data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
-         data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>">
+         data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>"
+         data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
+         data-platform="<?= e($platform['name']) ?>">
 
   <?php if ($package['badge'] !== ''): ?>
     <span class="pkg-badge"><?= e($package['badge']) ?></span>
