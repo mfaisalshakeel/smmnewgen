@@ -150,8 +150,12 @@
       document.getElementById('omService').value  = card.dataset.service;
       document.getElementById('omPackage').value  = pkg;
       document.getElementById('omQuantity').value = qty;
+      // The card above already says what this is. Repeating a raw provider
+      // name - "[ Max 100K ] | Old Accounts | No Refill | Instant Start" - is
+      // noise at the point of paying, so the plain words win where there are
+      // any.
       document.getElementById('omTitle').textContent =
-        fmt(qty) + ' × ' + card.dataset.name;
+        fmt(qty) + ' × ' + (card.dataset.label || card.dataset.name);
       document.getElementById('omPrice').textContent = price;
       document.getElementById('omDelivery').textContent =
         (card.querySelector('.qp-del') || { textContent: '' }).textContent.trim() || 'Starts shortly';

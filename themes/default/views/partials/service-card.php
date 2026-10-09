@@ -20,6 +20,7 @@ $feature = service_feature_lines($service);
          data-min="<?= $min ?>"
          data-max="<?= $max ?>"
          data-name="<?= e($service['name']) ?>"
+         data-label="<?= e($GLOBALS['__package_noun'] ?? $service['name']) ?>"
          data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
          data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>">
 

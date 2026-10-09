@@ -30,6 +30,7 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
        data-min="<?= $min ?>"
        data-max="<?= $max ?>"
        data-name="<?= e($first['name']) ?>"
+       data-label="<?= e(trim($platform['name'] . ' ' . ($category['name'] ?? ''))) ?>"
        data-link-label="<?= e($linkLabel) ?>"
        data-link-hint="<?= e($linkHint) ?>">
 

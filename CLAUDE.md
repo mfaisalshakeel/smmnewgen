@@ -216,6 +216,15 @@ NULL into `providers.currency`, which is `NOT NULL`.
   only exists so it arrives with a name and a symbol rather than three bare
   letters.
 
+## Service names on the storefront
+
+A card carries two names: `data-name`, the raw one the provider gave
+("Instagram Followers [ Max 100K ] | Old Accounts | No Refill ⚠ | Instant
+Start"), and `data-label`, the plain words for what it sells ("Instagram
+Followers"). **The customer only ever sees the label.** The raw name is for
+the admin and for the order record; repeating it in the order modal, under a
+card that already says what it is, is noise at the point of paying.
+
 ## Card feature lines
 
 The ticked points on a card come from `service_feature_lines()`: the service's

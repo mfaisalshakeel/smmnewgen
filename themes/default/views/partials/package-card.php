@@ -19,6 +19,7 @@ $noun      = $GLOBALS['__package_noun'] ?? $service['name'];
          data-qty="<?= $delivered ?>"
          data-price="<?= e(money($package['price'])) ?>"
          data-name="<?= e($service['name']) ?>"
+         data-label="<?= e($noun) ?>"
          data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
          data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>">
 
