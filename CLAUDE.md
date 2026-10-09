@@ -383,6 +383,13 @@ destructive one — and the words live in `title` and `aria-label`, so a row of
 them can be read at a glance and still read aloud. A row of identical grey
 text buttons gave no way to find the dangerous one.
 
+**A class in the markup with no rule behind it renders as nothing**, which is
+invisible in a diff and obvious on the screen: the Notifications empty state
+shipped as loose text beside its own box, and the whole Themes screen as an
+unstyled column, because `.empty-state` and `.theme-*` existed only in the
+theme stylesheets. `php tools/check-admin-css.php` lists every admin class
+with no rule and exits non-zero; run it before a release.
+
 `[hidden]` is declared `display:none !important` in both the admin and the
 theme stylesheets, because a rule that sets `display` otherwise wins and the
 attribute silently does nothing.
@@ -453,6 +460,9 @@ No test framework. The checks that matter:
 ```bash
 # syntax
 find . -name '*.php' -not -path './.git/*' -exec php -l {} \;
+
+# admin markup using a class the stylesheet never defines
+php tools/check-admin-css.php
 
 # a real run
 php -S localhost:8000 tools/dev-router.php     # the app

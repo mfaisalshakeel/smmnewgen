@@ -776,3 +776,87 @@ svg{max-width:100%}
    number beside each one. */
 .thin-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #f6caca;
   border-radius:8px;padding:3px 9px;font-size:12.5px;font-weight:700;margin:2px 3px 2px 0}
+
+/* ===========================================================================
+   Classes the markup was already using with no rule behind them.
+
+   A class in a view and no rule in here renders as nothing at all - the
+   Notifications empty state came out as loose text beside its own box, and
+   the whole Themes screen as an unstyled column. tools/check-admin-css.php
+   now fails the build on this, because it is invisible in a diff and obvious
+   on the screen.
+   =========================================================================== */
+
+/* ---- empty states ---- */
+.empty-state{text-align:center;padding:48px 24px}
+.empty-state b{display:block;font-size:16px;margin-bottom:6px}
+.empty-state p{margin:0;color:var(--muted);font-size:14px}
+.empty-state .icon{font-size:34px;color:var(--line-2);margin-bottom:12px}
+
+/* ---- the bar of buttons under a form ---- */
+.formfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ---- a checkbox with its label beside it ---- */
+.check{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;
+  font-weight:600;user-select:none}
+.check input{width:17px;height:17px;accent-color:var(--acc);cursor:pointer;flex:none}
+
+/* ---- one option in a group of them ---- */
+.choice{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  background:var(--surface)}
+.choice:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}
+
+/* ---- things stacked with air between them ---- */
+.stack{display:grid;gap:10px}
+
+/* ---- the select-all column in a table ---- */
+.rowchk{width:17px;height:17px;accent-color:var(--acc);cursor:pointer}
+
+/* ---- a count badge, and the one that means trouble ---- */
+.pill{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
+  padding:0 6px;border-radius:999px;background:var(--acc-soft);color:var(--acc-ink);
+  font-size:11.5px;font-weight:800;line-height:1}
+.pill-danger{background:var(--danger);color:#fff}
+
+/* ---- small print, and the line under the sign-in card ---- */
+.small{font-size:12.5px}
+.auth-foot{margin-top:16px;text-align:center;font-size:13.5px}
+
+/* ---- centred cell ---- */
+.ta-c{text-align:center}
+
+/* ---- the update screen's headline panel ---- */
+.upd-hero{overflow:hidden}
+.upd-hero-on{border-color:var(--acc)}
+
+/* ---- themes ----
+   A card per folder in themes/, with its screenshot on top. Sized so three
+   sit across a desktop and one across a phone without a media query. */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));
+  gap:16px}
+.theme-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s, box-shadow .15s}
+.theme-card:hover{border-color:var(--line-2)}
+.theme-card.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.theme-shot{position:relative;aspect-ratio:16/10;background:var(--page);overflow:hidden}
+.theme-shot img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.theme-shot-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;
+  gap:7px;color:var(--muted);font-size:12.5px;font-weight:600}
+.theme-shot-empty .icon{font-size:26px;color:var(--line-2)}
+.theme-live{position:absolute;top:10px;left:10px;background:var(--acc);color:var(--acc-on);
+  border-radius:999px;padding:4px 11px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.theme-body{padding:15px 16px;flex:1;display:flex;flex-direction:column;gap:4px}
+.theme-body b{font-size:15px}
+.theme-body small{color:var(--muted);font-size:12px}
+.theme-body p{margin:6px 0 0;color:var(--ink-2);font-size:13px;line-height:1.5}
+.theme-foot{padding:0 16px 16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.theme-foot .btn{flex:1}
+
+/* ---- the unread count on the top-bar bell ----
+   A number rather than a dot: "you have something" is less use than "you have
+   four". It sits on the corner, so it keeps its own ring in the bar's colour
+   to stay readable over the icon underneath. */
+.tb-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;
+  border-radius:999px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;
+  line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--surface)}
+.iconbtn.has-dot{border-color:var(--danger-soft)}

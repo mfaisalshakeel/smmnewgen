@@ -130,6 +130,18 @@ $nav = [
         <small><?= e($subtitle ?? '') ?></small>
       </div>
       <div class="tb-right">
+        <?php /* Up here, not only in the sidebar: this is the thing you glance
+                 at between tasks, and on a phone the sidebar is behind the
+                 burger where nothing can be glanced at. */ ?>
+        <a class="iconbtn<?= $alerts ? ' has-dot' : '' ?>"
+           href="<?= e(url('admin/notifications')) ?>"
+           title="<?= $alerts ? $alerts . ' unread' : 'Notifications' ?>"
+           aria-label="<?= $alerts ? 'Notifications, ' . $alerts . ' unread' : 'Notifications' ?>">
+          <svg class="icon"><use href="#i-bell"></use></svg>
+          <?php if ($alerts): ?>
+            <span class="tb-count"><?= $alerts > 99 ? '99+' : (int) $alerts ?></span>
+          <?php endif; ?>
+        </a>
         <a class="iconbtn" href="<?= e(url('')) ?>" target="_blank" rel="noopener" title="View site">
           <svg class="icon"><use href="#i-rocket"></use></svg>
         </a>
