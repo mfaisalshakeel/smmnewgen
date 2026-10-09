@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `email` VARCHAR(190) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `last_login_at` DATETIME NULL,
+  `two_factor` VARCHAR(10) NOT NULL DEFAULT 'off',
+  `totp_secret` VARCHAR(64) NOT NULL DEFAULT '',
+  `recovery_codes` TEXT NULL,
   `created_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_admins_username` (`username`),
@@ -140,6 +143,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `quantity` INT UNSIGNED NOT NULL,
   `link` VARCHAR(500) NOT NULL,
   `whatsapp` VARCHAR(40) NOT NULL DEFAULT '',
+  `email` VARCHAR(190) NOT NULL DEFAULT '',
   `price` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `cost` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `status` ENUM('pending','paid','processing','completed','partial','cancelled','refunded','api_error')
@@ -258,6 +262,44 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ===========================================================================
 -- Seed data
 -- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Notifications, mail and two-factor.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `event` VARCHAR(60) NOT NULL,
+  `title` VARCHAR(190) NOT NULL,
+  `body` VARCHAR(500) NOT NULL DEFAULT '',
+  `link` VARCHAR(190) NOT NULL DEFAULT '',
+  `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ix_notifications_read` (`is_read`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_templates` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `event` VARCHAR(60) NOT NULL,
+  `subject` VARCHAR(190) NOT NULL,
+  `body` TEXT NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `updated_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_email_templates_event` (`event`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_log` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `event` VARCHAR(60) NOT NULL DEFAULT '',
+  `recipient` VARCHAR(190) NOT NULL,
+  `subject` VARCHAR(190) NOT NULL DEFAULT '',
+  `status` VARCHAR(12) NOT NULL DEFAULT 'sent',
+  `error` VARCHAR(500) NOT NULL DEFAULT '',
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ix_email_log_time` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `settings` (`k`, `v`) VALUES
   ('site_name',            'GrowKit'),

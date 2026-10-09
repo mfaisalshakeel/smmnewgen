@@ -253,7 +253,7 @@
   function clearErrors() {
     var banner = document.getElementById('omError');
     if (banner) { banner.classList.remove('show'); }
-    ['omLink', 'omWa'].forEach(function (id) {
+    ['omLink', 'omWa', 'omEmail'].forEach(function (id) {
       fieldError(document.getElementById(id), '');
     });
   }
@@ -269,10 +269,9 @@
       return true;
     }
 
-    // Named rather than articled, so neither 'a Instagram' nor a guess at
-    // which article a platform's name wants.
-    fieldError(field, (form.dataset.platform || 'These') + ' links are on ' + host
-      + '. That one is not.');
+    // Short on purpose: an error sits where the hint was, and a message that
+    // wraps to a second line is a message that pushes the button off a phone.
+    fieldError(field, 'That link is not on ' + host + '.');
     return false;
   }
 
@@ -316,7 +315,7 @@
           var message = (data && data.error) || 'Something went wrong. Please try again.';
           // The server says which field it is about when it knows; only what
           // belongs to no field goes in the banner at the top.
-          var inputs  = { link: 'omLink', whatsapp: 'omWa' };
+          var inputs  = { link: 'omLink', whatsapp: 'omWa', email: 'omEmail' };
           var input   = data && inputs[data.field]
             ? document.getElementById(inputs[data.field])
             : null;

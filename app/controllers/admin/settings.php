@@ -44,6 +44,29 @@ $GROUPS = [
         'default_markup'        => ['label' => 'Default markup %', 'type' => 'number',
                                     'hint' => 'Pre-filled on the import screen.'],
     ],
+    'Mail' => [
+        'mail_driver' => ['label' => 'How mail is sent', 'type' => 'select',
+            'options' => [
+                'off'  => 'Off - send nothing',
+                'smtp' => 'SMTP (recommended)',
+                'mail' => "PHP mail() - whatever the host provides",
+            ],
+            'hint' => 'Most shared hosts either block PHP mail() or let it send straight '
+                    . 'to spam. SMTP through your own mailbox is what actually arrives.'],
+        'mail_from'      => ['label' => 'Send from', 'type' => 'email',
+                             'hint' => 'Use an address on your own domain, or the mail is '
+                                     . 'treated as forged.'],
+        'mail_from_name' => ['label' => 'Send as', 'hint' => 'The name beside the address.'],
+        'smtp_host'      => ['label' => 'SMTP host', 'hint' => 'e.g. smtp.gmail.com'],
+        'smtp_port'      => ['label' => 'Port', 'type' => 'number',
+                             'hint' => '587 for TLS, 465 for SSL, 25 for none.'],
+        'smtp_secure'    => ['label' => 'Encryption', 'type' => 'select',
+            'options' => ['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', 'none' => 'None']],
+        'smtp_user'      => ['label' => 'Username', 'hint' => 'Usually the full address.'],
+        'smtp_pass'      => ['label' => 'Password', 'type' => 'password',
+                             'hint' => 'For Gmail and most others this is an app password, '
+                                     . 'not your account password.'],
+    ],
     'Advanced' => [
         'head_code' => ['label' => 'Head code', 'type' => 'textarea', 'rows' => 6,
                         'hint' => 'Pasted into <head> on the front site. Analytics and pixels go here. '
@@ -73,6 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($fields as $key => $field) {
             if (($field['type'] ?? 'text') === 'checkbox') {
                 set_setting($key, isset($_POST[$key]) ? '1' : '0');
+                continue;
+            }
+            // A password is never rendered back into the form, so a blank box
+            // means "leave it alone" - saving '' would silently wipe it every
+            // time anyone touched an unrelated field on this screen.
+            if (($field['type'] ?? '') === 'password' && trim((string) ($_POST[$key] ?? '')) === '') {
                 continue;
             }
             if (array_key_exists($key, $_POST)) {

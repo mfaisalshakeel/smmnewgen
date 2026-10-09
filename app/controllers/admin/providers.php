@@ -118,7 +118,7 @@ crud_handle([
         ['label' => 'Provider', 'key' => 'name', 'render' => fn($r) =>
             '<b>' . e($r['name']) . '</b><small class="sub">' . e($r['api_url']) . '</small>'],
         ['label' => 'Balance', 'class' => 'hide-sm', 'render' => fn($r) =>
-            '<b>' . e(money($r['balance'])) . '</b><small class="sub">'
+            '<b>' . e(provider_balance($r)['shown']) . '</b><small class="sub">'
             . ($r['balance_checked_at'] ? e(when($r['balance_checked_at'], 'd M, H:i')) : 'never checked')
             . '</small>'],
         ['label' => 'Services', 'class' => 'hide-sm', 'render' => function ($r) {

@@ -49,6 +49,15 @@
         <small class="err" id="omWaErr" hidden></small>
       </div>
 
+      <div class="field" data-field="email">
+        <label for="omEmail">Email <span class="opt">optional</span></label>
+        <input type="email" id="omEmail" name="email" placeholder="you@example.com"
+               aria-describedby="omEmailHint">
+        <small class="hint" id="omEmailHint">For a receipt. The order code still
+          goes to WhatsApp.</small>
+        <small class="err" id="omEmailErr" hidden></small>
+      </div>
+
       <div class="safe-note">
         <svg class="icon" style="font-size:18px;flex:none"><use href="#i-shield"></use></svg>
         <span>We never ask for your password. Only the public link is needed.</span>

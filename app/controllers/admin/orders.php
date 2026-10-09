@@ -27,6 +27,17 @@ if ($action === 'action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             order_log($id, 'Payment confirmed by admin.');
             flash('success', 'Marked as paid.');
 
+            if (($order['email'] ?? '') !== '') {
+                notify('order_paid', [
+                    'order_code' => $order['code'],
+                    'service'    => $order['service_label'] ?: $order['service_name'],
+                    'quantity'   => qty_fmt((int) $order['quantity']),
+                    'amount'     => money((float) $order['price']),
+                    'order_url'  => url('order/' . $order['code']),
+                    'email'      => $order['email'],
+                ]);
+            }
+
             if (setting('auto_send_orders', '1') === '1') {
                 [$ok, $message] = send_order_to_provider($id);
                 flash($ok ? 'success' : 'error', $message);

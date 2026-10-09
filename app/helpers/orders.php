@@ -6,6 +6,7 @@
 
 require_once APP_PATH . '/helpers/SmmApi.php';
 require_once APP_PATH . '/helpers/currency.php';
+require_once APP_PATH . '/helpers/notify.php';
 
 /** Unique order code, e.g. GK-8F42KD. */
 function new_order_code(): string
@@ -109,6 +110,15 @@ function send_order_to_provider(int $orderId): array
         ], 'id = ?', [$orderId]);
         order_log($orderId, 'Provider rejected the order: ' . $message);
         log_line('Order ' . $order['code'] . ' api_error: ' . $message);
+
+        notify('admin_api_error', [
+            'order_code' => $order['code'],
+            'service'    => $order['service_label'] ?: $order['service_name'],
+            'provider'   => $provider['name'],
+            'error'      => $message,
+            'admin_url'  => url('admin/orders/view/' . $orderId),
+            'admin_link' => 'admin/orders/view/' . $orderId,
+        ]);
 
         return [false, $message];
     }
@@ -241,7 +251,10 @@ function provider_supports_multi_status(array $provider, array $sampleOrderIds =
 function sync_order_statuses(int $limit = 100): array
 {
     $open = all(
-        "SELECT id, code, provider_id, provider_order_id, status
+        // email, the names and the counts come along because a status that
+        // turns into 'completed' sends a message that needs all of them.
+        "SELECT id, code, provider_id, provider_order_id, status,
+                email, service_label, service_name, quantity, start_count
            FROM orders
           WHERE status IN ('processing', 'partial')
             AND provider_order_id <> ''
@@ -314,6 +327,17 @@ function sync_order_statuses(int $limit = 100): array
                     $summary['updated']++;
                     order_log((int) $order['id'],
                         'Status from provider: ' . ($row['status'] ?? '?') . ' -> ' . $mapped . '.');
+
+                    if ($mapped === 'completed' && ($order['email'] ?? '') !== '') {
+                        notify('order_completed', [
+                            'order_code'  => $order['code'],
+                            'service'     => $order['service_label'] ?: $order['service_name'],
+                            'quantity'    => qty_fmt((int) $order['quantity']),
+                            'start_count' => qty_fmt((int) ($fields['start_count'] ?? $order['start_count'] ?? 0)),
+                            'order_url'   => url('order/' . $order['code']),
+                            'email'       => $order['email'],
+                        ]);
+                    }
                 }
 
                 update_row('orders', $fields, 'id = ?', [$order['id']]);
@@ -348,6 +372,8 @@ function refresh_provider_balances(): int
 
             update_row('providers', $fields, 'id = ?', [$provider['id']]);
             $updated++;
+
+            notify_if_low_balance($provider, $fields);
         } else {
             $message = (string) ($result['error'] ?? 'no balance in reply');
             update_row('providers', ['last_error' => mb_substr($message, 0, 500)], 'id = ?', [$provider['id']]);
@@ -355,4 +381,43 @@ function refresh_provider_balances(): int
         }
     }
     return $updated;
+}
+
+/**
+ * Warn once when a provider crosses the threshold on the way down.
+ *
+ * The threshold is in our currency and the balance is in the provider's, so
+ * the comparison has to be made in base - 50 USD is not below 500 PKR. With
+ * no rate on file nothing is said, because a warning worked out from a
+ * guessed rate is worse than none.
+ *
+ * Once, not every run: the balance check runs on a schedule, and a cron that
+ * mails the same warning every ten minutes is a cron the admin turns off.
+ */
+function notify_if_low_balance(array $provider, array $fields): void
+{
+    $threshold = (float) setting('low_balance_threshold', 0);
+    if ($threshold <= 0) {
+        return;
+    }
+
+    $code    = strtoupper(trim((string) ($fields['currency'] ?? $provider['currency'] ?? '')));
+    $now     = to_base((float) $fields['balance'], $code);
+    $before  = to_base((float) $provider['balance'], $code);
+    if ($now === null) {
+        return;
+    }
+
+    // Only on the crossing: above-to-below. Staying below says nothing new.
+    if ($now >= $threshold || ($before !== null && $before < $threshold)) {
+        return;
+    }
+
+    notify('admin_low_balance', [
+        'provider'   => $provider['name'],
+        'balance'    => money_in((float) $fields['balance'], $code) . ' = ' . money($now),
+        'threshold'  => money($threshold),
+        'admin_url'  => url('admin/providers'),
+        'admin_link' => 'admin/providers',
+    ]);
 }

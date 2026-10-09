@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS "admins" (
   "email" TEXT NOT NULL UNIQUE,
   "password_hash" TEXT NOT NULL,
   "last_login_at" TEXT,
+  "two_factor" TEXT NOT NULL DEFAULT 'off',
+  "totp_secret" TEXT NOT NULL DEFAULT '',
+  "recovery_codes" TEXT NOT NULL DEFAULT '',
   "created_at" TEXT NOT NULL
 );
 
@@ -125,6 +128,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
   "quantity" INTEGER NOT NULL,
   "link" TEXT NOT NULL,
   "whatsapp" TEXT NOT NULL DEFAULT '',
+  "email" TEXT NOT NULL DEFAULT '',
   "price" REAL NOT NULL DEFAULT 0,
   "cost" REAL NOT NULL DEFAULT 0,
   "status" TEXT NOT NULL DEFAULT 'pending'
@@ -222,6 +226,40 @@ CREATE INDEX IF NOT EXISTS "ix_rate_action_ip" ON "rate_limits" ("action", "ip",
 -- ===========================================================================
 -- Seed data
 -- ===========================================================================
+
+-- ---------------------------------------------------------------------------
+-- Notifications, mail and two-factor.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "notifications" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "event" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "body" TEXT NOT NULL DEFAULT '',
+  "link" TEXT NOT NULL DEFAULT '',
+  "is_read" INTEGER NOT NULL DEFAULT 0,
+  "created_at" TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "ix_notifications_read" ON "notifications" ("is_read", "created_at");
+
+CREATE TABLE IF NOT EXISTS "email_templates" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "event" TEXT NOT NULL UNIQUE,
+  "subject" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "is_active" INTEGER NOT NULL DEFAULT 1,
+  "updated_at" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS "email_log" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "event" TEXT NOT NULL DEFAULT '',
+  "recipient" TEXT NOT NULL,
+  "subject" TEXT NOT NULL DEFAULT '',
+  "status" TEXT NOT NULL DEFAULT 'sent',
+  "error" TEXT NOT NULL DEFAULT '',
+  "created_at" TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "ix_email_log_time" ON "email_log" ("created_at");
 
 INSERT OR IGNORE INTO "settings" ("k", "v") VALUES
   ('site_name',            'GrowKit'),

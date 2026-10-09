@@ -160,7 +160,7 @@ $delta = static function (float $now, float $before, string $against = 'yesterda
             <small><?= e($provider['api_url']) ?></small>
           </div>
           <div class="pv-bal">
-            <b><?= e(money($provider['balance'])) ?></b>
+            <b><?= e(provider_balance($provider)['shown']) ?></b>
             <span class="st st-<?= $provider['is_active'] ? 'completed' : 'cancelled' ?>">
               <?= $provider['is_active'] ? 'active' : 'off' ?>
             </span>

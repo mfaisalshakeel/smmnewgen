@@ -39,13 +39,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        insert_row('messages', [
+        $messageId = insert_row('messages', [
             'name'       => $input['name'],
             'email'      => $input['email'],
             'whatsapp'   => $input['whatsapp'],
             'body'       => $input['body'],
             'ip'         => client_ip(),
             'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        require_once APP_PATH . '/helpers/notify.php';
+        notify('admin_new_message', [
+            'name'       => $input['name'],
+            'email'      => $input['email'],
+            'subject'    => excerpt($input['body'], 60),
+            'message'    => $input['body'],
+            'admin_url'  => url('admin/messages'),
+            'admin_link' => 'admin/messages',
         ]);
         flash('success', 'Thank you, your message has been sent. We usually reply within a few hours.');
         redirect('contact');

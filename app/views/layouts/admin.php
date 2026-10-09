@@ -11,7 +11,10 @@ $user     = admin_user();
 $siteName = setting('site_name', 'SMM Panel');
 $unread   = (int) col('SELECT COUNT(*) FROM messages WHERE is_read = 0', [], 0);
 $pending  = (int) col("SELECT COUNT(*) FROM orders WHERE status = 'pending'", [], 0);
-$balance  = (float) col('SELECT COALESCE(SUM(balance),0) FROM providers WHERE is_active = 1', [], 0);
+// Converted, not summed raw: balances are held in each provider's own
+// currency, so adding them is meaningless before it is mislabelled.
+$balance  = provider_balance_total();
+$alerts   = notifications_unread();
 
 $nav = [
     ['group' => 'Main'],
@@ -20,6 +23,8 @@ $nav = [
      'badge' => $pending ?: null],
     ['key' => 'messages',  'label' => 'Messages',        'icon' => 'i-chat', 'href' => 'admin/messages',
      'badge' => $unread ?: null],
+    ['key' => 'notifications', 'label' => 'Notifications', 'icon' => 'i-bell',
+     'href' => 'admin/notifications', 'badge' => $alerts ?: null],
     ['group' => 'Catalogue'],
     ['key' => 'services',  'label' => 'Services',        'icon' => 'i-layers', 'href' => 'admin/services'],
     ['key' => 'packages',  'label' => 'Packages',        'icon' => 'i-box', 'href' => 'admin/packages'],
@@ -42,7 +47,9 @@ $nav = [
     ['key' => 'cron',       'label' => 'Cron',           'icon' => 'i-clock','href' => 'admin/cron'],
     ['key' => 'update',    'label' => 'Update',          'icon' => 'i-refresh','href' => 'admin/update',
      'dot' => !empty($GLOBALS['__update_available'])],
+    ['key' => 'emails',    'label' => 'Email templates', 'icon' => 'i-mail', 'href' => 'admin/emails'],
     ['key' => 'settings',  'label' => 'Settings',        'icon' => 'i-gear', 'href' => 'admin/settings'],
+    ['key' => 'security',  'label' => 'Two-factor',      'icon' => 'i-lock', 'href' => 'admin/security'],
     ['key' => 'password',  'label' => 'Change Password', 'icon' => 'i-key','href' => 'admin/password'],
 ];
 ?><!doctype html>
@@ -97,7 +104,12 @@ $nav = [
     <div class="sfoot">
       <div class="bal-mini">
         <small>Provider balance</small>
-        <b><?= e(money($balance)) ?></b>
+        <b><?= e(money($balance['total'])) ?></b>
+        <?php if ($balance['missing']): ?>
+          <small class="bal-warn" title="No exchange rate on file, so these are left out of the total">
+            <?= e(implode(', ', $balance['missing'])) ?> not counted
+          </small>
+        <?php endif; ?>
       </div>
     </div>
   </aside>

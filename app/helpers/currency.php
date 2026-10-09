@@ -68,6 +68,85 @@ function to_base(float $amount, string $fromCode): ?float
 }
 
 /**
+ * Format an amount in a currency that is not necessarily ours.
+ *
+ * money() always prints the base symbol, which is right for a price and
+ * wrong for a provider balance: a provider holding 0.72 USD was being shown
+ * as "Rs 0.72", the provider's own number wearing our symbol.
+ */
+function money_in(float $amount, string $code): string
+{
+    $code     = strtoupper(trim($code));
+    $currency = currencies()[$code] ?? null;
+    $symbol   = $currency['symbol'] ?? $code;
+    $text     = number_format($amount, 2);
+    // A letter symbol needs air before the digits; a glyph like $ does not.
+    $gap = preg_match('/\p{L}$/u', (string) $symbol) ? "\u{00A0}" : '';
+
+    return $symbol . $gap . $text;
+}
+
+/**
+ * A provider balance, said in full: its own currency and ours.
+ *
+ * When there is no rate the base figure is left out rather than invented,
+ * and the caller can see that from `converted` being null.
+ *
+ * @return array{own: string, base: ?float, shown: string, code: string}
+ */
+function provider_balance(array $provider): array
+{
+    $amount = (float) ($provider['balance'] ?? 0);
+    $code   = strtoupper(trim((string) ($provider['currency'] ?? '')));
+    $base   = strtoupper(base_currency()['code']);
+
+    $own  = $code === '' ? number_format($amount, 2) : money_in($amount, $code);
+    $converted = $code === '' ? null : to_base($amount, $code);
+
+    return [
+        'code'      => $code,
+        'own'       => $own,
+        'base'      => $converted,
+        // Nothing to convert when the provider already bills in our money.
+        'shown'     => $code === '' || $code === $base || $converted === null
+                        ? $own
+                        : $own . ' = ' . money($converted),
+    ];
+}
+
+/**
+ * Every active provider balance added up, in base.
+ *
+ * Adding balances held in different currencies without converting them is
+ * meaningless before it is even mislabelled, so anything with no rate is
+ * counted separately and named.
+ *
+ * @return array{total: float, missing: string[]}
+ */
+function provider_balance_total(): array
+{
+    $total   = 0.0;
+    $missing = [];
+
+    foreach (all('SELECT balance, currency FROM providers WHERE is_active = 1') as $provider) {
+        $code = strtoupper(trim((string) $provider['currency']));
+
+        // A provider that never said what it bills in is left out, not counted
+        // as ours. currency_rate() answers 1 for an empty code, which is the
+        // right default when pricing a service and the wrong one here: it
+        // would fold an unknown number into the total as if it were rupees.
+        $converted = $code === '' ? null : to_base((float) $provider['balance'], $code);
+        if ($converted === null) {
+            $missing[$code === '' ? 'unknown' : $code] = true;
+            continue;
+        }
+        $total += $converted;
+    }
+
+    return ['total' => $total, 'missing' => array_keys($missing)];
+}
+
+/**
  * Pull fresh rates from a public source.
  *
  * open.er-api.com needs no key and answers with rates *from* the base, so

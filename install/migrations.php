@@ -220,4 +220,119 @@ return [
             'UPDATE "orders" SET "service_label" = "service_name" WHERE "service_label" = \'\'',
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_notifications' => [
+        'label' => 'Notification feed',
+        'mysql' => [
+            "CREATE TABLE IF NOT EXISTS `notifications` (
+               `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `event` VARCHAR(60) NOT NULL,
+               `title` VARCHAR(190) NOT NULL,
+               `body` VARCHAR(500) NOT NULL DEFAULT '',
+               `link` VARCHAR(190) NOT NULL DEFAULT '',
+               `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+               `created_at` DATETIME NOT NULL,
+               PRIMARY KEY (`id`),
+               KEY `ix_notifications_read` (`is_read`, `created_at`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ],
+        'sqlite' => [
+            'CREATE TABLE IF NOT EXISTS "notifications" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "event" TEXT NOT NULL,
+               "title" TEXT NOT NULL,
+               "body" TEXT NOT NULL DEFAULT \'\',
+               "link" TEXT NOT NULL DEFAULT \'\',
+               "is_read" INTEGER NOT NULL DEFAULT 0,
+               "created_at" TEXT NOT NULL
+             )',
+            'CREATE INDEX IF NOT EXISTS "ix_notifications_read" ON "notifications" ("is_read", "created_at")',
+        ],
+    ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_email' => [
+        'label' => 'Email templates and the send log',
+        'mysql' => [
+            "CREATE TABLE IF NOT EXISTS `email_templates` (
+               `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `event` VARCHAR(60) NOT NULL,
+               `subject` VARCHAR(190) NOT NULL,
+               `body` TEXT NOT NULL,
+               `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+               `updated_at` DATETIME NULL,
+               PRIMARY KEY (`id`),
+               UNIQUE KEY `uq_email_templates_event` (`event`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            "CREATE TABLE IF NOT EXISTS `email_log` (
+               `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `event` VARCHAR(60) NOT NULL DEFAULT '',
+               `recipient` VARCHAR(190) NOT NULL,
+               `subject` VARCHAR(190) NOT NULL DEFAULT '',
+               `status` VARCHAR(12) NOT NULL DEFAULT 'sent',
+               `error` VARCHAR(500) NOT NULL DEFAULT '',
+               `created_at` DATETIME NOT NULL,
+               PRIMARY KEY (`id`),
+               KEY `ix_email_log_time` (`created_at`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        ],
+        'sqlite' => [
+            'CREATE TABLE IF NOT EXISTS "email_templates" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "event" TEXT NOT NULL UNIQUE,
+               "subject" TEXT NOT NULL,
+               "body" TEXT NOT NULL,
+               "is_active" INTEGER NOT NULL DEFAULT 1,
+               "updated_at" TEXT
+             )',
+            'CREATE TABLE IF NOT EXISTS "email_log" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "event" TEXT NOT NULL DEFAULT \'\',
+               "recipient" TEXT NOT NULL,
+               "subject" TEXT NOT NULL DEFAULT \'\',
+               "status" TEXT NOT NULL DEFAULT \'sent\',
+               "error" TEXT NOT NULL DEFAULT \'\',
+               "created_at" TEXT NOT NULL
+             )',
+            'CREATE INDEX IF NOT EXISTS "ix_email_log_time" ON "email_log" ("created_at")',
+        ],
+    ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_two_factor' => [
+        'label' => 'Two-factor sign-in',
+        'mysql' => [
+            "ALTER TABLE `admins` ADD COLUMN `two_factor` VARCHAR(10) NOT NULL DEFAULT 'off'",
+            "ALTER TABLE `admins` ADD COLUMN `totp_secret` VARCHAR(64) NOT NULL DEFAULT ''",
+            "ALTER TABLE `admins` ADD COLUMN `recovery_codes` TEXT NULL",
+        ],
+        'sqlite' => [
+            'ALTER TABLE "admins" ADD COLUMN "two_factor" TEXT NOT NULL DEFAULT \'off\'',
+            'ALTER TABLE "admins" ADD COLUMN "totp_secret" TEXT NOT NULL DEFAULT \'\'',
+            'ALTER TABLE "admins" ADD COLUMN "recovery_codes" TEXT NOT NULL DEFAULT \'\'',
+        ],
+    ],
+
+    // -----------------------------------------------------------------------
+    // Mail is off until someone fills the server in, so an install that never
+    // visits the screen never tries to send and never logs a failure.
+    '2026_10_mail_settings' => [
+        'label' => 'Mail settings',
+        'both'  => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('mail_driver', 'off')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('smtp_port', '587')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('smtp_secure', 'tls')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('low_balance_threshold', '0')",
+        ],
+    ],
+
+    // -----------------------------------------------------------------------
+    // Optional, because this panel's own channel is WhatsApp. Left blank the
+    // customer templates simply do not fire; nothing waits on it.
+    '2026_10_order_email' => [
+        'label' => 'Customer email on an order',
+        'mysql' => ["ALTER TABLE `orders` ADD COLUMN `email` VARCHAR(190) NOT NULL DEFAULT ''"],
+        'sqlite' => ['ALTER TABLE "orders" ADD COLUMN "email" TEXT NOT NULL DEFAULT \'\''],
+    ],
 ];

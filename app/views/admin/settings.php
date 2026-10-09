@@ -65,6 +65,13 @@ $first = array_key_first($panels);
                           <?= e($optLabel) ?></option>
                       <?php endforeach; ?>
                     </select>
+                  <?php elseif ($type === 'password'): ?>
+                    <?php /* Never printed back: the value would sit in the page source
+                             for anything that can read it. Blank means unchanged, which
+                             the controller knows too. */ ?>
+                    <input id="s-<?= e($key) ?>" type="password" name="<?= e($key) ?>"
+                           value="" autocomplete="new-password"
+                           placeholder="<?= $value !== '' ? 'Stored - leave blank to keep it' : '' ?>">
                   <?php else: ?>
                     <input id="s-<?= e($key) ?>" type="<?= e($type) ?>" name="<?= e($key) ?>"
                            value="<?= e($value) ?>" <?= !empty($field['required']) ? 'required' : '' ?>>

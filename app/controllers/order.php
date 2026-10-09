@@ -11,6 +11,7 @@
  */
 require_once APP_PATH . '/helpers/orders.php';
 require_once APP_PATH . '/helpers/payments.php';
+require_once APP_PATH . '/helpers/notify.php';
 
 $code = $params[0] ?? null;
 
@@ -58,6 +59,7 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity  = (int) ($_POST['quantity'] ?? 0);
     $link      = trim((string) ($_POST['link'] ?? ''));
     $whatsapp  = trim((string) ($_POST['whatsapp'] ?? ''));
+    $email     = trim((string) ($_POST['email'] ?? ''));
 
     $service = one(
         'SELECT s.*, p.name AS platform_name, p.url_prefix, p.is_active AS platform_active
@@ -121,14 +123,22 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $prefix = trim((string) ($service['url_prefix'] ?? ''));
     if ($prefix !== '') {
         if (!link_is_on_host($link, $prefix)) {
-            $fail('That does not look like a link to ' . $service['platform_name']
-                . '. It should be on ' . $prefix . '.', 'link');
+            // The same words the browser uses, so the answer does not change
+            // wording depending on whether the script ran.
+            $fail('That link is not on ' . $prefix . '.', 'link');
         }
     }
 
     $digits = preg_replace('/\D/', '', $whatsapp);
     if (strlen($digits) < 10 || strlen($digits) > 15) {
         $fail('Please enter a valid WhatsApp number with the country code.', 'whatsapp');
+    }
+
+    // Optional: left blank it is simply not there, and the receipt is not sent.
+    // Typed wrong it is a mistake worth pointing at rather than swallowing.
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $fail('That email address does not look right. Leave it blank if you '
+            . 'would rather not give one.', 'email');
     }
 
     // The one number that matters, worked out here and nowhere else.
@@ -155,6 +165,7 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'quantity'     => $quantity,
         'link'         => $link,
         'whatsapp'     => '+' . $digits,
+        'email'        => $email,
         'price'        => $price,
         'cost'         => $cost,
         'status'       => 'pending',
@@ -163,6 +174,23 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
 
     order_log($orderId, 'Order placed by the customer.');
+
+    $tokens = [
+        'order_code' => $orderCode,
+        'service'    => $label !== '' ? $label : $service['name'],
+        'quantity'   => qty_fmt($quantity),
+        'amount'     => money($price),
+        'link'       => $link,
+        'status'     => 'Awaiting payment',
+        'order_url'  => url('order/' . $orderCode),
+        'admin_url'  => url('admin/orders/view/' . $orderId),
+        'admin_link' => 'admin/orders/view/' . $orderId,
+        'email'      => $email,
+    ];
+    notify('admin_new_order', $tokens);
+    if ($email !== '') {
+        notify('order_placed', $tokens);
+    }
 
     if ($wantsJson) {
         // The customer stays where they are and watches the order appear,
@@ -270,6 +298,15 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     order_log((int) $order['id'], 'Customer submitted payment via ' . $method['name']
         . ($reference !== '' ? ' - reference ' . $reference : '') . '.');
+
+    notify('admin_payment_submitted', [
+        'order_code' => $order['code'],
+        'amount'     => money($amount > 0 ? $amount : (float) $order['price']),
+        'method'     => $method['name'],
+        'reference'  => $reference !== '' ? $reference : 'none given',
+        'admin_url'  => url('admin/orders/view/' . $order['id']),
+        'admin_link' => 'admin/orders/view/' . $order['id'],
+    ]);
 
     if (!empty($check['confirmed'])) {
         order_log((int) $order['id'], 'Payment confirmed by ' . $method['name'] . '.');
