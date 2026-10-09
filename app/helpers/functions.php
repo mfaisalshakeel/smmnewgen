@@ -742,3 +742,16 @@ function link_is_on_host(string $link, string $host): bool
 
     return $actual !== '' && ($actual === $host || str_ends_with($actual, '.' . $host));
 }
+
+/**
+ * What to call an order's service when a customer is reading.
+ *
+ * The provider's own name is a spec sheet - "[ Max 100K ] | Old Accounts |
+ * No Refill | Instant Start" - and belongs to the admin screens. Orders
+ * placed before the label column existed fall back to it.
+ */
+function order_label(array $order): string
+{
+    $label = trim((string) ($order['service_label'] ?? ''));
+    return $label !== '' ? $label : (string) ($order['service_name'] ?? '');
+}

@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `service_id` INT UNSIGNED NULL,
   `platform_id` INT UNSIGNED NULL,
   `service_name` VARCHAR(190) NOT NULL DEFAULT '',
+  `service_label` VARCHAR(190) NOT NULL DEFAULT '',
   `quantity` INT UNSIGNED NOT NULL,
   `link` VARCHAR(500) NOT NULL,
   `whatsapp` VARCHAR(40) NOT NULL DEFAULT '',

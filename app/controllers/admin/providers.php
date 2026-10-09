@@ -100,15 +100,17 @@ crud_handle([
     'empty'    => 'No providers yet. Add one, then use Import Services to pull in its catalogue.',
     'actions'  => [['label' => 'Check balances', 'href' => 'admin/providers/balances', 'post' => true]],
     'row_actions' => function (array $r): string {
-        $form = static function (string $path, string $label) use ($r): string {
-            return '<form method="post" action="' . e(url($path)) . '" style="display:inline">'
+        $form = static function (string $path, string $label, string $icon, string $tone) use ($r): string {
+            return '<form method="post" action="' . e(url($path)) . '">'
                  . csrf_field()
                  . '<input type="hidden" name="id" value="' . (int) $r['id'] . '">'
-                 . '<button class="btn btn-ghost btn-sm" type="submit">' . e($label) . '</button></form>';
+                 . '<button class="iact ' . $tone . '" type="submit" title="' . e($label) . '"'
+                 . ' aria-label="' . e($label) . '">'
+                 . '<svg class="icon"><use href="#' . $icon . '"></use></svg></button></form>';
         };
-        return $form('admin/providers/check', 'Check')
-             . $form('admin/providers/multistatus', 'Multi-status')
-             . $form('admin/providers/sync', 'Sync');
+        return $form('admin/providers/check', 'Check the connection', 'i-shield', 'iact-go')
+             . $form('admin/providers/multistatus', 'Ask about multi-status', 'i-list', 'iact-go')
+             . $form('admin/providers/sync', 'Sync the catalogue', 'i-refresh', 'iact-go');
     },
     'form_note'=> 'The API URL is usually the provider\'s /api/v2 endpoint. Your key is stored as given '
                 . 'and only ever sent to that provider.',

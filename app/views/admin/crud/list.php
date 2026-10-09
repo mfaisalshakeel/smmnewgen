@@ -88,31 +88,41 @@ $base    = $spec['base'];
               ?>
             </td>
           <?php endforeach; ?>
-          <td class="ta-r" style="white-space:nowrap">
-            <?php
-            // A screen can add its own buttons per row; they emit escaped markup.
-            if (isset($spec['row_actions']) && is_callable($spec['row_actions'])) {
-                echo $spec['row_actions']($row);
-            }
-            ?>
-            <?php if (!empty($spec['toggle'])): ?>
-              <form method="post" action="<?= e(url($base . '/toggle')) ?>" style="display:inline">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
-                <button class="btn btn-ghost btn-sm" type="submit">
-                  <?= $row[$spec['toggle']] ? 'Disable' : 'Enable' ?>
-                </button>
-              </form>
-            <?php endif; ?>
-            <a class="btn btn-ghost btn-sm" href="<?= e(url($base . '/edit/' . $row['id'])) ?>">Edit</a>
-            <?php if (empty($spec['no_delete'])): ?>
-              <form method="post" action="<?= e(url($base . '/delete')) ?>" style="display:inline"
-                    data-confirm="Delete this <?= e(strtolower($spec['single'] ?? 'record')) ?>? This cannot be undone.">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
-                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
-              </form>
-            <?php endif; ?>
+          <td class="ta-r">
+            <div class="rowacts">
+              <?php
+              // A screen can add its own buttons per row; they emit escaped markup.
+              if (isset($spec['row_actions']) && is_callable($spec['row_actions'])) {
+                  echo $spec['row_actions']($row);
+              }
+              ?>
+              <?php if (!empty($spec['toggle'])): ?>
+                <?php $on = (bool) $row[$spec['toggle']]; ?>
+                <form method="post" action="<?= e(url($base . '/toggle')) ?>">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                  <button class="iact <?= $on ? 'iact-on' : 'iact-off' ?>" type="submit"
+                          title="<?= $on ? 'Switch off' : 'Switch on' ?>"
+                          aria-label="<?= $on ? 'Switch off' : 'Switch on' ?>">
+                    <svg class="icon"><use href="#i-power"></use></svg>
+                  </button>
+                </form>
+              <?php endif; ?>
+              <a class="iact iact-edit" href="<?= e(url($base . '/edit/' . $row['id'])) ?>"
+                 title="Edit" aria-label="Edit">
+                <svg class="icon"><use href="#i-edit"></use></svg>
+              </a>
+              <?php if (empty($spec['no_delete'])): ?>
+                <form method="post" action="<?= e(url($base . '/delete')) ?>"
+                      data-confirm="Delete this <?= e(strtolower($spec['single'] ?? 'record')) ?>? This cannot be undone.">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                  <button class="iact iact-danger" type="submit" title="Delete" aria-label="Delete">
+                    <svg class="icon"><use href="#i-trash"></use></svg>
+                  </button>
+                </form>
+              <?php endif; ?>
+            </div>
           </td>
         </tr>
       <?php endforeach; endif; ?>

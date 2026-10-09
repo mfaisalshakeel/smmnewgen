@@ -30,7 +30,7 @@ $delivered = $order && $order['remains'] !== null
         <div class="summary" style="margin:22px 0 0">
           <div class="si"><svg class="icon"><use href="#i-bolt"></use></svg></div>
           <div>
-            <b><?= qty_fmt($order['quantity']) ?> &times; <?= e($order['service_name']) ?></b>
+            <b><?= qty_fmt($order['quantity']) ?> &times; <?= e(order_label($order)) ?></b>
             <small>Status: <?= e(str_replace('_', ' ', $order['status'])) ?>
               &bull; <?= qty_fmt($delivered) ?> / <?= qty_fmt($order['quantity']) ?> delivered</small>
           </div>

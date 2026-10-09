@@ -35,14 +35,31 @@ $step = match ($order['status']) {
 $wa = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
 $waMessage = rawurlencode(
     "Hi, order {$order['code']}\n"
-    . qty_fmt($order['quantity']) . " x {$order['service_name']}\n"
+    . qty_fmt($order['quantity']) . ' x ' . order_label($order) . "\n"
     . 'Amount: ' . money($order['price'])
     . ($order['trx_id'] !== '' ? "\nTRX: {$order['trx_id']}" : '')
 );
 ?>
 <main class="wrap opage">
+  <?php if (($order['status'] ?? '') === 'pending'): ?>
+    <div class="oplaced">
+      <span class="om-tick"><svg class="icon"><use href="#i-check"></use></svg></span>
+      <div>
+        <b>Order placed</b>
+        <small>Keep the code below &mdash; it is how you track this order.</small>
+      </div>
+    </div>
+  <?php endif; ?>
+
   <div class="obar">
-    <div class="ocode"><small>Order code</small><?= e($order['code']) ?></div>
+    <div class="ocode">
+      <small>Order code</small>
+      <span class="ocode-row">
+        <?= e($order['code']) ?>
+        <button class="ocode-copy" type="button" data-copy="<?= e($order['code']) ?>"
+                aria-label="Copy the order code">Copy</button>
+      </span>
+    </div>
     <span class="sbadge <?= e($statusClass) ?>"><span class="d"></span> <?= e($statusLabel) ?></span>
     <a href="<?= e(url('')) ?>" class="btn btn-ghost" style="margin-left:auto">&larr; Back to services</a>
   </div>
@@ -58,7 +75,7 @@ $waMessage = rawurlencode(
         <?php if ($order['platform_name']): ?>
           <div class="orow"><span>Platform</span><b><?= e($order['platform_name']) ?></b></div>
         <?php endif; ?>
-        <div class="orow"><span>Service</span><b><?= e($order['service_name']) ?></b></div>
+        <div class="orow"><span>Service</span><b><?= e(order_label($order)) ?></b></div>
         <div class="orow"><span>Quantity</span><b><?= qty_fmt($order['quantity']) ?></b></div>
         <div class="orow"><span>Link</span><b><?= e($order['link']) ?></b></div>
         <div class="orow"><span>WhatsApp</span><b><?= e($order['whatsapp']) ?></b></div>

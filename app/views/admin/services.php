@@ -135,10 +135,17 @@ $catalogue = catalogue_explainer();
             <td class="hide-sm mono"><?= qty_fmt($service['min_qty']) ?> / <?= qty_fmt($service['max_qty']) ?></td>
             <td><span class="st st-<?= $service['is_active'] ? 'completed' : 'cancelled' ?>">
               <?= $service['is_active'] ? 'active' : 'off' ?></span></td>
-            <td class="ta-r" style="white-space:nowrap">
-              <a class="btn btn-ghost btn-sm"
-                 href="<?= e(url('admin/packages?service_id=' . $service['id'])) ?>">Packages</a>
-              <a class="btn btn-ghost btn-sm" href="<?= e(url('admin/services/edit/' . $service['id'])) ?>">Edit</a>
+            <td class="ta-r">
+              <div class="rowacts">
+                <a class="iact iact-go" title="Packages" aria-label="Packages"
+                   href="<?= e(url('admin/packages?service_id=' . $service['id'])) ?>">
+                  <svg class="icon"><use href="#i-card"></use></svg>
+                </a>
+                <a class="iact iact-edit" title="Edit" aria-label="Edit"
+                   href="<?= e(url('admin/services/edit/' . $service['id'])) ?>">
+                  <svg class="icon"><use href="#i-edit"></use></svg>
+                </a>
+              </div>
             </td>
           </tr>
         <?php endforeach; endif; ?>

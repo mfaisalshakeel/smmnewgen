@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
   "service_id" INTEGER,
   "platform_id" INTEGER,
   "service_name" TEXT NOT NULL DEFAULT '',
+  "service_label" TEXT NOT NULL DEFAULT '',
   "quantity" INTEGER NOT NULL,
   "link" TEXT NOT NULL,
   "whatsapp" TEXT NOT NULL DEFAULT '',

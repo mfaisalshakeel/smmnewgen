@@ -151,3 +151,29 @@ function payment_verify(array $method, array $order, array $input): array
 
     return ['ok' => true, 'reference' => $reference, 'confirmed' => false, 'message' => ''];
 }
+
+/**
+ * The one gateway we can send a customer straight to, if there is exactly one.
+ *
+ * A redirect gateway takes the payment itself, so there is nothing for the
+ * customer to read first. With several, picking for them would be wrong; with
+ * none, the order page is where the account numbers and the reference box
+ * live. Either way the answer is "show the page".
+ */
+function sole_redirect_method(): ?array
+{
+    $found = null;
+
+    foreach (all('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY sort_order, id') as $method) {
+        $gateway = payment_gateway((string) ($method['driver'] ?? 'manual'));
+        if (($gateway['kind'] ?? 'manual') !== 'redirect') {
+            continue;
+        }
+        if ($found !== null) {
+            return null;    // more than one: the customer chooses
+        }
+        $found = $method;
+    }
+
+    return $found;
+}

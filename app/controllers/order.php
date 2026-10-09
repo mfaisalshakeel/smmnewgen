@@ -38,6 +38,14 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $fail('That is a lot of orders in a short time. Please wait a few minutes.');
     }
 
+    // An order nobody can pay for is not an order. Taking one would leave a
+    // customer holding a code and no way to finish, and the shop with a row
+    // it can only cancel.
+    if (!col('SELECT 1 FROM payment_methods WHERE is_active = 1', [], null)) {
+        $fail('Ordering is closed at the moment - no payment method is switched on. '
+            . 'Please try again shortly.');
+    }
+
     $serviceId = (int) ($_POST['service_id'] ?? 0);
     $packageId = (int) ($_POST['package_id'] ?? 0);
     $quantity  = (int) ($_POST['quantity'] ?? 0);
@@ -124,12 +132,19 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cost is always the rate: we buy the delivered quantity either way.
     $cost = round(((float) $service['cost_per_1000'] / 1000) * $quantity, 2);
 
+    // What the customer was shown, which is not what the provider calls it.
+    // Stored rather than worked out later, so the order still reads the same
+    // after the service is renamed or deleted.
+    $label = trim((string) ($service['platform_name'] ?? '') . ' '
+        . (string) col('SELECT name FROM categories WHERE id = ?', [$service['category_id']], ''));
+
     $orderCode = new_order_code();
     $orderId   = insert_row('orders', [
         'code'         => $orderCode,
         'service_id'   => (int) $service['id'],
         'platform_id'  => $service['platform_id'],
         'service_name' => $service['name'],
+        'service_label'=> $label !== '' ? $label : $service['name'],
         'quantity'     => $quantity,
         'link'         => $link,
         'whatsapp'     => '+' . $digits,
@@ -143,8 +158,26 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     order_log($orderId, 'Order placed by the customer.');
 
     if ($wantsJson) {
+        // The customer stays where they are and watches the order appear,
+        // then goes straight to the gateway when there is one to go to.
+        // Everything the box shows comes from here, not from what the
+        // browser thought it was ordering.
+        $sole = sole_redirect_method();
+
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => true, 'code' => $orderCode, 'redirect' => url('order/' . $orderCode)]);
+        echo json_encode([
+            'ok'       => true,
+            'code'     => $orderCode,
+            'amount'   => money($price),
+            'quantity' => qty_fmt($quantity),
+            'status'   => 'Awaiting payment',
+            'payment'  => $sole
+                ? ['mode' => 'redirect', 'name' => $sole['name'],
+                   'start' => url('order/' . $orderCode . '/start'),
+                   'method' => (int) $sole['id'], 'token' => csrf_token()]
+                : ['mode' => 'page'],
+            'redirect' => url('order/' . $orderCode),
+        ]);
         exit;
     }
     redirect('order/' . $orderCode);
@@ -248,29 +281,43 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if (($params[1] ?? '') === 'start' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
+    $asJson = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
+    $answer = static function (array $payload, string $flash = '') use ($asJson, $order): never {
+        if ($asJson) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($payload);
+            exit;
+        }
+        if ($flash !== '') {
+            flash('error', $flash);
+        }
+        redirect(!empty($payload['redirect']) && empty($payload['ok'])
+            ? 'order/' . $order['code']
+            : (string) ($payload['redirect'] ?? 'order/' . $order['code']));
+    };
+
     $method = one('SELECT * FROM payment_methods WHERE id = ? AND is_active = 1',
         [(int) ($_POST['payment_method_id'] ?? 0)]);
 
     if (!$method) {
-        flash('error', 'Please choose a payment method.');
-        redirect('order/' . $order['code']);
+        $answer(['ok' => false, 'error' => 'Please choose a payment method.'],
+            'Please choose a payment method.');
     }
 
     $start = payment_start($method, $order);
 
     if (!empty($start['error'])) {
-        flash('error', (string) $start['error']);
-        redirect('order/' . $order['code']);
+        $answer(['ok' => false, 'error' => (string) $start['error']], (string) $start['error']);
     }
 
     if (!empty($start['redirect'])) {
         update_row('orders', ['payment_method_id' => (int) $method['id']], 'id = ?', [$order['id']]);
         order_log((int) $order['id'], 'Sent to ' . $method['name'] . ' to pay.');
-        redirect((string) $start['redirect']);
+        $answer(['ok' => true, 'redirect' => (string) $start['redirect']]);
     }
 
-    // Nothing to redirect to: stay put and take a reference as usual.
-    redirect('order/' . $order['code']);
+    // Nothing to redirect to: the order page takes a reference as usual.
+    $answer(['ok' => true, 'redirect' => url('order/' . $order['code'])]);
 }
 
 // ---------------------------------------------------------------- view ----

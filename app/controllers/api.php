@@ -33,7 +33,7 @@ if (!rate_limit('api_track', 60, 600)) {
     exit;
 }
 
-$order = one('SELECT code, service_name, quantity, status, start_count, remains, created_at
+$order = one('SELECT code, service_name, service_label, quantity, status, start_count, remains, created_at
                 FROM orders WHERE code = ?', [$code]);
 
 if (!$order) {
@@ -50,7 +50,7 @@ echo json_encode([
     'ok' => true,
     'order' => [
         'code'        => $order['code'],
-        'service'     => $order['service_name'],
+        'service'     => order_label($order),
         'quantity'    => (int) $order['quantity'],
         'status'      => $order['status'],
         'start_count' => $order['start_count'] === null ? null : (int) $order['start_count'],

@@ -105,6 +105,9 @@
 
   function openModal() {
     if (!modal) { return; }
+    var done = document.getElementById('omDone');
+    if (done) { done.hidden = true; }
+    if (form) { form.hidden = false; }
     lastFocus = document.activeElement;
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -280,8 +283,8 @@
       })
         .then(function (response) { return response.json(); })
         .then(function (data) {
-          if (data && data.ok && data.redirect) {
-            window.location.href = data.redirect;
+          if (data && data.ok && data.code) {
+            showPlaced(data);
             return;
           }
           error.textContent = (data && data.error) || 'Something went wrong. Please try again.';
@@ -295,6 +298,66 @@
           form.submit();
         });
     });
+  }
+
+
+  // ------------------------------------------------------- order placed --
+  //
+  // The order exists now, so the customer sees its code and amount before
+  // anything moves. Where a single gateway takes the payment itself there is
+  // nothing here to read, so we start it and go; where payment is made by
+  // hand, the order page carries the account details and the reference box.
+  function showPlaced(data) {
+    var done = document.getElementById('omDone');
+    if (!done) { window.location.href = data.redirect; return; }
+
+    document.getElementById('omDoneCode').textContent   = data.code;
+    document.getElementById('omDoneAmount').textContent = data.amount || '';
+    document.getElementById('omDoneStatus').textContent = data.status || '';
+
+    var note = document.getElementById('omDoneNote');
+    var go   = document.getElementById('omDoneGo');
+
+    form.hidden = true;
+    done.hidden = false;
+
+    var payment = data.payment || {};
+
+    if (payment.mode !== 'redirect') {
+      note.textContent = 'Keep this code. You can track the order with it at any time.';
+      go.href = data.redirect;
+      return;
+    }
+
+    note.textContent = 'Opening ' + (payment.name || 'secure payment') + '\u2026';
+    go.href = data.redirect;
+    go.textContent = 'Pay later';
+
+    var body = new FormData();
+    body.append('payment_method_id', payment.method);
+    body.append('_token', payment.token);
+
+    fetch(payment.start, {
+      method: 'POST',
+      body: body,
+      headers: { 'X-Requested-With': 'fetch' },
+      credentials: 'same-origin'
+    }).then(function (response) { return response.json(); })
+      .then(function (out) {
+        if (out && out.ok && out.redirect) {
+          window.location.href = out.redirect;
+          return;
+        }
+        throw new Error((out && out.error) || 'Payment could not start.');
+      })
+      .catch(function (problem) {
+        // The order is placed either way, so never leave the customer
+        // thinking it is not - say what failed and offer the way on.
+        note.textContent = problem.message
+          + ' Your order is saved; you can pay from the order page.';
+        note.classList.add('om-done-warn');
+        go.textContent = 'Go to the order \u2192';
+      });
   }
 
   // ------------------------------------------- switching without a reload --
@@ -393,4 +456,41 @@
 
   // Set every card's price on load, in case the browser restored a value.
   document.querySelectorAll('.card').forEach(recalc);
+
+  // ------------------------------------------------------- copy buttons --
+  // The order page has had these on the account number and the order code
+  // since it was written, with nothing listening to them.
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-copy]');
+    if (!button) { return; }
+
+    var text = button.getAttribute('data-copy');
+    var said = button.textContent;
+
+    function done() {
+      button.textContent = 'Copied';
+      button.classList.add('is-copied');
+      setTimeout(function () {
+        button.textContent = said;
+        button.classList.remove('is-copied');
+      }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+      return;
+    }
+
+    // Older browsers, and any page not served over https.
+    var carrier = document.createElement('textarea');
+    carrier.value = text;
+    carrier.setAttribute('readonly', '');
+    carrier.style.position = 'fixed';
+    carrier.style.left = '-9999px';
+    document.body.appendChild(carrier);
+    carrier.select();
+    try { document.execCommand('copy'); } catch (error) { /* nothing else to try */ }
+    document.body.removeChild(carrier);
+    done();
+  });
 })();

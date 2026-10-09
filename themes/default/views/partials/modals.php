@@ -31,6 +31,7 @@
 
       <div class="form-err" id="omError"></div>
 
+
       <div class="field">
         <label for="omLink" id="omLinkLabel">Profile or post link</label>
         <input type="url" id="omLink" name="link" placeholder="https://..." required>
@@ -52,5 +53,22 @@
         Continue to payment &rarr;
       </button>
     </form>
+
+  <!-- Outside the form: placing the order hides the form, and the panel
+       that reports it must survive that. -->
+    <div class="om-done" id="omDone" hidden>
+      <div class="om-done-head">
+        <span class="om-tick"><svg class="icon"><use href="#i-check"></use></svg></span>
+        <b>Order placed</b>
+      </div>
+      <dl class="om-done-rows">
+        <div><dt>Order code</dt><dd id="omDoneCode" class="mono"></dd></div>
+        <div><dt>Amount</dt><dd id="omDoneAmount"></dd></div>
+        <div><dt>Status</dt><dd id="omDoneStatus"></dd></div>
+      </dl>
+      <p class="om-done-note" id="omDoneNote"></p>
+      <a class="btn btn-primary btn-block btn-lg" id="omDoneGo" href="#">Continue to payment &rarr;</a>
+    </div>
+
   </div>
 </div>

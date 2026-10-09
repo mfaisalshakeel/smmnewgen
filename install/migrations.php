@@ -207,4 +207,17 @@ return [
                'High Quality - 100% Real\nFast Delivery\n100% Safe & Secure\nNo Password Required')",
         ],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_order_service_label' => [
+        'label' => 'The words the customer saw on an order',
+        'mysql' => [
+            "ALTER TABLE `orders` ADD COLUMN `service_label` VARCHAR(190) NOT NULL DEFAULT ''",
+            "UPDATE `orders` SET `service_label` = `service_name` WHERE `service_label` = ''",
+        ],
+        'sqlite' => [
+            'ALTER TABLE "orders" ADD COLUMN "service_label" TEXT NOT NULL DEFAULT \'\'',
+            'UPDATE "orders" SET "service_label" = "service_name" WHERE "service_label" = \'\'',
+        ],
+    ],
 ];
