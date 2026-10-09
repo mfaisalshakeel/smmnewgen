@@ -50,7 +50,7 @@
       </div>
 
       <div class="field" data-field="email">
-        <label for="omEmail">Email <span class="opt">optional</span></label>
+        <label for="omEmail">Email <span class="opt-tag">optional</span></label>
         <input type="email" id="omEmail" name="email" placeholder="you@example.com"
                aria-describedby="omEmailHint">
         <small class="hint" id="omEmailHint">For a receipt. The order code still

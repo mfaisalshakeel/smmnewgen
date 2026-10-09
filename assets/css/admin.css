@@ -753,7 +753,7 @@ svg{max-width:100%}
 .inline-form{margin-top:14px}
 .inline-form .field{margin-bottom:11px;max-width:300px}
 .rule{border:0;border-top:1px solid var(--line);margin:20px 0}
-.opt{font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;
+.opt-tag{font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;
   letter-spacing:.06em;margin-left:5px}
 
 /* A button that has to read as a link: an action, not a destination. */
@@ -801,10 +801,22 @@ svg{max-width:100%}
   font-weight:600;user-select:none}
 .check input{width:17px;height:17px;accent-color:var(--acc);cursor:pointer;flex:none}
 
-/* ---- one option in a group of them ---- */
-.choice{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;
-  background:var(--surface)}
-.choice:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}
+/* ---- picking a gateway ----
+   .choice is the list and .opt is one gateway in it, which is the opposite of
+   what it looks like at a glance. Neither had a rule at all, so the picker
+   rendered as three lines of plain text with nothing to say they could be
+   clicked - which is how a gateway that was there the whole time read as
+   missing. The radio stays in the DOM and stays what submits. */
+.choice{display:grid;gap:10px}
+.opt{display:block;position:relative;border:1.5px solid var(--line);border-radius:12px;
+  padding:14px 44px 14px 16px;cursor:pointer;background:var(--surface);
+  transition:border-color .15s, background .15s}
+.opt:hover{border-color:var(--line-2)}
+.opt b{display:block;font-size:14.5px}
+.opt small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.5}
+.opt input{position:absolute;top:50%;right:15px;transform:translateY(-50%);
+  width:18px;height:18px;accent-color:var(--acc);cursor:pointer}
+.opt.on,.opt:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}
 
 /* ---- things stacked with air between them ---- */
 .stack{display:grid;gap:10px}

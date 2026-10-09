@@ -357,7 +357,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
   font-weight:600;outline:none;transition:border-color .15s;background:var(--bg-soft)}
 .field input:focus{border-color:var(--brand);background:#fff}
 .field small{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-top:6px}
-.field label .opt{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-left:5px}
+.field label .opt-tag{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-left:5px}
 .safe-note{display:flex;gap:10px;background:#e8f8ee;border-radius:14px;padding:13px 15px;font-size:13px;
   font-weight:700;color:#146c3a;margin-bottom:18px}
 
