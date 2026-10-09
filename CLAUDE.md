@@ -312,6 +312,22 @@ them, which puts those services back on the default set.
 - The installer works the same way, for the same reason: `?step=2&task=plan`
   returns the task list, `?step=2&task=<key>` runs one. Submitting the form
   without JavaScript runs the identical list in one request.
+- **The admin has to open on a database that is behind the code.** Uploading
+  the files is the first half of an update and running the migrations is the
+  second, and in between the panel is the only way to reach the button. So
+  nothing drawn on every screen may assume a table or column that a migration
+  adds: the sidebar counts go through `optional_count()`, which returns 0 for
+  a missing table and re-throws anything else. A screen whose *own* table
+  arrives with a migration is listed in `_middleware.php` and redirects to
+  `/admin/update` rather than failing. Cron stops with a plain message instead
+  of half-running against money. The storefront keeps selling throughout -
+  `notify()` already swallows its own failures.
+
+  This is not hypothetical: an `audit_log` count added to the layout took the
+  whole panel to a 500 the moment anyone pulled the release, and the only
+  screen that could have fixed it was the one that would not load. Check it
+  before a release by pointing the new code at a copy of the old database.
+
 - A step that fails because the thing it adds is already there is **skipped,
   not an error** — SQLite has no `ADD COLUMN IF NOT EXISTS`, and that is how
   both drivers end up behaving the same way. `migration_already_done()` holds
@@ -456,6 +472,11 @@ only broke once a router script changed what the server reported.
 Then: install from an empty database, add the mock provider, import, place an
 order, mark it paid, run `php cron.php` a few times and watch it complete. An
 order whose link contains `fail-me` exercises the `api_error` path.
+
+Then the upgrade path, which is the one the working copy never exercises:
+take a copy of the previous release's database, point the new code at it, and
+open every admin screen before running the update. The panel must stay usable
+while the database is behind, because `/admin/update` lives inside it.
 
 Before a release, do that run against the **zip**, not the working copy -
 unpack `build/*.zip` somewhere clean and install it from zero. The one bug that

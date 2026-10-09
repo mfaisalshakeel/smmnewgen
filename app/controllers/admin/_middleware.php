@@ -35,6 +35,20 @@ require_once APP_PATH . '/helpers/currency.php';
 // from every screen too.
 require_once APP_PATH . '/helpers/notify.php';
 
+// A screen whose own table arrives with a migration has nothing to show until
+// that migration has run. Sending the admin to the screen that runs it beats
+// a 500, and beats hiding the item so it looks like the feature is gone.
+$arrivesWith = [
+    'notifications' => 'notifications',
+    'emails'        => 'email_templates',
+    'audit'         => 'audit_log',
+];
+if (isset($arrivesWith[$adminAction]) && !table_exists($arrivesWith[$adminAction])) {
+    flash('error', 'That screen arrives with the database update, which has not run yet. '
+        . 'Run it here and it will be waiting for you.');
+    redirect('admin/update');
+}
+
 // Whether a newer release has been uploaded. Worked out here so the layout
 // can show the nudge on every screen, and only once logged in - there is
 // nothing to tell a stranger about our version.

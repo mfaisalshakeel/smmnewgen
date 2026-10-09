@@ -47,7 +47,7 @@ $signIn = static function (array $admin, string $password = ''): void {
     audit('admin.signed_in', [
         'entity' => 'admins', 'entity_id' => (int) $admin['id'],
         'summary' => $admin['username'] . ' signed in'
-                   . ($admin['two_factor'] !== 'off' ? ' with two-factor' : ''),
+                   . (($admin['two_factor'] ?? 'off') !== 'off' ? ' with two-factor' : ''),
     ]);
 
     $after = $_SESSION['_after_login'] ?? 'admin';

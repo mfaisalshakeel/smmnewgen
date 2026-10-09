@@ -217,6 +217,17 @@ function cron_run_task(string $key, string $source = 'cron', bool $force = false
  */
 function run_cron_tasks(?string $only = null, string $source = 'cron'): string
 {
+    // New code on a database that has not been migrated: half the columns a
+    // job needs are missing, and a job that half-runs against money is worse
+    // than one that does not run. Say what is wrong and stop.
+    require_once APP_PATH . '/helpers/migrate.php';
+    $pending = migrations_pending();
+    if ($pending) {
+        return '[' . date('c') . '] cron stopped - the database is behind the code. '
+            . count($pending) . ' change(s) not applied. '
+            . 'Open /admin/update and run it.' . PHP_EOL;
+    }
+
     // One run at a time. A five-minute schedule and a run that takes six
     // minutes overlap, and both would pick up the same 'paid, not yet sent'
     // orders and both buy them. The URL endpoint makes it likelier still:

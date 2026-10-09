@@ -9,13 +9,16 @@
 $active   = $GLOBALS['__admin_nav_active'] ?? 'index';
 $user     = admin_user();
 $siteName = setting('site_name', 'SMM Panel');
-$unread   = (int) col('SELECT COUNT(*) FROM messages WHERE is_read = 0', [], 0);
-$pending  = (int) col("SELECT COUNT(*) FROM orders WHERE status = 'pending'", [], 0);
+// optional_count throughout: this shell is drawn on every admin screen, the
+// update screen included, and it has to survive code that is newer than the
+// database. A badge is worth nothing next to being able to run the update.
+$unread   = optional_count('SELECT COUNT(*) FROM messages WHERE is_read = 0');
+$pending  = optional_count("SELECT COUNT(*) FROM orders WHERE status = 'pending'");
 // Converted, not summed raw: balances are held in each provider's own
 // currency, so adding them is meaningless before it is mislabelled.
 $balance  = provider_balance_total();
-$alerts   = notifications_unread();
-$auditAlerts = (int) col("SELECT COUNT(*) FROM audit_log WHERE severity = 'alert'", [], 0);
+$alerts      = optional_count('SELECT COUNT(*) FROM notifications WHERE is_read = 0');
+$auditAlerts = optional_count("SELECT COUNT(*) FROM audit_log WHERE severity = 'alert'");
 
 $nav = [
     ['group' => 'Main'],

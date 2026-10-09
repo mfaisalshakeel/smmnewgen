@@ -27,8 +27,17 @@ function currencies(bool $fresh = false): array
     static $cache = null;
     if ($cache === null || $fresh) {
         $cache = [];
-        foreach (all('SELECT * FROM currencies ORDER BY sort_order, code') as $row) {
-            $cache[strtoupper($row['code'])] = $row;
+        try {
+            foreach (all('SELECT * FROM currencies ORDER BY sort_order, code') as $row) {
+                $cache[strtoupper($row['code'])] = $row;
+            }
+        } catch (PDOException $e) {
+            // Before the currencies migration has run there is simply nothing
+            // to convert with, and the panel still has to open so it can be
+            // told to run it.
+            if (!is_missing_schema($e)) {
+                throw $e;
+            }
         }
     }
     return $cache;
@@ -138,7 +147,18 @@ function provider_balance_total(): array
     $total   = 0.0;
     $missing = [];
 
-    foreach (all('SELECT balance, currency FROM providers WHERE is_active = 1') as $provider) {
+    // Drawn in the admin shell, so it has to survive a database that is
+    // behind the code - the update screen is inside that shell.
+    try {
+        $providers = all('SELECT balance, currency FROM providers WHERE is_active = 1');
+    } catch (PDOException $e) {
+        if (!is_missing_schema($e)) {
+            throw $e;
+        }
+        return ['total' => 0.0, 'missing' => []];
+    }
+
+    foreach ($providers as $provider) {
         $code = strtoupper(trim((string) $provider['currency']));
 
         // A provider that never said what it bills in is left out, not counted

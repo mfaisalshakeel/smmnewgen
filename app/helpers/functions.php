@@ -111,6 +111,71 @@ function col(string $sql, array $params = [], $default = null)
     return $value === false ? $default : $value;
 }
 
+/**
+ * Is this exception a table or column that is not there yet?
+ *
+ * The one state where that is normal: new code on a database that has not
+ * been migrated. Both drivers word it differently, so both wordings have to
+ * be here - the same reason migration_already_done() carries both.
+ */
+function is_missing_schema(PDOException $e): bool
+{
+    $message = strtolower($e->getMessage());
+
+    return str_contains($message, 'no such table')
+        || str_contains($message, 'no such column')
+        || str_contains($message, "doesn't exist")
+        || str_contains($message, 'unknown column');
+}
+
+/**
+ * A count that is allowed to not be there yet.
+ *
+ * Only for chrome - a badge, a dot, a tally in the sidebar. Uploading new
+ * code is the first half of an update and running the migrations is the
+ * second, and in between the admin has to stay usable, because the screen
+ * that runs the migrations is inside it. A sidebar badge that fatals takes
+ * the whole panel down and leaves no way to finish the update.
+ *
+ * Anything that is not a missing table or column is re-thrown: this hides a
+ * known, temporary state, not SQL mistakes.
+ */
+function optional_count(string $sql, array $params = []): int
+{
+    try {
+        return (int) col($sql, $params, 0);
+    } catch (PDOException $e) {
+        if (!is_missing_schema($e)) {
+            throw $e;
+        }
+        return 0;
+    }
+}
+
+/**
+ * Does this table exist yet?
+ *
+ * Asked by touching it rather than by reading a catalogue, because the two
+ * drivers keep their catalogues in different places and this works on both.
+ * Only for deciding whether a screen can run at all.
+ */
+function table_exists(string $table): bool
+{
+    static $known = [];
+    if (isset($known[$table])) {
+        return $known[$table];
+    }
+    try {
+        q('SELECT 1 FROM `' . $table . '` LIMIT 1');
+        return $known[$table] = true;
+    } catch (PDOException $e) {
+        if (!is_missing_schema($e)) {
+            throw $e;
+        }
+        return $known[$table] = false;
+    }
+}
+
 /** Insert an associative array and return the new id. */
 function insert_row(string $table, array $data): int
 {
