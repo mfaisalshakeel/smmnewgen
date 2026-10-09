@@ -259,6 +259,21 @@ them, which puts those services back on the default set.
 
 `pending → paid → processing → completed`, with `api_error` parked to one side.
 
+- **Placing finishes in the modal.** The form posts over `fetch`, `order.php`
+  answers with JSON, and the modal swaps to a success panel carrying the order
+  code and a copy button. The code is the only thing the customer has to keep,
+  so it is the one thing the panel makes easy to take away. The panel sits
+  **after** `</form>`: showing it hides the form, and a panel inside the form
+  would be hidden along with it.
+- With exactly one active redirect gateway there is nothing to choose, so the
+  panel offers it straight away; with two or more it links to the order page,
+  where the choice lives. `sole_redirect_method()` is that test.
+- **No payment method means no order.** The form refuses before it writes a
+  row, because an order nobody can pay for is a row nobody will ever action.
+- The name is copied onto the order as `service_label` when it is placed, not
+  looked up later. A label read back through the service row would change
+  under a finished order when an admin renames the service, and single-service
+  mode has to keep its promise on the tracker too.
 - `send_order_to_provider()` is the only place an order is handed to an API. A
   failure stores the provider's own words in `api_error` and leaves the order
   where it is, so it can be retried.
@@ -345,6 +360,12 @@ never runs the script gets the plain control, styled.
   page is the long column it used to be. Every field stays in the DOM
   whichever tab is showing: hiding a panel must never mean dropping what is
   in it.
+
+Row actions are **icons**, not words: power, pencil, trash, plus whatever a
+screen adds of its own. Colour carries what the button does — red is the
+destructive one — and the words live in `title` and `aria-label`, so a row of
+them can be read at a glance and still read aloud. A row of identical grey
+text buttons gave no way to find the dangerous one.
 
 `[hidden]` is declared `display:none !important` in both the admin and the
 theme stylesheets, because a rule that sets `display` otherwise wins and the
