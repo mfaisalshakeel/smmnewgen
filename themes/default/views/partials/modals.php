@@ -29,19 +29,24 @@
         <span class="amt" id="omPrice">&nbsp;</span>
       </div>
 
+      <?php /* Only for what no single field owns - the shop being closed, a
+               throttle, a fault. Anything about a field is said under it. */ ?>
       <div class="form-err" id="omError"></div>
 
-
-      <div class="field">
+      <div class="field" data-field="link">
         <label for="omLink" id="omLinkLabel">Profile or post link</label>
-        <input type="url" id="omLink" name="link" placeholder="https://..." required>
-        <small>Make sure your account is public, not private.</small>
+        <input type="url" id="omLink" name="link" placeholder="https://..." required
+               aria-describedby="omLinkHint">
+        <small class="hint" id="omLinkHint">Make sure your account is public, not private.</small>
+        <small class="err" id="omLinkErr" hidden></small>
       </div>
 
-      <div class="field">
+      <div class="field" data-field="whatsapp">
         <label for="omWa">WhatsApp number</label>
-        <input type="tel" id="omWa" name="whatsapp" placeholder="+92 300 1234567" required>
-        <small>We send your order code and updates here.</small>
+        <input type="tel" id="omWa" name="whatsapp" placeholder="+92 300 1234567" required
+               aria-describedby="omWaHint">
+        <small class="hint" id="omWaHint">We send your order code and updates here.</small>
+        <small class="err" id="omWaErr" hidden></small>
       </div>
 
       <div class="safe-note">

@@ -41,10 +41,11 @@ $waNumber = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
       <a href="<?= e(url('')) ?>">Home</a>
       <a href="<?= e(url('faq')) ?>">FAQ</a>
       <a href="<?= e(url('contact')) ?>">Contact</a>
+      <?php /* No Track Order here: the header keeps it out of the burger on
+               every width, so repeating it is the same link twice. */ ?>
       <?php if ($waNumber !== ''): ?>
         <a href="https://wa.me/<?= e($waNumber) ?>" target="_blank" rel="noopener">WhatsApp help</a>
       <?php endif; ?>
-      <a class="btn btn-primary btn-block" href="<?= e(url('track')) ?>">Track Order</a>
     </div>
   </div>
 </header>

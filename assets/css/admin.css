@@ -111,8 +111,13 @@ svg{max-width:100%}
 .scard b{display:block;font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
 .scard span{font-size:12px;font-weight:600}
 
-.split{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
-.split2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+/* minmax(0,...) rather than a bare 1fr: `1fr` means `minmax(auto,1fr)`,
+   and that auto floor is the item's min-content width - a column then
+   refuses to go narrower than the widest unbreakable thing inside it and
+   the item spills out of the grid. Nothing scrolls sideways here, so what
+   spills is clipped: on a phone that was every Run now button on Cron. */
+.split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px}
+.split2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .box + .box{margin-top:16px}
 .box-head{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line)}
@@ -191,7 +196,7 @@ svg{max-width:100%}
 .field textarea{resize:vertical;font-family:ui-monospace,monospace;font-size:13px}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--acc)}
 .field small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
-.field2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .colorrow{display:flex;gap:10px}
 .colorrow input[type=color]{width:52px;padding:4px;height:44px;cursor:pointer}
 .copyrow{display:flex;gap:9px}
@@ -211,7 +216,7 @@ svg{max-width:100%}
 .switch input:checked + .track::after{transform:translateX(17px)}
 
 /* import */
-.irow{display:grid;grid-template-columns:1fr 1.4fr 1fr auto;gap:12px;align-items:end;margin-bottom:16px}
+.irow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:16px}
 .optbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:var(--page);border:1px solid var(--line);
   border-radius:12px;padding:13px 16px;margin-bottom:14px}
 .markup{display:flex;align-items:center;gap:10px}
@@ -232,10 +237,10 @@ svg{max-width:100%}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:45}
 
 /* responsive */
-@media (max-width:1200px){ .cards4{grid-template-columns:1fr 1fr} }
+@media (max-width:1200px){ .cards4{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:1050px){
-  .split,.split2{grid-template-columns:1fr}
-  .irow{grid-template-columns:1fr 1fr}
+  .split,.split2{grid-template-columns:minmax(0,1fr)}
+  .irow{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:1000px){
   .side{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.3)}
@@ -250,10 +255,10 @@ svg{max-width:100%}
 @media (max-width:760px){
   .content{padding:15px}
   .topbar{padding:0 15px;height:62px;gap:11px}
-  .cards4{grid-template-columns:1fr;gap:11px}
+  .cards4{grid-template-columns:minmax(0,1fr);gap:11px}
   .scard b{font-size:22px}
-  .irow{grid-template-columns:1fr}
-  .field2{grid-template-columns:1fr}
+  .irow{grid-template-columns:minmax(0,1fr)}
+  .field2{grid-template-columns:minmax(0,1fr)}
   .hide-sm{display:none}
   .tbl{min-width:0}
   .tbl th,.tbl td{padding:11px 10px}
@@ -383,8 +388,8 @@ svg{max-width:100%}
    Every chart here plots one measure, so every chart is one colour. The data
    is the only thing allowed to be loud: hairline grid, thin marks, and the
    numbers folded underneath for anyone the plot does not reach. */
-.charts2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-.charts3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.charts2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.charts3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}
 .box-pad{padding:18px}
 .chart{margin:0}
 .chart-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
@@ -420,7 +425,7 @@ svg{max-width:100%}
 /* The name gets the full width and the bar sits under it: a service name is
    long enough that a narrow column would clip it, and a clipped label is
    worse than a taller row. */
-.ch-row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 10px;
+.ch-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:4px 10px;
   font-size:13px}
 .ch-name{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--ink-2);min-width:0}
 .ch-name>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -448,10 +453,10 @@ svg{max-width:100%}
 @media (max-width:1400px){ .scard b{font-size:21px} }
 
 @media (max-width:1050px){
-  .charts3{grid-template-columns:1fr 1fr}
+  .charts3{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:760px){
-  .charts2,.charts3{grid-template-columns:1fr}
+  .charts2,.charts3{grid-template-columns:minmax(0,1fr)}
 }
 
 /* ===========================================================================
@@ -529,6 +534,15 @@ svg{max-width:100%}
 .tbl td b,.tbl td .mono,.pv-bal b,.ch-val,.count b,.drow b{font-variant-numeric:tabular-nums}
 .tbl td{white-space:normal}
 .tbl td b{white-space:nowrap}
+/* ...but a <b> in a cell is often a label, not a number. Keeping it on one
+   line gave "Send paid orders to providers" 223px of min-content, which on a
+   phone pushed the Run now column clean off the table. This has to sit after
+   the rule above, not in the breakpoint block further up: same specificity,
+   so the later one wins wherever it is. */
+@media (max-width:760px){
+  .tbl td b{white-space:normal}
+  .tbl td.num b,.tbl td.money b,.tbl td .mono{white-space:nowrap}
+}
 /* A figure split across two lines is unreadable, whatever column it is in. */
 .tbl td.num,.tbl td.money{white-space:nowrap;font-variant-numeric:tabular-nums}
 .tbl thead th{background:var(--page)}

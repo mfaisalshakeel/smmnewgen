@@ -167,7 +167,7 @@
       // Carried on the form so the check below knows which host to insist on.
       form.dataset.linkHost = card.dataset.linkHost || '';
       form.dataset.platform = card.dataset.platform || '';
-      document.getElementById('omError').classList.remove('show');
+      clearErrors();
       openModal();
       return;
     }
@@ -227,26 +227,52 @@
     return actual === host || actual.endsWith('.' + host);
   }
 
+  // An error belongs under the field it is about, in the place the hint was
+  // standing: the person is looking there, and the panel does not grow by a
+  // line it has to be scrolled to reach.
+  function fieldError(input, message) {
+    if (!input) { return; }
+    var field = input.closest('.field');
+    var hint  = field.querySelector('.hint');
+    var slot  = field.querySelector('.err');
+    if (!slot) { return; }
+
+    if (message) {
+      slot.textContent = message;
+      slot.hidden = false;
+      if (hint) { hint.hidden = true; }
+      input.setAttribute('aria-invalid', 'true');
+      input.setAttribute('aria-describedby', slot.id);
+    } else {
+      slot.hidden = true;
+      if (hint) { hint.hidden = false; input.setAttribute('aria-describedby', hint.id); }
+      input.removeAttribute('aria-invalid');
+    }
+  }
+
+  function clearErrors() {
+    var banner = document.getElementById('omError');
+    if (banner) { banner.classList.remove('show'); }
+    ['omLink', 'omWa'].forEach(function (id) {
+      fieldError(document.getElementById(id), '');
+    });
+  }
+
   function checkLink() {
     var field = document.getElementById('omLink');
-    var error = document.getElementById('omError');
     if (!field || !form) { return true; }
 
     var host  = form.dataset.linkHost || '';
     var value = field.value.trim();
     if (value === '' || linkIsOnHost(value, host)) {
-      field.removeAttribute('aria-invalid');
-      if (error.dataset.from === 'link') { error.classList.remove('show'); }
+      fieldError(field, '');
       return true;
     }
 
-    field.setAttribute('aria-invalid', 'true');
     // Named rather than articled, so neither 'a Instagram' nor a guess at
     // which article a platform's name wants.
-    error.textContent = (form.dataset.platform || 'These') + ' links are on ' + host
-      + '. That one is not.';
-    error.dataset.from = 'link';
-    error.classList.add('show');
+    fieldError(field, (form.dataset.platform || 'These') + ' links are on ' + host
+      + '. That one is not.');
     return false;
   }
 
@@ -273,7 +299,7 @@
       var error  = document.getElementById('omError');
       button.disabled = true;
       button.textContent = 'Placing order…';
-      error.classList.remove('show');
+      clearErrors();
 
       fetch(form.action, {
         method: 'POST',
@@ -287,8 +313,21 @@
             showPlaced(data);
             return;
           }
-          error.textContent = (data && data.error) || 'Something went wrong. Please try again.';
-          error.classList.add('show');
+          var message = (data && data.error) || 'Something went wrong. Please try again.';
+          // The server says which field it is about when it knows; only what
+          // belongs to no field goes in the banner at the top.
+          var inputs  = { link: 'omLink', whatsapp: 'omWa' };
+          var input   = data && inputs[data.field]
+            ? document.getElementById(inputs[data.field])
+            : null;
+
+          if (input) {
+            fieldError(input, message);
+            input.focus();
+          } else {
+            error.textContent = message;
+            error.classList.add('show');
+          }
           button.disabled = false;
           button.innerHTML = 'Continue to payment &rarr;';
         })

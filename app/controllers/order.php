@@ -19,10 +19,17 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $wantsJson = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
 
-    $fail = static function (string $message) use ($wantsJson) {
+    // $field names the input the message is about, where one owns it. The
+    // browser then writes it under that input instead of in the banner at the
+    // top, which is where the person is already looking.
+    $fail = static function (string $message, ?string $field = null) use ($wantsJson) {
         if ($wantsJson) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'error' => $message]);
+            echo json_encode(array_filter([
+                'ok'    => false,
+                'error' => $message,
+                'field' => $field,
+            ], static fn ($value) => $value !== null));
             exit;
         }
         flash('error', $message);
@@ -100,13 +107,13 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($link === '' || !filter_var($link, FILTER_VALIDATE_URL)) {
-        $fail('Please paste a full link, starting with https://');
+        $fail('Please paste a full link, starting with https://', 'link');
     }
     if (!preg_match('~^https?://~i', $link)) {
-        $fail('The link must start with http:// or https://');
+        $fail('The link must start with http:// or https://', 'link');
     }
     if (mb_strlen($link) > 500) {
-        $fail('That link is too long.');
+        $fail('That link is too long.', 'link');
     }
 
     // When the platform declares a host, the link has to be on it - this stops
@@ -115,13 +122,13 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($prefix !== '') {
         if (!link_is_on_host($link, $prefix)) {
             $fail('That does not look like a link to ' . $service['platform_name']
-                . '. It should be on ' . $prefix . '.');
+                . '. It should be on ' . $prefix . '.', 'link');
         }
     }
 
     $digits = preg_replace('/\D/', '', $whatsapp);
     if (strlen($digits) < 10 || strlen($digits) > 15) {
-        $fail('Please enter a valid WhatsApp number with the country code.');
+        $fail('Please enter a valid WhatsApp number with the country code.', 'whatsapp');
     }
 
     // The one number that matters, worked out here and nowhere else.
