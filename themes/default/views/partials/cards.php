@@ -24,8 +24,6 @@ $packed = [];   // services shown as tiers, in the order they appear
           Try another tab above.
         </div>
       <?php else: ?>
-        <?php $GLOBALS['__package_noun'] = trim($platform['name'] . ' ' . ($category['name'] ?? '')); ?>
-
         <?php foreach ($services as $service): ?>
           <?php $packages = service_tiers($service); ?>
 
@@ -33,11 +31,13 @@ $packed = [];   // services shown as tiers, in the order they appear
             <?php $packed[] = $service; ?>
             <?php foreach ($packages as $package): ?>
               <?php partial('partials/package-card',
-                  ['package' => $package, 'service' => $service, 'platform' => $platform]); ?>
+                  ['package' => $package, 'service' => $service, 'platform' => $platform,
+                   'category' => $category]); ?>
             <?php endforeach; ?>
           <?php else: ?>
             <?php partial('partials/service-card',
-                ['service' => $service, 'platform' => $platform, 'custom' => false]); ?>
+                ['service' => $service, 'platform' => $platform, 'category' => $category,
+                 'custom' => false]); ?>
           <?php endif; ?>
         <?php endforeach; ?>
 

@@ -227,12 +227,23 @@ stays shut after, remembered per screen.
 
 ## Service names on the storefront
 
-A card carries two names: `data-name`, the raw one the provider gave
-("Instagram Followers [ Max 100K ] | Old Accounts | No Refill ⚠ | Instant
-Start"), and `data-label`, the plain words for what it sells ("Instagram
-Followers"). **The customer only ever sees the label.** The raw name is for
-the admin and for the order record; repeating it in the order modal, under a
-card that already says what it is, is noise at the point of paying.
+A card carries two names: `data-name`, the raw one the provider gave, and
+`data-label`, the words a person reads. **The customer only ever sees the
+label**, and `card_label()` decides what it is, because the two catalogue
+modes ask different questions:
+
+- `single` — the category names one service and the customer picks only a
+  quantity. Every card is the same service, so its raw name says nothing and
+  "Instagram Followers" is the honest label.
+- `services` — every service gets its own card, and the name is now the only
+  thing telling one card from the next. Hiding it leaves a grid of identical
+  headings, which is what it did until a label fixed to platform + category
+  was pointed out.
+
+The rule lives in one function so the three places that draw a card - the
+package card, the service card and the custom panel's picker - cannot drift.
+The order modal clamps the label to two lines: the card behind it carries the
+whole name, and four lines there push the order button off a phone.
 
 ## Card feature lines
 

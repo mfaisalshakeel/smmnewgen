@@ -283,7 +283,11 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
 .summary{display:flex;align-items:center;gap:13px;background:linear-gradient(135deg,var(--brand-soft),#faf8ff);
   border-radius:15px;padding:15px;margin-bottom:20px}
 .summary .si{width:44px;height:44px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:21px;flex:none;color:var(--brand)}
-.summary b{display:block;font-size:15px}
+/* Two lines at most. The card the customer just pressed is still behind
+   this box and carries the whole name; letting it wrap to four lines here
+   pushes the button that places the order off a phone screen. */
+.summary b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:15px;line-height:1.35}
 .summary small{color:var(--muted);font-size:12.5px;font-weight:700}
 .summary .amt{margin-left:auto;font-size:21px;font-weight:800;color:var(--brand);white-space:nowrap}
 .field{margin-bottom:16px}

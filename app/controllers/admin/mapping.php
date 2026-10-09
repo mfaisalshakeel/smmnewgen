@@ -52,7 +52,7 @@ $rows = all(
 
 // Each category's own services, so a dropdown can never offer a wrong one.
 $choices = [];
-foreach (all('SELECT id, name, category_id FROM services WHERE is_active = 1
+foreach (all('SELECT id, name, category_id, provider_service_id FROM services WHERE is_active = 1
                ORDER BY is_featured DESC, sort_order, id') as $service) {
     $choices[(int) $service['category_id']][] = $service;
 }

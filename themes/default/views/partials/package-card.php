@@ -7,11 +7,14 @@
  * server prices it from the service's rate - the same number the card showed.
  * Either way a tampered data attribute buys nothing.
  *
- * @var array $package  @var array $service  @var array $platform
+ * @var array $package  @var array $service  @var array $platform  @var ?array $category
  */
 $delivered = (int) $package['quantity'] + (int) $package['bonus_quantity'];
 $feature   = service_feature_lines($service);
-$noun      = $GLOBALS['__package_noun'] ?? $service['name'];
+// What this card is for: the category in single mode, the service's own name
+// when every service has a card of its own and the name is what tells them
+// apart. card_label() holds that rule so the two card partials cannot drift.
+$noun      = card_label($service, $platform, $category ?? null);
 ?>
 <article class="card pkg<?= $package['badge'] !== '' ? ' pkg-badged' : '' ?>"
          data-service="<?= (int) $service['id'] ?>"

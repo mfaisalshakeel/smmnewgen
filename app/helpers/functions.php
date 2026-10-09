@@ -721,6 +721,35 @@ function service_tiers(array $service): array
 }
 
 /**
+ * The words a card shows for what it sells.
+ *
+ * It depends on what the catalogue is doing, because the two modes ask the
+ * customer different questions:
+ *
+ *   single   - the category names one service and the customer only picks a
+ *              quantity. Every card is the same service, so its raw provider
+ *              name says nothing and "Instagram Followers" is the honest
+ *              label.
+ *   services - every service in the category gets its own card, and now the
+ *              name is the only thing telling one card from the next. Hiding
+ *              it leaves a grid of identical headings, which is what it did.
+ *
+ * The raw name still goes out as data-name for the order record; this is only
+ * what a person reads.
+ */
+function card_label(array $service, array $platform, ?array $category = null): string
+{
+    if (setting('catalogue_mode', 'services') === 'single') {
+        $generic = trim((string) ($platform['name'] ?? '') . ' ' . (string) ($category['name'] ?? ''));
+        if ($generic !== '') {
+            return $generic;
+        }
+    }
+
+    return (string) $service['name'];
+}
+
+/**
  * The ticked lines on a card.
  *
  * A service that has its own wins; anything else falls back to the shop-wide

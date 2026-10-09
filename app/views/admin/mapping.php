@@ -45,9 +45,18 @@
                 <select name="service[<?= (int) $row['id'] ?>]" data-search>
                   <option value="0">The first active service</option>
                   <?php foreach ($options as $service): ?>
+                    <?php /* The whole name, not an excerpt: what distinguishes two
+                             services is usually the tail of it - the cap, the
+                             country, the refill - and that is what was being cut. */ ?>
                     <option value="<?= (int) $service['id'] ?>"
+                      <?php /* The provider's own id where there is one: that is the
+                               number an admin looks up in the provider panel.
+                               data-find carries both, so either one finds it. */ ?>
+                      data-badge="<?= e($service['provider_service_id'] !== ''
+                          ? $service['provider_service_id'] : '#' . (int) $service['id']) ?>"
+                      data-find="<?= e($service['provider_service_id'] . ' #' . (int) $service['id']) ?>"
                       <?= (int) $service['id'] === (int) $row['service_id'] ? 'selected' : '' ?>>
-                      <?= e(excerpt($service['name'], 60)) ?>
+                      <?= e($service['name']) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>

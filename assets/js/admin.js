@@ -344,6 +344,25 @@
       return option ? option.textContent.trim() : '';
     }
 
+    /* A short tag drawn before the text - a service id, say. It is searchable
+       as well as visible, because "which service is #1042" is exactly the
+       question somebody types into the box. */
+    function badgeOf(option) {
+      return (option.getAttribute('data-badge') || '').trim();
+    }
+
+    function withBadge(target, option, text) {
+      target.textContent = '';
+      var badge = badgeOf(option);
+      if (badge) {
+        var tag = document.createElement('span');
+        tag.className = 'sel-badge';
+        tag.textContent = badge;
+        target.appendChild(tag);
+      }
+      target.appendChild(document.createTextNode(text));
+    }
+
     function close() {
       if (!open) { return; }
       open.wrap.classList.remove('is-open');
@@ -382,7 +401,13 @@
       var none   = pop.querySelector('.sel-none');
 
       function paint() {
-        button.querySelector('.sel-label').textContent = labelOf(select);
+        var option = select.options[select.selectedIndex];
+        var target = button.querySelector('.sel-label');
+        if (option) {
+          withBadge(target, option, labelOf(select));
+        } else {
+          target.textContent = '';
+        }
       }
 
       function render(term) {
@@ -391,15 +416,21 @@
         list.innerHTML = '';
 
         Array.prototype.forEach.call(select.options, function (option, index) {
-          var text = option.textContent.trim();
-          if (needle && text.toLowerCase().indexOf(needle) === -1) { return; }
+          var text  = option.textContent.trim();
+          var badge = badgeOf(option);
+          // Ids are part of what is searched, so typing 1042 finds the service
+          // even though no id appears in its name. data-find may carry more
+          // than the badge shows - ours and the provider's both.
+          var hay = (badge + ' ' + (option.getAttribute('data-find') || '') + ' ' + text)
+                      .toLowerCase();
+          if (needle && hay.indexOf(needle) === -1) { return; }
 
           var item = document.createElement('li');
           item.className = 'sel-opt' + (index === select.selectedIndex ? ' is-on' : '');
           item.setAttribute('role', 'option');
           item.setAttribute('aria-selected', index === select.selectedIndex ? 'true' : 'false');
           item.dataset.index = index;
-          item.textContent = text;
+          withBadge(item, option, text);
           list.appendChild(item);
           shown++;
         });

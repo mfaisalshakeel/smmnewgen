@@ -70,6 +70,9 @@
     card.dataset.min     = option.dataset.min;
     card.dataset.max     = option.dataset.max;
     card.dataset.name    = option.dataset.name;
+    // The words the modal shows follow the chosen service too. Without this
+    // the panel changed service and the order box kept naming the first one.
+    card.dataset.label   = option.dataset.label || option.dataset.name;
 
     var min = parseInt(option.dataset.min, 10);
     var max = parseInt(option.dataset.max, 10);

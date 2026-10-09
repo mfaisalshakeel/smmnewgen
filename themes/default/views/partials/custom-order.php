@@ -30,7 +30,7 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
        data-min="<?= $min ?>"
        data-max="<?= $max ?>"
        data-name="<?= e($first['name']) ?>"
-       data-label="<?= e(trim($platform['name'] . ' ' . ($category['name'] ?? ''))) ?>"
+       data-label="<?= e(card_label($first, $platform, $category ?? null)) ?>"
        data-link-label="<?= e($linkLabel) ?>"
        data-link-hint="<?= e($linkHint) ?>"
        data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
@@ -49,6 +49,7 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
                     data-min="<?= (int) $service['min_qty'] ?>"
                     data-max="<?= (int) $service['max_qty'] ?>"
                     data-name="<?= e($service['name']) ?>"
+                    data-label="<?= e(card_label($service, $platform, $category ?? null)) ?>"
                     data-delivery="<?= e($service['delivery_time']) ?>">
               <?= e($service['name']) ?>
             </option>

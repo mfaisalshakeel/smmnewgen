@@ -583,7 +583,12 @@ svg{max-width:100%}
 .sel-btn:hover{border-color:var(--line-2)}
 .sel.is-open .sel-btn,.sel-btn:focus-visible{border-color:var(--acc);background-color:var(--surface);
   box-shadow:0 0 0 3.5px var(--acc-soft);outline:none}
-.sel-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The whole name, wrapping rather than cut off. A service called
+   "Instagram Followers | USA | Max 100k | 100% Usa Accounts | 30 Days Refill"
+   is all signal - which country, which cap, which refill - and an ellipsis
+   removes exactly the part that tells one apart from the next. */
+.sel-label{flex:1;min-width:0;text-align:left;line-height:1.35;
+  display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
 .sel-pop{position:absolute;z-index:40;top:calc(100% + 6px);left:0;right:0;
   background:var(--surface);border:1px solid var(--line);border-radius:13px;
   box-shadow:0 10px 18px -8px rgba(23,33,60,.18), 0 26px 50px -20px rgba(23,33,60,.3);
@@ -595,9 +600,17 @@ svg{max-width:100%}
 .sel-search input:focus{border-color:var(--acc);background:var(--surface)}
 .sel-list{list-style:none;margin:0;padding:6px;max-height:240px;overflow-y:auto}
 .sel-opt{padding:9px 11px;border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  line-height:1.4;display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
 .sel-opt:hover{background:var(--hover)}
 .sel-opt.is-on{background:var(--acc-soft);color:var(--acc);font-weight:700}
+/* The id, so a service can be told apart by number as well as by name, and
+   found by typing the number. Monospaced because it is read digit by digit. */
+.sel-badge{flex:none;background:var(--acc-soft);color:var(--acc-ink);border-radius:6px;
+  padding:1px 7px;font-size:11.5px;font-weight:800;line-height:19px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.sel-opt.is-on .sel-badge{background:var(--surface)}
+.sel-list{max-height:300px}
+
 .sel-none{padding:16px;text-align:center;color:var(--muted);font-size:13px;font-weight:600;margin:0}
 /* Inside a table the popup must not be clipped by the scroll wrapper. */
 .tbl-wrap:has(.sel.is-open){overflow:visible}

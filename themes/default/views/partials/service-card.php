@@ -6,7 +6,7 @@
  * the service row when the order is placed, so a tampered data attribute buys
  * nothing.
  *
- * @var array $service  @var array $platform
+ * @var array $service  @var array $platform  @var ?array $category
  */
 $rate    = (float) $service['price_per_1000'];
 $min     = (int) $service['min_qty'];
@@ -20,7 +20,7 @@ $feature = service_feature_lines($service);
          data-min="<?= $min ?>"
          data-max="<?= $max ?>"
          data-name="<?= e($service['name']) ?>"
-         data-label="<?= e($GLOBALS['__package_noun'] ?? $service['name']) ?>"
+         data-label="<?= e(card_label($service, $platform, $category ?? null)) ?>"
          data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
          data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>"
          data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
