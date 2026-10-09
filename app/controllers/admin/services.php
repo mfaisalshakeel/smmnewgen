@@ -252,10 +252,16 @@ if ($where) {
 }
 $sql .= ' ORDER BY p.sort_order, c.sort_order, s.sort_order, s.id';
 
+require_once APP_PATH . '/helpers/margin.php';
+
 view('admin/services', [
     'title'      => 'Services',
     'subtitle'   => 'What customers can buy',
     'services'   => all($sql, $binds),
+    // Worked out here rather than in the view: whether a price covers its
+    // cost is a decision, and decisions do not belong in a template.
+    'thinServices' => services_below_margin(),
+    'thinPackages' => packages_below_margin(),
     'filters'    => $filters,
     'platforms'  => options_from('platforms'),
     'categories' => options_from('categories'),

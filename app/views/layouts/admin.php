@@ -15,6 +15,7 @@ $pending  = (int) col("SELECT COUNT(*) FROM orders WHERE status = 'pending'", []
 // currency, so adding them is meaningless before it is mislabelled.
 $balance  = provider_balance_total();
 $alerts   = notifications_unread();
+$auditAlerts = (int) col("SELECT COUNT(*) FROM audit_log WHERE severity = 'alert'", [], 0);
 
 $nav = [
     ['group' => 'Main'],
@@ -48,6 +49,8 @@ $nav = [
     ['key' => 'update',    'label' => 'Update',          'icon' => 'i-refresh','href' => 'admin/update',
      'dot' => !empty($GLOBALS['__update_available'])],
     ['key' => 'emails',    'label' => 'Email templates', 'icon' => 'i-mail', 'href' => 'admin/emails'],
+    ['key' => 'audit',     'label' => 'Audit log',       'icon' => 'i-history',
+     'href' => 'admin/audit', 'badge' => $auditAlerts ?: null],
     ['key' => 'settings',  'label' => 'Settings',        'icon' => 'i-gear', 'href' => 'admin/settings'],
     ['key' => 'security',  'label' => 'Two-factor',      'icon' => 'i-lock', 'href' => 'admin/security'],
     ['key' => 'password',  'label' => 'Change Password', 'icon' => 'i-key','href' => 'admin/password'],

@@ -11,6 +11,16 @@
  * after - so a dollar moving does not quietly eat the margin.
  */
 
+/**
+ * Where rates come from.
+ *
+ * A parameter rather than a literal inside the function so the checks below
+ * it can be exercised against a feed that misbehaves on purpose - a wrong
+ * base, a refusal, an inverted number. None of those can be provoked from
+ * the real service, and all of them are expensive.
+ */
+const CURRENCY_FEED = 'https://open.er-api.com/v6/latest';
+
 /** Every currency, keyed by code. Read once per request. */
 function currencies(bool $fresh = false): array
 {
@@ -154,10 +164,10 @@ function provider_balance_total(): array
  *
  * @return array{ok: bool, updated: int, message: string}
  */
-function refresh_currency_rates(): array
+function refresh_currency_rates(string $endpoint = CURRENCY_FEED): array
 {
     $base = strtoupper(base_currency()['code']);
-    $url  = 'https://open.er-api.com/v6/latest/' . rawurlencode($base);
+    $url  = rtrim($endpoint, '/') . '/' . rawurlencode($base);
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -185,8 +195,38 @@ function refresh_currency_rates(): array
         return ['ok' => false, 'updated' => 0, 'message' => 'Rate service sent something we could not read.'];
     }
 
-    $now     = date('Y-m-d H:i:s');
-    $updated = 0;
+    // The feed says whether it could answer at all. Without this check an
+    // error body with a rates key would be read as data.
+    if (isset($data['result']) && $data['result'] !== 'success') {
+        return ['ok' => false, 'updated' => 0,
+                'message' => 'The rate service refused: ' . (string) ($data['error-type'] ?? $data['result'])];
+    }
+
+    // And whether it answered in the currency we asked about. open.er-api.com
+    // falls back to USD for a base it does not carry, and the reply looks
+    // exactly like a good one - so taking it on trust would store USD rates
+    // as if they were PKR and reprice the entire catalogue by a factor of
+    // several hundred. This is the single most expensive thing that can go
+    // wrong here, and it is one comparison.
+    $answered = strtoupper((string) ($data['base_code'] ?? $data['base'] ?? ''));
+    if ($answered !== '' && $answered !== $base) {
+        require_once APP_PATH . '/helpers/audit.php';
+        audit('rate.wrong_base', [
+            'severity' => 'alert',
+            'summary'  => 'Asked for ' . $base . ' and was answered in ' . $answered
+                        . ' - nothing was changed.',
+        ]);
+        return ['ok' => false, 'updated' => 0,
+                'message' => 'The rate service answered in ' . $answered . ', not ' . $base
+                           . '. Nothing was changed.'];
+    }
+
+    $now      = date('Y-m-d H:i:s');
+    $updated  = 0;
+    $rejected = [];
+    $factor   = max(1.5, (float) setting('rate_sanity_factor', 5));
+
+    require_once APP_PATH . '/helpers/audit.php';
 
     foreach (currencies(true) as $code => $currency) {
         if ($currency['is_base']) {
@@ -199,24 +239,64 @@ function refresh_currency_rates(): array
         if ($perBase <= 0) {
             continue;
         }
+        $fresh = round(1 / $perBase, 8);
+        $known = (float) $currency['rate_to_base'];
+
+        // A rate that has multiplied or divided by several times overnight is
+        // not a currency moving, it is a bad number - an inversion, a wrong
+        // base, a feed glitch. Real money moves a few percent. Refusing it
+        // keeps yesterday's rate, which is approximately right; taking it
+        // reprices everything, which is precisely wrong.
+        if ($known > 0 && ($fresh > $known * $factor || $fresh < $known / $factor)) {
+            $rejected[] = $code;
+            audit('rate.refused', [
+                'entity' => 'currencies', 'entity_id' => (int) $currency['id'],
+                'severity' => 'alert',
+                'summary' => $code . ' came back as ' . $fresh . ' against a stored '
+                           . $known . ' - more than ' . $factor . "x, so it was ignored.",
+                'before'  => ['rate_to_base' => $known],
+                'after'   => ['rate_to_base' => $fresh],
+            ]);
+            continue;
+        }
 
         update_row('currencies', [
-            'rate_to_base' => round(1 / $perBase, 8),
+            'rate_to_base' => $fresh,
             'updated_at'   => $now,
         ], 'id = ?', [$currency['id']]);
         $updated++;
+
+        if ($known > 0 && abs($fresh - $known) / $known > 0.02) {
+            audit('rate.changed', [
+                'entity' => 'currencies', 'entity_id' => (int) $currency['id'],
+                'summary' => $code . ' ' . $known . ' -> ' . $fresh . ' per ' . $base,
+                'before'  => ['rate_to_base' => $known],
+                'after'   => ['rate_to_base' => $fresh],
+            ]);
+        }
     }
 
     set_setting('currency_rates_updated_at', $now);
     currencies(true);
 
-    return [
-        'ok'      => true,
-        'updated' => $updated,
-        'message' => $updated
-            ? 'Updated ' . $updated . ' rate' . ($updated === 1 ? '' : 's') . ' against ' . $base . '.'
-            : 'The rate service had nothing for the currencies you have added.',
-    ];
+    if ($updated) {
+        $message = 'Updated ' . $updated . ' rate' . ($updated === 1 ? '' : 's')
+                 . ' against ' . $base . '.';
+    } elseif ($rejected) {
+        // Not "nothing for your currencies": there was something, and it was
+        // refused. Saying the wrong one sends the admin looking in Currencies
+        // for a currency that is already there.
+        $message = 'Nothing was changed.';
+    } else {
+        $message = 'The rate service had nothing for the currencies you have added.';
+    }
+
+    if ($rejected) {
+        $message .= ' Ignored a wild jump in ' . implode(', ', $rejected)
+                 . ' - the old rate was kept. Check the audit log.';
+    }
+
+    return ['ok' => true, 'updated' => $updated, 'rejected' => $rejected, 'message' => $message];
 }
 
 /**

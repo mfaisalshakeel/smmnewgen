@@ -7,19 +7,50 @@
 require_once APP_PATH . '/helpers/SmmApi.php';
 require_once APP_PATH . '/helpers/currency.php';
 require_once APP_PATH . '/helpers/notify.php';
+require_once APP_PATH . '/helpers/guard.php';
+require_once APP_PATH . '/helpers/audit.php';
+require_once APP_PATH . '/helpers/margin.php';
 
 /** Unique order code, e.g. GK-8F42KD. */
 function new_order_code(): string
 {
     $prefix = preg_replace('/[^A-Z0-9]/', '', strtoupper(setting('order_prefix', 'GK'))) ?: 'GK';
-    for ($attempt = 0; $attempt < 12; $attempt++) {
-        $code = $prefix . '-' . random_code(6);
-        if (!col('SELECT 1 FROM orders WHERE code = ?', [$code])) {
-            return $code;
+
+    // Not checked against the table first: two requests can both find the
+    // same code free and both go on to use it. `orders.code` is unique, so
+    // the insert is where a collision is really settled - this only picks a
+    // candidate, and insert_order_code() below is what survives losing.
+    return $prefix . '-' . random_code(6);
+}
+
+/**
+ * Insert an order, retrying the code if another request took it first.
+ *
+ * The retry is what makes the code generator safe to race: the loser of a
+ * collision gets a unique-key violation rather than a duplicate row, picks
+ * another code and tries again.
+ *
+ * @return array{0:int, 1:string}  [order id, the code it ended up with]
+ */
+function insert_order_code(array $fields): array
+{
+    for ($attempt = 0; $attempt < 8; $attempt++) {
+        $fields['code'] = new_order_code();
+        try {
+            return [insert_row('orders', $fields), $fields['code']];
+        } catch (PDOException $e) {
+            if (!is_duplicate_key($e)) {
+                throw $e;
+            }
         }
     }
-    // Astronomically unlikely; fall back to something that cannot collide.
-    return $prefix . '-' . strtoupper(bin2hex(random_bytes(5)));
+
+    // Eight collisions in a row is not chance; widen the code rather than
+    // failing the customer's order.
+    $fields['code'] = preg_replace('/-.*$/', '', $fields['code'])
+        . '-' . strtoupper(bin2hex(random_bytes(5)));
+
+    return [insert_row('orders', $fields), $fields['code']];
 }
 
 function order_log(int $orderId, string $message): void
@@ -60,15 +91,46 @@ function map_provider_status(string $providerStatus): string
  */
 function send_order_to_provider(int $orderId): array
 {
+    $now   = date('Y-m-d H:i:s');
+    // A send that started this long ago never finished - the request was cut
+    // off mid-flight. Long enough that a slow provider is not lapped.
+    $stale = date('Y-m-d H:i:s', time() - 600);
+
+    // Claim it before reading it. Checking first and updating afterwards is
+    // what let two requests - the admin pressing Send while cron ran, or one
+    // double-click - both reach $api->add() and both be charged for the same
+    // order. Exactly one caller can match this UPDATE; everyone else is told
+    // to go away.
+    $mine = claim('orders',
+        ['sending_at' => $now],
+        "id = ? AND provider_order_id = '' AND status IN ('paid', 'api_error')
+           AND (sending_at IS NULL OR sending_at < ?)",
+        [$orderId, $stale]
+    );
+
+    if (!$mine) {
+        $order = one('SELECT status, provider_order_id, sending_at FROM orders WHERE id = ?', [$orderId]);
+        if (!$order) {
+            return [false, 'Order not found.'];
+        }
+        if ($order['provider_order_id'] !== '') {
+            return [false, 'This order was already sent to the provider.'];
+        }
+        if (!in_array($order['status'], ['paid', 'api_error'], true)) {
+            return [false, 'Only paid orders can be sent. This one is ' . $order['status'] . '.'];
+        }
+        return [false, 'This order is being sent right now. Give it a moment.'];
+    }
+
+    // From here on the order is ours, and every path out has to let go of it.
+    $release = static function (int $id): void {
+        q('UPDATE orders SET sending_at = NULL WHERE id = ?', [$id]);
+    };
+
     $order = one('SELECT * FROM orders WHERE id = ?', [$orderId]);
     if (!$order) {
+        $release($orderId);
         return [false, 'Order not found.'];
-    }
-    if ($order['provider_order_id'] !== '') {
-        return [false, 'This order was already sent to the provider.'];
-    }
-    if (!in_array($order['status'], ['paid', 'api_error'], true)) {
-        return [false, 'Only paid orders can be sent. This one is ' . $order['status'] . '.'];
     }
 
     $service = $order['service_id']
@@ -80,19 +142,71 @@ function send_order_to_provider(int $orderId): array
         update_row('orders', [
             'status'     => 'processing',
             'api_error'  => '',
+            'sending_at' => null,
             'updated_at' => date('Y-m-d H:i:s'),
         ], 'id = ?', [$orderId]);
         order_log($orderId, 'Marked processing (manual service, no provider).');
+        audit('order.manual', ['entity' => 'orders', 'entity_id' => $orderId,
+            'summary' => $order['code'] . ' has no provider - left for manual delivery.']);
         return [true, 'Manual service - marked as processing for manual delivery.'];
     }
 
     $provider = one('SELECT * FROM providers WHERE id = ?', [$service['provider_id']]);
     if (!$provider) {
+        $release($orderId);
         return [false, 'The provider for this service no longer exists.'];
     }
 
-    $api    = new SmmApi($provider['api_url'], $provider['api_key']);
-    $result = $api->add($service['provider_service_id'], $order['link'], (int) $order['quantity']);
+    // What it costs now, not what it cost when the order was placed. Between
+    // those two moments a provider can raise its rate, and buying anyway is
+    // paying more for the order than the customer paid us.
+    $costNow = round(((float) $service['cost_per_1000'] / 1000) * (int) $order['quantity'], 2);
+    $check   = margin_allows((float) $order['price'], $costNow, [
+        'service'    => $order['service_label'] ?: $order['service_name'],
+        'service_id' => (int) $service['id'],
+    ]);
+
+    if (!$check['ok']) {
+        $message = 'Held back: this order now ' . $check['reason']
+            . '. Reprice the service, then send it by hand.';
+
+        update_row('orders', [
+            'status'      => 'api_error',
+            'api_error'   => mb_substr($message, 0, 500),
+            'provider_id' => (int) $provider['id'],
+            'cost'        => $costNow,
+            'sending_at'  => null,
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$orderId]);
+
+        order_log($orderId, $message);
+        audit('order.held_margin', [
+            'entity' => 'orders', 'entity_id' => $orderId, 'severity' => 'alert',
+            'summary' => $order['code'] . ' ' . $check['reason'],
+            'after'   => ['price' => $order['price'], 'cost' => $costNow],
+        ]);
+
+        return [false, $message];
+    }
+
+    $api = new SmmApi($provider['api_url'], $provider['api_key']);
+
+    // SmmApi reports its troubles rather than throwing, so this only catches
+    // the unexpected - but an order left claimed by a fatal would sit unsent
+    // until the ten-minute stale window let it go, and that is ten minutes of
+    // a customer waiting for nothing.
+    try {
+        $result = $api->add($service['provider_service_id'], $order['link'], (int) $order['quantity']);
+    } catch (Throwable $e) {
+        $release($orderId);
+        $message = 'The provider call failed: ' . $e->getMessage();
+        order_log($orderId, $message);
+        audit('order.send_failed', [
+            'entity' => 'orders', 'entity_id' => $orderId, 'severity' => 'warn',
+            'summary' => $order['code'] . ' - ' . $message,
+        ]);
+        return [false, $message];
+    }
 
     $failure = $result['error'] ?? null;
     $newId   = $result['order'] ?? null;
@@ -106,10 +220,15 @@ function send_order_to_provider(int $orderId): array
             'status'      => 'api_error',
             'api_error'   => mb_substr($message, 0, 500),
             'provider_id' => (int) $provider['id'],
+            'sending_at'  => null,
             'updated_at'  => date('Y-m-d H:i:s'),
         ], 'id = ?', [$orderId]);
         order_log($orderId, 'Provider rejected the order: ' . $message);
         log_line('Order ' . $order['code'] . ' api_error: ' . $message);
+        audit('order.api_error', [
+            'entity' => 'orders', 'entity_id' => $orderId, 'severity' => 'warn',
+            'summary' => $order['code'] . ' refused by ' . $provider['name'] . ': ' . $message,
+        ]);
 
         notify('admin_api_error', [
             'order_code' => $order['code'],
@@ -127,12 +246,19 @@ function send_order_to_provider(int $orderId): array
         'status'            => 'processing',
         'provider_id'       => (int) $provider['id'],
         'provider_order_id' => (string) $newId,
-        'cost'              => round(((float) $service['cost_per_1000'] / 1000) * (int) $order['quantity'], 2),
+        'cost'              => $costNow,
         'api_error'         => '',
+        'sending_at'        => null,
         'updated_at'        => date('Y-m-d H:i:s'),
     ], 'id = ?', [$orderId]);
 
     order_log($orderId, 'Sent to ' . $provider['name'] . ' - provider order ' . $newId . '.');
+    audit('order.sent', [
+        'entity' => 'orders', 'entity_id' => $orderId,
+        'summary' => $order['code'] . ' -> ' . $provider['name'] . ' as ' . $newId
+                   . ', cost ' . money($costNow) . ', price ' . money((float) $order['price']),
+        'after'   => ['provider_order_id' => (string) $newId, 'cost' => $costNow],
+    ]);
 
     return [true, 'Sent to ' . $provider['name'] . ' (provider order ' . $newId . ').'];
 }

@@ -13,6 +13,8 @@
 require_once APP_PATH . '/helpers/orders.php';
 require_once APP_PATH . '/helpers/sync.php';
 require_once APP_PATH . '/helpers/currency.php';
+require_once APP_PATH . '/helpers/guard.php';
+require_once APP_PATH . '/helpers/audit.php';
 
 /**
  * The jobs, in the order a full run does them.
@@ -64,7 +66,9 @@ function cron_tasks(): array
         ],
         'housekeeping' => [
             'label'    => 'Housekeeping',
-            'detail'   => 'Clears expired throttle rows and old cron history.',
+            'detail'   => 'Clears expired throttle rows, old cron history, abandoned '
+                        . 'locks and routine audit entries past their keep-days. '
+                        . 'Warnings and alerts in the audit log are never pruned.',
             'every'    => 'Daily',
             'handler'  => 'cron_housekeeping',
             'throttle' => 43200,
@@ -132,7 +136,14 @@ function cron_housekeeping(): string
     $runs = q('DELETE FROM cron_runs WHERE created_at < ?',
         [date('Y-m-d H:i:s', time() - 30 * 86400)])->rowCount();
 
-    return sprintf('%d throttle rows, %d old cron runs cleared', $limits, $runs);
+    // A lock whose holder died is already ignored once it expires; this only
+    // stops the table growing. Audit pruning keeps warnings and alerts.
+    require_once APP_PATH . '/helpers/audit.php';
+    $locks = locks_prune();
+    $audit = audit_prune();
+
+    return sprintf('%d throttle rows, %d old cron runs, %d stale lock(s), %d audit entries cleared',
+        $limits, $runs, $locks, $audit);
 }
 
 // ===========================================================================
@@ -206,19 +217,31 @@ function cron_run_task(string $key, string $source = 'cron', bool $force = false
  */
 function run_cron_tasks(?string $only = null, string $source = 'cron'): string
 {
-    $lines = ['[' . date('c') . '] cron start' . ($only ? ' (' . $only . ' only)' : '')];
-    $keys  = $only !== null ? [$only] : array_keys(cron_tasks());
+    // One run at a time. A five-minute schedule and a run that takes six
+    // minutes overlap, and both would pick up the same 'paid, not yet sent'
+    // orders and both buy them. The URL endpoint makes it likelier still:
+    // anyone who knows the key can fire it while the CLI job is mid-flight.
+    $output = with_lock('cron:' . ($only ?? 'all'), static function () use ($only, $source) {
+        $lines = ['[' . date('c') . '] cron start' . ($only ? ' (' . $only . ' only)' : '')];
+        $keys  = $only !== null ? [$only] : array_keys(cron_tasks());
 
-    foreach ($keys as $key) {
-        $result = cron_run_task($key, $source, $only !== null);
-        $lines[] = sprintf('  %-16s %s%s',
-            $key,
-            $result['skipped'] ? '- ' : ($result['ok'] ? 'ok ' : 'FAILED '),
-            $result['summary']
-        );
+        foreach ($keys as $key) {
+            $result = cron_run_task($key, $source, $only !== null);
+            $lines[] = sprintf('  %-16s %s%s',
+                $key,
+                $result['skipped'] ? '- ' : ($result['ok'] ? 'ok ' : 'FAILED '),
+                $result['summary']
+            );
+        }
+
+        $lines[] = '[' . date('c') . '] cron done';
+        return implode(PHP_EOL, $lines) . PHP_EOL;
+    }, 1800);
+
+    if ($output === null) {
+        // Not an error: the work is being done, just not by us.
+        return '[' . date('c') . '] cron skipped - another run is still going.' . PHP_EOL;
     }
 
-    $lines[] = '[' . date('c') . '] cron done';
-
-    return implode(PHP_EOL, $lines) . PHP_EOL;
+    return $output;
 }

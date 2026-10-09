@@ -2,6 +2,8 @@
 /** Orders: the list, one order's detail, and every action an admin can take. */
 require_once APP_PATH . '/helpers/orders.php';
 require_once APP_PATH . '/helpers/crud.php';   // options_from()
+require_once APP_PATH . '/helpers/guard.php';
+require_once APP_PATH . '/helpers/audit.php';
 
 $action = $params[0] ?? 'index';
 
@@ -18,13 +20,24 @@ if ($action === 'action' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     switch ($what) {
         case 'mark_paid':
-            update_row('orders', [
+            // Conditional on the status it is moving away from, so two admins
+            // on the same order cannot both mark it paid and both set off a
+            // send. The loser is told, not silently ignored.
+            $tookIt = claim('orders', [
                 'status'      => 'paid',
                 'paid_at'     => $order['paid_at'] ?: date('Y-m-d H:i:s'),
                 'paid_amount' => $order['paid_amount'] ?? $order['price'],
                 'updated_at'  => date('Y-m-d H:i:s'),
-            ], 'id = ?', [$id]);
+            ], "id = ? AND status <> 'paid'", [$id]);
+
+            if (!$tookIt) {
+                flash('error', 'That order is already paid - somebody got there first.');
+                redirect('admin/orders/view/' . $id);
+            }
+
             order_log($id, 'Payment confirmed by admin.');
+            audit_row('order.paid', 'orders', $id, $order,
+                ['summary' => $order['code'] . ' marked paid by hand', 'severity' => 'warn']);
             flash('success', 'Marked as paid.');
 
             if (($order['email'] ?? '') !== '') {

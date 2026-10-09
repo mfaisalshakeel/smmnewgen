@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
   "link" TEXT NOT NULL,
   "whatsapp" TEXT NOT NULL DEFAULT '',
   "email" TEXT NOT NULL DEFAULT '',
+  "sending_at" TEXT,
   "price" REAL NOT NULL DEFAULT 0,
   "cost" REAL NOT NULL DEFAULT 0,
   "status" TEXT NOT NULL DEFAULT 'pending'
@@ -260,6 +261,36 @@ CREATE TABLE IF NOT EXISTS "email_log" (
   "created_at" TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS "ix_email_log_time" ON "email_log" ("created_at");
+
+-- ---------------------------------------------------------------------------
+-- Locks, and the record of who changed what.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "locks" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL UNIQUE,
+  "owner" TEXT NOT NULL DEFAULT '',
+  "acquired_at" TEXT NOT NULL,
+  "expires_at" TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "audit_log" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "action" TEXT NOT NULL,
+  "actor_type" TEXT NOT NULL DEFAULT 'system',
+  "actor_id" INTEGER NOT NULL DEFAULT 0,
+  "actor_name" TEXT NOT NULL DEFAULT '',
+  "entity" TEXT NOT NULL DEFAULT '',
+  "entity_id" INTEGER NOT NULL DEFAULT 0,
+  "summary" TEXT NOT NULL DEFAULT '',
+  "severity" TEXT NOT NULL DEFAULT 'info',
+  "before_json" TEXT NOT NULL DEFAULT '',
+  "after_json" TEXT NOT NULL DEFAULT '',
+  "ip" TEXT NOT NULL DEFAULT '',
+  "created_at" TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "ix_audit_time" ON "audit_log" ("created_at");
+CREATE INDEX IF NOT EXISTS "ix_audit_entity" ON "audit_log" ("entity", "entity_id");
+CREATE INDEX IF NOT EXISTS "ix_audit_severity" ON "audit_log" ("severity", "created_at");
 
 INSERT OR IGNORE INTO "settings" ("k", "v") VALUES
   ('site_name',            'GrowKit'),

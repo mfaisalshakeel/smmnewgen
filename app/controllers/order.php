@@ -12,6 +12,9 @@
 require_once APP_PATH . '/helpers/orders.php';
 require_once APP_PATH . '/helpers/payments.php';
 require_once APP_PATH . '/helpers/notify.php';
+require_once APP_PATH . '/helpers/guard.php';
+require_once APP_PATH . '/helpers/audit.php';
+require_once APP_PATH . '/helpers/margin.php';
 
 $code = $params[0] ?? null;
 
@@ -141,6 +144,12 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             . 'would rather not give one.', 'email');
     }
 
+    // What the customer was shown, which is not what the provider calls it.
+    // Stored rather than worked out later, so the order still reads the same
+    // after the service is renamed or deleted.
+    $label = trim((string) ($service['platform_name'] ?? '') . ' '
+        . (string) col('SELECT name FROM categories WHERE id = ?', [$service['category_id']], ''));
+
     // The one number that matters, worked out here and nowhere else.
     $price = $package !== null
         ? round((float) $package['price'], 2)
@@ -149,15 +158,22 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Cost is always the rate: we buy the delivered quantity either way.
     $cost = round(((float) $service['cost_per_1000'] / 1000) * $quantity, 2);
 
-    // What the customer was shown, which is not what the provider calls it.
-    // Stored rather than worked out later, so the order still reads the same
-    // after the service is renamed or deleted.
-    $label = trim((string) ($service['platform_name'] ?? '') . ' '
-        . (string) col('SELECT name FROM categories WHERE id = ?', [$service['category_id']], ''));
+    // Before the order exists, not after. A package carries a price an admin
+    // typed once and no sync ever revisits, so a provider raising its rate
+    // means every package sells below cost until somebody notices - this is
+    // where it gets noticed.
+    $margin = margin_allows($price, $cost, [
+        'service'    => $label !== '' ? $label : $service['name'],
+        'service_id' => (int) $service['id'],
+    ]);
+    if (!$margin['ok']) {
+        // The customer is not told the shop's cost. They are told the truth:
+        // this one cannot be sold right now.
+        $fail('That package is not available at the moment. Please pick another '
+            . 'size, or try again shortly.');
+    }
 
-    $orderCode = new_order_code();
-    $orderId   = insert_row('orders', [
-        'code'         => $orderCode,
+    [$orderId, $orderCode] = insert_order_code([
         'service_id'   => (int) $service['id'],
         'platform_id'  => $service['platform_id'],
         'service_name' => $service['name'],
@@ -174,6 +190,14 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
 
     order_log($orderId, 'Order placed by the customer.');
+    audit('order.placed', [
+        'entity' => 'orders', 'entity_id' => $orderId,
+        'summary' => $orderCode . ': ' . qty_fmt($quantity) . ' x '
+                   . ($label !== '' ? $label : $service['name'])
+                   . ' at ' . money($price) . ', cost ' . money($cost)
+                   . ' (' . $margin['margin']['percent'] . '%)',
+        'after'  => ['price' => $price, 'cost' => $cost, 'quantity' => $quantity],
+    ]);
 
     $tokens = [
         'order_code' => $orderCode,
@@ -294,10 +318,26 @@ if (($params[1] ?? '') === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $fields['paid_at'] = date('Y-m-d H:i:s');
     }
 
-    update_row('orders', $fields, 'id = ?', [$order['id']]);
+    // Only while it is still waiting. A customer who submits the form twice -
+    // or leaves it open and comes back after an admin has confirmed - must not
+    // reopen a paid order or overwrite the reference that was accepted.
+    $recorded = claim('orders', $fields,
+        "id = ? AND status IN ('pending', 'api_error')", [$order['id']]);
+
+    if (!$recorded) {
+        flash('success', 'We already have your payment for this order.');
+        redirect('order/' . $order['code']);
+    }
 
     order_log((int) $order['id'], 'Customer submitted payment via ' . $method['name']
         . ($reference !== '' ? ' - reference ' . $reference : '') . '.');
+    audit('order.payment_submitted', [
+        'entity' => 'orders', 'entity_id' => (int) $order['id'], 'severity' => 'warn',
+        'summary' => $order['code'] . ': ' . money($amount > 0 ? $amount : (float) $order['price'])
+                   . ' via ' . $method['name']
+                   . ($reference !== '' ? ', reference ' . $reference : ''),
+        'after'   => ['status' => $fields['status'] ?? $order['status'], 'trx_id' => $reference],
+    ]);
 
     notify('admin_payment_submitted', [
         'order_code' => $order['code'],

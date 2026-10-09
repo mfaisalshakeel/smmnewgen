@@ -335,4 +335,81 @@ return [
         'mysql' => ["ALTER TABLE `orders` ADD COLUMN `email` VARCHAR(190) NOT NULL DEFAULT ''"],
         'sqlite' => ['ALTER TABLE "orders" ADD COLUMN "email" TEXT NOT NULL DEFAULT \'\''],
     ],
+
+    // -----------------------------------------------------------------------
+    '2026_10_guards' => [
+        'label' => 'Locks and the audit log',
+        'mysql' => [
+            "CREATE TABLE IF NOT EXISTS `locks` (
+               `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `name` VARCHAR(80) NOT NULL,
+               `owner` VARCHAR(80) NOT NULL DEFAULT '',
+               `acquired_at` DATETIME NOT NULL,
+               `expires_at` DATETIME NOT NULL,
+               PRIMARY KEY (`id`),
+               UNIQUE KEY `uq_locks_name` (`name`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            "CREATE TABLE IF NOT EXISTS `audit_log` (
+               `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+               `action` VARCHAR(60) NOT NULL,
+               `actor_type` VARCHAR(12) NOT NULL DEFAULT 'system',
+               `actor_id` INT UNSIGNED NOT NULL DEFAULT 0,
+               `actor_name` VARCHAR(80) NOT NULL DEFAULT '',
+               `entity` VARCHAR(40) NOT NULL DEFAULT '',
+               `entity_id` INT UNSIGNED NOT NULL DEFAULT 0,
+               `summary` VARCHAR(300) NOT NULL DEFAULT '',
+               `severity` VARCHAR(8) NOT NULL DEFAULT 'info',
+               `before_json` TEXT NULL,
+               `after_json` TEXT NULL,
+               `ip` VARCHAR(45) NOT NULL DEFAULT '',
+               `created_at` DATETIME NOT NULL,
+               PRIMARY KEY (`id`),
+               KEY `ix_audit_time` (`created_at`),
+               KEY `ix_audit_entity` (`entity`, `entity_id`),
+               KEY `ix_audit_severity` (`severity`, `created_at`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+            "ALTER TABLE `orders` ADD COLUMN `sending_at` DATETIME NULL",
+        ],
+        'sqlite' => [
+            'CREATE TABLE IF NOT EXISTS "locks" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "name" TEXT NOT NULL UNIQUE,
+               "owner" TEXT NOT NULL DEFAULT \'\',
+               "acquired_at" TEXT NOT NULL,
+               "expires_at" TEXT NOT NULL
+             )',
+            'CREATE TABLE IF NOT EXISTS "audit_log" (
+               "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+               "action" TEXT NOT NULL,
+               "actor_type" TEXT NOT NULL DEFAULT \'system\',
+               "actor_id" INTEGER NOT NULL DEFAULT 0,
+               "actor_name" TEXT NOT NULL DEFAULT \'\',
+               "entity" TEXT NOT NULL DEFAULT \'\',
+               "entity_id" INTEGER NOT NULL DEFAULT 0,
+               "summary" TEXT NOT NULL DEFAULT \'\',
+               "severity" TEXT NOT NULL DEFAULT \'info\',
+               "before_json" TEXT NOT NULL DEFAULT \'\',
+               "after_json" TEXT NOT NULL DEFAULT \'\',
+               "ip" TEXT NOT NULL DEFAULT \'\',
+               "created_at" TEXT NOT NULL
+             )',
+            'CREATE INDEX IF NOT EXISTS "ix_audit_time" ON "audit_log" ("created_at")',
+            'CREATE INDEX IF NOT EXISTS "ix_audit_entity" ON "audit_log" ("entity", "entity_id")',
+            'CREATE INDEX IF NOT EXISTS "ix_audit_severity" ON "audit_log" ("severity", "created_at")',
+            'ALTER TABLE "orders" ADD COLUMN "sending_at" TEXT',
+        ],
+    ],
+
+    // -----------------------------------------------------------------------
+    // 'loss' rather than 'off': the panel was taking these orders already, and
+    // the default that costs money should be the one you opt into.
+    '2026_10_margin_guard' => [
+        'label' => 'Loss protection',
+        'both'  => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('margin_guard', 'loss')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('min_margin_percent', '0')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('audit_keep_days', '180')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('rate_sanity_factor', '5')",
+        ],
+    ],
 ];

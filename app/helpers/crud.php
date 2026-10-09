@@ -17,6 +17,8 @@
  *   save      callable(mixed $value, array $input): mixed  - transform before storing
  *   skip_empty bool - leave the stored value alone when submitted empty (passwords)
  */
+require_once APP_PATH . '/helpers/audit.php';
+
 
 function crud_handle(array $spec, array $params): void
 {
@@ -204,17 +206,28 @@ function crud_save(array $spec): void
         $data = $spec['before_save']($data, $id, $_POST);
     }
 
+    // Hooked once here rather than in each screen: providers, platforms,
+    // categories, payment methods, pages and FAQs all save through this, and
+    // an API key or a payment account changing is exactly what the record is
+    // for. audit_mask() keeps the secrets out of it.
     if ($id > 0) {
         if (!empty($spec['timestamps'])) {
             $data['updated_at'] = date('Y-m-d H:i:s');
         }
+        $before = one('SELECT * FROM `' . $spec['table'] . '` WHERE id = ?', [$id]);
         update_row($spec['table'], $data, 'id = ?', [$id]);
+        audit_row($spec['table'] . '.updated', $spec['table'], $id, $before,
+            ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' updated',
+             'severity' => 'warn']);
         flash('success', ($spec['single'] ?? 'Record') . ' updated.');
     } else {
         if (!empty($spec['timestamps'])) {
             $data['created_at'] = date('Y-m-d H:i:s');
         }
         $id = insert_row($spec['table'], $data);
+        audit_row($spec['table'] . '.created', $spec['table'], $id, [],
+            ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' created',
+             'severity' => 'warn']);
         flash('success', ($spec['single'] ?? 'Record') . ' created.');
     }
 
@@ -239,7 +252,17 @@ function crud_delete(array $spec, int $id): void
         }
     }
 
+    // Read it first: once it is gone there is nothing left to say what it was,
+    // and "who deleted that provider" is the question people actually ask.
+    $before = one('SELECT * FROM `' . $spec['table'] . '` WHERE id = ?', [$id]);
     delete_row($spec['table'], 'id = ?', [$id]);
+    audit($spec['table'] . '.deleted', [
+        'entity' => $spec['table'], 'entity_id' => $id, 'severity' => 'alert',
+        'summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' deleted'
+                   . (isset($before['name']) ? ' (' . $before['name'] . ')' : ''),
+        'before'  => $before ?: [],
+        'after'   => [],
+    ]);
     flash('success', ($spec['single'] ?? 'Record') . ' deleted.');
     redirect($spec['base']);
 }
@@ -249,6 +272,14 @@ function crud_toggle(array $spec, int $id): void
     $column = $spec['toggle'] ?? 'is_active';
     if ($id > 0) {
         q("UPDATE `{$spec['table']}` SET `$column` = 1 - `$column` WHERE id = ?", [$id]);
+        $now = col("SELECT `$column` FROM `{$spec['table']}` WHERE id = ?", [$id], 0);
+        audit($spec['table'] . '.toggled', [
+            'entity' => $spec['table'], 'entity_id' => $id, 'severity' => 'warn',
+            'summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' switched '
+                       . ($now ? 'on' : 'off'),
+            'before'  => [$column => $now ? 0 : 1],
+            'after'   => [$column => $now ? 1 : 0],
+        ]);
     }
     redirect($spec['base']);
 }

@@ -11,6 +11,7 @@
  */
 require_once APP_PATH . '/helpers/totp.php';
 require_once APP_PATH . '/helpers/notify.php';
+require_once APP_PATH . '/helpers/audit.php';
 
 if (is_admin()) {
     redirect('admin');
@@ -43,6 +44,11 @@ $signIn = static function (array $admin, string $password = ''): void {
     }
     update_row('admins', ['last_login_at' => date('Y-m-d H:i:s')], 'id = ?', [$admin['id']]);
     log_line('Admin login: ' . $admin['username'] . ' from ' . client_ip());
+    audit('admin.signed_in', [
+        'entity' => 'admins', 'entity_id' => (int) $admin['id'],
+        'summary' => $admin['username'] . ' signed in'
+                   . ($admin['two_factor'] !== 'off' ? ' with two-factor' : ''),
+    ]);
 
     $after = $_SESSION['_after_login'] ?? 'admin';
     unset($_SESSION['_after_login']);
@@ -113,6 +119,10 @@ if ($pending && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['code'])) 
 
         rate_limit_hit('admin_2fa');
         $error = 'That code did not match.';
+        audit('admin.second_step_failed', [
+            'entity' => 'admins', 'entity_id' => (int) $admin['id'], 'severity' => 'alert',
+            'summary' => 'Password was right but the code was wrong for ' . $admin['username'],
+        ]);
         log_line('Failed two-factor for "' . $admin['username'] . '" from ' . client_ip());
     }
 }
@@ -180,6 +190,10 @@ if (!$pending && $_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['code'])
         rate_limit_hit('admin_login');
         $error = 'Those details did not match an account.';
         log_line('Failed admin login for "' . $username . '" from ' . client_ip());
+        audit('admin.sign_in_failed', [
+            'severity' => 'warn',
+            'summary'  => 'Wrong details for "' . mb_substr($username, 0, 60) . '"',
+        ]);
     }
 }
 

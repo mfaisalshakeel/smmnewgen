@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `link` VARCHAR(500) NOT NULL,
   `whatsapp` VARCHAR(40) NOT NULL DEFAULT '',
   `email` VARCHAR(190) NOT NULL DEFAULT '',
+  `sending_at` DATETIME NULL,
   `price` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `cost` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `status` ENUM('pending','paid','processing','completed','partial','cancelled','refunded','api_error')
@@ -299,6 +300,39 @@ CREATE TABLE IF NOT EXISTS `email_log` (
   `created_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
   KEY `ix_email_log_time` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- Locks, and the record of who changed what.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `locks` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(80) NOT NULL,
+  `owner` VARCHAR(80) NOT NULL DEFAULT '',
+  `acquired_at` DATETIME NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_locks_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `audit_log` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `action` VARCHAR(60) NOT NULL,
+  `actor_type` VARCHAR(12) NOT NULL DEFAULT 'system',
+  `actor_id` INT UNSIGNED NOT NULL DEFAULT 0,
+  `actor_name` VARCHAR(80) NOT NULL DEFAULT '',
+  `entity` VARCHAR(40) NOT NULL DEFAULT '',
+  `entity_id` INT UNSIGNED NOT NULL DEFAULT 0,
+  `summary` VARCHAR(300) NOT NULL DEFAULT '',
+  `severity` VARCHAR(8) NOT NULL DEFAULT 'info',
+  `before_json` TEXT NULL,
+  `after_json` TEXT NULL,
+  `ip` VARCHAR(45) NOT NULL DEFAULT '',
+  `created_at` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ix_audit_time` (`created_at`),
+  KEY `ix_audit_entity` (`entity`, `entity_id`),
+  KEY `ix_audit_severity` (`severity`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `settings` (`k`, `v`) VALUES

@@ -44,6 +44,27 @@ $GROUPS = [
         'default_markup'        => ['label' => 'Default markup %', 'type' => 'number',
                                     'hint' => 'Pre-filled on the import screen.'],
     ],
+    'Protection' => [
+        'margin_guard' => ['label' => 'When a sale would not cover its cost', 'type' => 'select',
+            'options' => [
+                'loss'  => 'Refuse the order (recommended)',
+                'floor' => 'Refuse anything under the floor below',
+                'off'   => 'Take it anyway',
+            ],
+            'hint' => 'A package carries a price you typed once and no sync ever changes it, '
+                    . 'so a provider raising its rate means every package sells below cost '
+                    . 'until somebody notices. This is what notices.'],
+        'min_margin_percent' => ['label' => 'Minimum margin %', 'type' => 'number',
+            'hint' => 'Margin on the sale price. Only enforced on the middle option above, '
+                    . 'but a sale under it is flagged whatever this is set to.'],
+        'rate_sanity_factor' => ['label' => 'Reject an exchange rate that moves more than', 'type' => 'number',
+            'hint' => 'Times its stored value, in one update. Real currencies move a few '
+                    . 'percent; anything near this is a bad number, and taking it would '
+                    . 'reprice the whole catalogue. 5 is sensible.'],
+        'audit_keep_days' => ['label' => 'Keep the audit log for (days)', 'type' => 'number',
+            'hint' => 'Ordinary entries are pruned after this. Warnings and alerts are kept. '
+                    . 'Zero keeps everything.'],
+    ],
     'Mail' => [
         'mail_driver' => ['label' => 'How mail is sent', 'type' => 'select',
             'options' => [
@@ -92,6 +113,12 @@ if (($params[0] ?? '') === 'migrate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_once APP_PATH . '/helpers/audit.php';
+    // Read before, so the record says what it used to be and not only what it
+    // is now. A setting that quietly changed is the hardest kind to track
+    // down, because nothing else in the system looks wrong.
+    $settingsBefore = settings_all();
+
     foreach ($GROUPS as $fields) {
         foreach ($fields as $key => $field) {
             if (($field['type'] ?? 'text') === 'checkbox') {
@@ -123,6 +150,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_setting($settingKey, '');
         }
     }
+
+    audit('setting.changed', [
+        'entity'   => 'settings',
+        'summary'  => 'Settings saved from the admin panel.',
+        'severity' => 'warn',
+        'before'   => $settingsBefore,
+        'after'    => settings_all(true),
+    ]);
 
     flash('success', 'Settings saved.');
     redirect('admin/settings');

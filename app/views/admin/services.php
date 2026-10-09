@@ -13,6 +13,41 @@ $catalogue = catalogue_explainer();
     'links' => ['Settings' => 'admin/settings'] + ($catalogue['mode'] === 'single'
         ? ['Service mapping' => 'admin/mapping'] : []) + ['Packages' => 'admin/packages'],
 ]); ?>
+
+<?php if ($thinServices || $thinPackages): ?>
+  <div class="alert alert-error">
+    <b>Some of these do not cover what they cost.</b>
+    <?php if ($thinServices): ?>
+      <p><?= qty_fmt(count($thinServices)) ?> service<?= count($thinServices) === 1 ? '' : 's' ?>:
+        <?php foreach (array_slice($thinServices, 0, 4) as $thin): ?>
+          <span class="thin-chip"><?= e(excerpt($thin['name'], 34)) ?>
+            <b><?= e($thin['margin']['percent']) ?>%</b></span>
+        <?php endforeach; ?>
+        <?php if (count($thinServices) > 4): ?>
+          <span class="muted">and <?= count($thinServices) - 4 ?> more</span>
+        <?php endif; ?>
+      </p>
+    <?php endif; ?>
+    <?php if ($thinPackages): ?>
+      <p><?= qty_fmt(count($thinPackages)) ?> package<?= count($thinPackages) === 1 ? '' : 's' ?>
+        priced under cost -
+        <?php foreach (array_slice($thinPackages, 0, 3) as $thin): ?>
+          <span class="thin-chip"><?= e(excerpt($thin['service_name'], 24)) ?>
+            <?= qty_fmt((int) $thin['delivered']) ?> for <?= e(money((float) $thin['price'])) ?>,
+            costs <?= e(money((float) $thin['cost'])) ?></span>
+        <?php endforeach; ?>
+        <a href="<?= e(url('admin/packages')) ?>">Packages</a>.
+      </p>
+    <?php endif; ?>
+    <p class="muted">
+      A provider has almost certainly raised its rate. Run
+      <a href="<?= e(url('admin/cron')) ?>">Sync services and prices</a> to pull the new
+      ones in, then check anything with a price you typed by hand.
+      Orders on these are being refused while <b>Loss protection</b> is on.
+    </p>
+  </div>
+<?php endif; ?>
+
 <form class="filters" method="get" action="<?= e(url('admin/services')) ?>">
   <div class="search wide">
     <svg class="icon"><use href="#i-search"></use></svg>

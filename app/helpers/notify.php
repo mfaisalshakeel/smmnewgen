@@ -69,6 +69,13 @@ function notification_events(): array
                       . 'Notifications screen.',
             'tokens' => ['provider', 'balance', 'threshold', 'admin_url', 'site_name'],
         ],
+        'admin_margin' => [
+            'label'  => 'Order refused to protect margin',
+            'to'     => 'admin',
+            'when'   => 'A sale would have been at or under your floor, so it was '
+                      . 'turned away. Means the catalogue is stale.',
+            'tokens' => ['service', 'price', 'cost', 'percent', 'admin_url', 'site_name'],
+        ],
         'admin_new_message' => [
             'label'  => 'Contact form message',
             'to'     => 'admin',
@@ -329,6 +336,15 @@ function email_template_defaults(): array
             'body'    => "<p>{provider} is down to {balance}, below the {threshold} you set.</p>\n"
                 . "<p>Orders to this provider will start failing once it runs out.</p>\n"
                 . '<p><a href="{admin_url}">Providers</a></p>',
+        ],
+        'admin_margin' => [
+            'subject' => 'Turned away a sale on {service}',
+            'body'    => "<p><b>{service}</b> would have sold for {price} and cost us "
+                . "{cost} - a margin of {percent}%.</p>\n"
+                . "<p>The order was refused rather than taken at a loss. The provider "
+                . "has almost certainly raised its rate, so the rest of its services "
+                . "are probably stale too.</p>\n"
+                . '<p><a href="{admin_url}">Reprice it</a></p>',
         ],
         'admin_new_message' => [
             'subject' => 'Message from {name}',
