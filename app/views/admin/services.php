@@ -120,10 +120,10 @@ $catalogue = catalogue_explainer();
           <tr>
             <th><input type="checkbox" id="checkAll"></th>
             <th>Service</th>
-            <th class="hide-sm">Provider</th>
-            <th class="hide-sm">Cost</th>
+            <th>Provider</th>
+            <th>Cost</th>
             <th>Price</th>
-            <th class="hide-sm">Min / Max</th>
+            <th>Min / Max</th>
             <th>State</th>
             <th></th>
           </tr>
@@ -137,8 +137,8 @@ $catalogue = catalogue_explainer();
           </td></tr>
         <?php else: foreach ($services as $service): ?>
           <tr>
-            <td><input type="checkbox" class="rowchk" name="ids[]" value="<?= (int) $service['id'] ?>"></td>
-            <td>
+            <td class="selcell"><input type="checkbox" class="rowchk" name="ids[]" value="<?= (int) $service['id'] ?>"></td>
+            <td data-label="Service">
               <b><?= e($service['name']) ?></b>
               <?php if ($service['is_featured']): ?>
                 <span class="chipx">popular</span>
@@ -148,7 +148,7 @@ $catalogue = catalogue_explainer();
                 <?= e($service['category_name'] ?? 'no category') ?>
               </small>
             </td>
-            <td class="hide-sm">
+            <td data-label="Provider">
               <?php if ($service['provider_name']): ?>
                 <?= e($service['provider_name']) ?>
                 <small class="sub mono">#<?= e($service['provider_service_id']) ?></small>
@@ -156,8 +156,8 @@ $catalogue = catalogue_explainer();
                 <span class="muted">manual</span>
               <?php endif; ?>
             </td>
-            <td class="hide-sm"><?= e(money($service['cost_per_1000'])) ?></td>
-            <td>
+            <td data-label="Cost"><?= e(money($service['cost_per_1000'])) ?></td>
+            <td data-label="Price">
               <b><?= e(money($service['price_per_1000'])) ?></b>
               <?php
               $cost = (float) $service['cost_per_1000'];
@@ -167,8 +167,8 @@ $catalogue = catalogue_explainer();
                 <small class="sub"><?= $margin >= 0 ? '+' : '' ?><?= (int) $margin ?>%</small>
               <?php endif; ?>
             </td>
-            <td class="hide-sm mono"><?= qty_fmt($service['min_qty']) ?> / <?= qty_fmt($service['max_qty']) ?></td>
-            <td><span class="st st-<?= $service['is_active'] ? 'completed' : 'cancelled' ?>">
+            <td class="mono" data-label="Min / Max"><?= qty_fmt($service['min_qty']) ?> / <?= qty_fmt($service['max_qty']) ?></td>
+            <td data-label="State"><span class="st st-<?= $service['is_active'] ? 'completed' : 'cancelled' ?>">
               <?= $service['is_active'] ? 'active' : 'off' ?></span></td>
             <td class="ta-r">
               <div class="rowacts">

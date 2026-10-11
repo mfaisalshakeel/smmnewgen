@@ -78,7 +78,7 @@ $base    = $spec['base'];
       <?php else: foreach ($rows as $row): ?>
         <tr>
           <?php foreach ($columns as $column): ?>
-            <td class="<?= e($column['class'] ?? '') ?>">
+            <td class="<?= e($column['class'] ?? '') ?>" data-label="<?= e($column['label']) ?>">
               <?php
               if (isset($column['render']) && is_callable($column['render'])) {
                   echo $column['render']($row);   // renderers emit their own escaped markup

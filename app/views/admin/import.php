@@ -185,11 +185,11 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
             <tr>
               <th><input type="checkbox" id="checkAll"></th>
               <th>Provider service</th>
-              <th class="hide-sm">Platform</th>
-              <th class="hide-sm">Category</th>
-              <th class="hide-sm">Cost</th>
+              <th>Platform</th>
+              <th>Category</th>
+              <th>Cost</th>
               <th>Your price</th>
-              <th class="hide-sm">Min / Max</th>
+              <th>Min / Max</th>
               <th></th>
             </tr>
           </thead>
@@ -200,26 +200,26 @@ $kindNames = ['followers' => 'Followers', 'likes' => 'Likes', 'views' => 'Views'
             </td></tr>
           <?php else: foreach ($rows as $row): ?>
             <tr<?= $row['exists'] ? ' class="dim"' : '' ?>>
-              <td><input type="checkbox" class="rowchk" name="service[]" value="<?= e($row['id']) ?>"
+              <td class="selcell"><input type="checkbox" class="rowchk" name="service[]" value="<?= e($row['id']) ?>"
                          <?= $row['exists'] ? '' : 'checked' ?>></td>
-              <td>
+              <td data-label="Provider service">
                 <b><?= e($row['name']) ?></b>
                 <small class="sub mono">#<?= e($row['id']) ?> &middot; <?= e($row['category']) ?></small>
               </td>
-              <td class="hide-sm">
+              <td data-label="Platform">
                 <?php if ($row['platform'] && isset($platformNames[$row['platform']])): ?>
                   <span class="chipx"><?= e($platformNames[$row['platform']]) ?></span>
                 <?php else: ?><span class="muted">&mdash;</span><?php endif; ?>
               </td>
-              <td class="hide-sm">
+              <td data-label="Category">
                 <?php if ($row['kind'] && isset($kindNames[$row['kind']])): ?>
                   <span class="chipx"><?= e($kindNames[$row['kind']]) ?></span>
                 <?php else: ?><span class="muted">&mdash;</span><?php endif; ?>
               </td>
-              <td class="hide-sm money"><?= e(money($row['cost'])) ?></td>
-              <td><b><?= e(money(round($row['cost'] * (1 + $markup / 100), 2))) ?></b></td>
-              <td class="hide-sm mono"><?= qty_fmt($row['min']) ?> / <?= qty_fmt($row['max']) ?></td>
-              <td>
+              <td class="money" data-label="Cost"><?= e(money($row['cost'])) ?></td>
+              <td class="money" data-label="Your price"><b><?= e(money(round($row['cost'] * (1 + $markup / 100), 2))) ?></b></td>
+              <td class="mono" data-label="Min / Max"><?= qty_fmt($row['min']) ?> / <?= qty_fmt($row['max']) ?></td>
+              <td data-label="State">
                 <?php if ($row['exists']): ?>
                   <span class="st st-paid">have it</span>
                 <?php else: ?>

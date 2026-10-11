@@ -58,21 +58,21 @@ $keep = static function (array $with) {
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>When</th><th>What</th><th class="hide-sm">Who</th><th></th></tr>
+        <tr><th>When</th><th>What</th><th>Who</th><th></th></tr>
       </thead>
       <tbody>
       <?php if (!$rows): ?>
         <tr><td colspan="4" class="empty">Nothing recorded yet.</td></tr>
       <?php else: foreach ($rows as $row): ?>
         <tr class="au-<?= e($row['severity']) ?>">
-          <td class="hide-sm"><?= e(when($row['created_at'], 'd M, H:i:s')) ?></td>
-          <td>
+          <td data-label="When"><?= e(when($row['created_at'], 'd M, H:i:s')) ?></td>
+          <td data-label="What">
             <b><?= e($row['action']) ?></b>
             <?php if ($row['summary'] !== ''): ?>
               <small class="sub"><?= e($row['summary']) ?></small>
             <?php endif; ?>
           </td>
-          <td class="hide-sm">
+          <td data-label="Who">
             <span class="chipx"><?= e($row['actor_name'] ?: $row['actor_type']) ?></span>
             <small class="sub mono"><?= e($row['ip']) ?></small>
           </td>

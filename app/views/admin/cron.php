@@ -28,20 +28,20 @@ foreach ($tasks as $task) {
       <div class="tbl-wrap">
         <table class="tbl">
           <thead>
-            <tr><th>Task</th><th class="hide-sm">Runs</th><th>Last run</th><th></th></tr>
+            <tr><th>Task</th><th>Runs</th><th>Last run</th><th></th></tr>
           </thead>
           <tbody>
           <?php foreach ($tasks as $task): ?>
             <tr>
-              <td style="cursor:default">
+              <td style="cursor:default" data-label="Task">
                 <b><?= e($task['label']) ?></b>
                 <?php if ($task['disabled']): ?>
                   <span class="st st-cancelled">off</span>
                 <?php endif; ?>
                 <small class="sub"><?= e($task['detail']) ?></small>
               </td>
-              <td class="hide-sm" style="cursor:default"><?= e($task['every']) ?></td>
-              <td style="cursor:default">
+              <td style="cursor:default" data-label="Runs"><?= e($task['every']) ?></td>
+              <td style="cursor:default" data-label="Last run">
                 <?php if (!$task['last']): ?>
                   <span class="muted">never</span>
                 <?php else: ?>
@@ -72,21 +72,21 @@ foreach ($tasks as $task) {
       <div class="box-head"><b>Recent runs</b><span class="muted">last 25</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
-          <thead><tr><th>When</th><th>Task</th><th class="hide-sm">From</th><th>Result</th><th class="hide-sm">Took</th></tr></thead>
+          <thead><tr><th>When</th><th>Task</th><th>From</th><th>Result</th><th>Took</th></tr></thead>
           <tbody>
           <?php if (!$recent): ?>
             <tr><td colspan="5" class="empty">No runs recorded yet.</td></tr>
           <?php else: foreach ($recent as $run): ?>
             <tr style="cursor:default">
-              <td><?= e(when($run['created_at'], 'd M, H:i:s')) ?></td>
-              <td><?= e(cron_tasks()[$run['task']]['label'] ?? $run['task']) ?></td>
-              <td class="hide-sm"><span class="chipx"><?= e($run['source']) ?></span></td>
-              <td>
+              <td data-label="When"><?= e(when($run['created_at'], 'd M, H:i:s')) ?></td>
+              <td data-label="Task"><?= e(cron_tasks()[$run['task']]['label'] ?? $run['task']) ?></td>
+              <td data-label="From"><span class="chipx"><?= e($run['source']) ?></span></td>
+              <td data-label="Result">
                 <span class="st st-<?= $run['ok'] ? 'completed' : 'api_error' ?>">
                   <?= $run['ok'] ? 'ok' : 'failed' ?></span>
                 <small class="sub"><?= e($run['summary']) ?></small>
               </td>
-              <td class="hide-sm mono"><?= qty_fmt($run['duration_ms']) ?> ms</td>
+              <td class="mono" data-label="Took"><?= qty_fmt($run['duration_ms']) ?> ms</td>
             </tr>
           <?php endforeach; endif; ?>
           </tbody>

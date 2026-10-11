@@ -16,9 +16,9 @@ crud_handle([
     'columns'  => [
         ['label' => 'Platform', 'render' => fn($r) =>
             '<b>' . e($r['name']) . '</b><small class="sub">/' . e($r['slug']) . '</small>'],
-        ['label' => 'Categories', 'class' => 'hide-sm', 'render' => fn($r) =>
+        ['label' => 'Categories', 'render' => fn($r) =>
             qty_fmt(col('SELECT COUNT(*) FROM categories WHERE platform_id = ?', [$r['id']], 0))],
-        ['label' => 'Services', 'class' => 'hide-sm', 'render' => fn($r) =>
+        ['label' => 'Services', 'render' => fn($r) =>
             qty_fmt(col('SELECT COUNT(*) FROM services WHERE platform_id = ? AND is_active = 1', [$r['id']], 0))],
         ['label' => 'State', 'render' => fn($r) =>
             '<span class="st st-' . ($r['is_active'] ? 'completed' : 'cancelled') . '">'

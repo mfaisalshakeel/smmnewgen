@@ -88,11 +88,11 @@ crud_handle([
             ? '<span class="muted">-</span>'
             : '<b>' . e(rtrim(rtrim(number_format((float) $r['rate_to_base'], 6), '0'), '.')) . '</b>'
               . '<small class="sub">' . e(base_currency()['code']) . ' per ' . e($r['code']) . '</small>'],
-        ['label' => 'Used by', 'class' => 'hide-sm', 'render' => function ($r) {
+        ['label' => 'Used by', 'render' => function ($r) {
             $n = (int) col('SELECT COUNT(*) FROM providers WHERE currency = ?', [$r['code']], 0);
             return $n ? qty_fmt($n) . ' provider' . ($n === 1 ? '' : 's') : '<span class="muted">-</span>';
         }],
-        ['label' => 'Updated', 'class' => 'hide-sm', 'render' => fn($r) => e(when($r['updated_at'], 'd M, H:i'))],
+        ['label' => 'Updated', 'render' => fn($r) => e(when($r['updated_at'], 'd M, H:i'))],
         ['label' => 'Base', 'render' => function ($r) {
             if ($r['is_base']) {
                 return '<span class="st st-completed">base</span>';

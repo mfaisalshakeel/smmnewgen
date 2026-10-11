@@ -123,18 +123,18 @@ $delta = static function (float $now, float $before, string $against = 'yesterda
     <div class="tbl-wrap">
       <table class="tbl">
         <thead>
-          <tr><th>Code</th><th>Platform</th><th class="hide-sm">Service</th><th>Total</th><th>Status</th></tr>
+          <tr><th>Code</th><th>Platform</th><th>Service</th><th>Total</th><th>Status</th></tr>
         </thead>
         <tbody>
         <?php if (!$recent): ?>
           <tr><td colspan="5" class="empty">No orders yet. They appear here as soon as customers place them.</td></tr>
         <?php else: foreach ($recent as $order): ?>
           <tr onclick="location.href='<?= e(url('admin/orders/' . $order['id'])) ?>'">
-            <td><b><?= e($order['code']) ?></b><small class="sub"><?= e(when($order['created_at'], 'd M, H:i')) ?></small></td>
-            <td><?= e($order['platform_name'] ?? '-') ?></td>
-            <td class="hide-sm"><?= e(excerpt($order['service_name'], 46)) ?></td>
-            <td><?= e(money($order['price'])) ?></td>
-            <td><span class="st st-<?= e($order['status']) ?>"><?= e(str_replace('_', ' ', $order['status'])) ?></span></td>
+            <td data-label="Code"><b><?= e($order['code']) ?></b><small class="sub"><?= e(when($order['created_at'], 'd M, H:i')) ?></small></td>
+            <td data-label="Platform"><?= e($order['platform_name'] ?? '-') ?></td>
+            <td data-label="Service"><?= e(excerpt($order['service_name'], 46)) ?></td>
+            <td data-label="Total"><?= e(money($order['price'])) ?></td>
+            <td data-label="Status"><span class="st st-<?= e($order['status']) ?>"><?= e(str_replace('_', ' ', $order['status'])) ?></span></td>
           </tr>
         <?php endforeach; endif; ?>
         </tbody>

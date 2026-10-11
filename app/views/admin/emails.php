@@ -38,18 +38,18 @@
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>Message</th><th class="hide-sm">Subject</th><th class="hide-sm">Goes to</th><th></th></tr>
+        <tr><th>Message</th><th>Subject</th><th>Goes to</th><th></th></tr>
       </thead>
       <tbody>
       <?php foreach ($rows as $row): ?>
         <?php $event = $events[$row['event']] ?? null; if (!$event) { continue; } ?>
         <tr>
-          <td>
+          <td data-label="Message">
             <b><?= e($event['label']) ?></b>
             <small class="sub"><?= e($event['when']) ?></small>
           </td>
-          <td class="hide-sm"><?= e(excerpt($row['subject'], 60)) ?></td>
-          <td class="hide-sm">
+          <td data-label="Subject"><?= e(excerpt($row['subject'], 60)) ?></td>
+          <td data-label="Goes to">
             <span class="chipx"><?= $event['to'] === 'admin' ? 'You' : 'The customer' ?></span>
           </td>
           <td class="ta-r">

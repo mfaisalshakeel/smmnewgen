@@ -16,7 +16,7 @@
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>Method</th><th class="hide-sm">Gateway</th><th class="hide-sm">Account</th>
+        <tr><th>Method</th><th>Gateway</th><th>Account</th>
             <th>State</th><th></th></tr>
       </thead>
       <tbody>
@@ -25,11 +25,11 @@
       <?php else: foreach ($methods as $method): ?>
         <?php $gateway = $gateways[$method['driver']] ?? null; ?>
         <tr>
-          <td>
+          <td data-label="Method">
             <b><?= e($method['name']) ?></b>
             <small class="sub"><?= e($method['account_title'] ?: '-') ?></small>
           </td>
-          <td class="hide-sm">
+          <td data-label="Gateway">
             <?php if ($gateway): ?>
               <span class="chipx"><?= e($gateway['name']) ?></span>
             <?php else: ?>
@@ -37,7 +37,7 @@
               <small class="sub mono"><?= e($method['driver']) ?></small>
             <?php endif; ?>
           </td>
-          <td class="hide-sm">
+          <td data-label="Account">
             <?php if ($method['account_number'] !== ''): ?>
               <span class="mono"><?= e($method['account_number']) ?></span>
             <?php elseif ($gateway && $gateway['kind'] === 'redirect'): ?>
@@ -46,7 +46,7 @@
               <span class="muted">not set</span>
             <?php endif; ?>
           </td>
-          <td><span class="st st-<?= $method['is_active'] ? 'completed' : 'cancelled' ?>">
+          <td data-label="State"><span class="st st-<?= $method['is_active'] ? 'completed' : 'cancelled' ?>">
             <?= $method['is_active'] ? 'active' : 'off' ?></span></td>
           <td class="ta-r" style="white-space:nowrap">
             <form method="post" action="<?= e(url('admin/payment-methods/toggle')) ?>" style="display:inline">

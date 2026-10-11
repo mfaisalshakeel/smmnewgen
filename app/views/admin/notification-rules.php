@@ -22,7 +22,7 @@
         <thead>
           <tr>
             <th>What happens</th>
-            <th class="hide-sm">Goes to</th>
+            <th>Goes to</th>
             <th class="ta-c">In the panel</th>
             <th class="ta-c">By email</th>
           </tr>
@@ -31,14 +31,14 @@
         <?php foreach ($events as $key => $event): ?>
           <?php $always = !empty($event['always']); ?>
           <tr>
-            <td>
+            <td data-label="What happens">
               <b><?= e($event['label']) ?></b>
               <small class="sub"><?= e($event['when']) ?></small>
             </td>
-            <td class="hide-sm">
+            <td data-label="Goes to">
               <span class="chipx"><?= $event['to'] === 'admin' ? 'You' : 'The customer' ?></span>
             </td>
-            <td class="ta-c">
+            <td class="ta-c" data-label="In the panel">
               <?php if ($event['to'] !== 'admin'): ?>
                 <span class="muted" title="This one is for the customer, not for you">&mdash;</span>
               <?php elseif ($always): ?>
@@ -51,7 +51,7 @@
                 </label>
               <?php endif; ?>
             </td>
-            <td class="ta-c">
+            <td class="ta-c" data-label="By email">
               <?php if ($always): ?>
                 <span class="muted" title="A sign-in code is only useful by email">always</span>
               <?php else: ?>

@@ -30,8 +30,8 @@
     <table class="tbl">
       <thead>
         <tr>
-          <th>Code</th><th>Platform</th><th class="hide-sm">Service</th><th>Qty</th><th>Total</th>
-          <th class="hide-sm">WhatsApp</th><th>Status</th><th></th>
+          <th>Code</th><th>Platform</th><th>Service</th><th>Qty</th><th>Total</th>
+          <th>WhatsApp</th><th>Status</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -39,13 +39,13 @@
         <tr><td colspan="8" class="empty">No orders match these filters.</td></tr>
       <?php else: foreach ($orders as $order): ?>
         <tr onclick="location.href='<?= e(url('admin/orders/' . $order['id'])) ?>'">
-          <td><b><?= e($order['code']) ?></b><small class="sub"><?= e(when($order['created_at'], 'd M, H:i')) ?></small></td>
-          <td><?= e($order['platform_name'] ?? '-') ?></td>
-          <td class="hide-sm"><?= e(excerpt($order['service_name'], 42)) ?></td>
-          <td><?= qty_fmt($order['quantity']) ?></td>
-          <td><?= e(money($order['price'])) ?></td>
-          <td class="hide-sm"><?= e($order['whatsapp']) ?></td>
-          <td><span class="st st-<?= e($order['status']) ?>"><?= e(str_replace('_', ' ', $order['status'])) ?></span></td>
+          <td data-label="Code"><b><?= e($order['code']) ?></b><small class="sub"><?= e(when($order['created_at'], 'd M, H:i')) ?></small></td>
+          <td data-label="Platform"><?= e($order['platform_name'] ?? '-') ?></td>
+          <td data-label="Service"><?= e(excerpt($order['service_name'], 42)) ?></td>
+          <td data-label="Qty"><?= qty_fmt($order['quantity']) ?></td>
+          <td data-label="Total"><?= e(money($order['price'])) ?></td>
+          <td data-label="WhatsApp"><?= e($order['whatsapp']) ?></td>
+          <td data-label="Status"><span class="st st-<?= e($order['status']) ?>"><?= e(str_replace('_', ' ', $order['status'])) ?></span></td>
           <td class="ta-r">
             <a class="btn btn-ghost btn-sm" href="<?= e(url('admin/orders/' . $order['id'])) ?>"
                onclick="event.stopPropagation()">Open</a>

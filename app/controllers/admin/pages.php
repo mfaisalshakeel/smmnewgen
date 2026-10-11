@@ -17,7 +17,7 @@ crud_handle([
     'columns'  => [
         ['label' => 'Page', 'render' => fn($r) =>
             '<b>' . e($r['title']) . '</b><small class="sub">/' . e($r['slug']) . '</small>'],
-        ['label' => 'In footer', 'class' => 'hide-sm', 'render' => fn($r) => $r['show_in_footer'] ? 'yes' : 'no'],
+        ['label' => 'In footer', 'render' => fn($r) => $r['show_in_footer'] ? 'yes' : 'no'],
         ['label' => 'State', 'render' => fn($r) =>
             '<span class="st st-' . ($r['is_active'] ? 'completed' : 'cancelled') . '">'
             . ($r['is_active'] ? 'live' : 'draft') . '</span>'],

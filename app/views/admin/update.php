@@ -91,11 +91,11 @@
             <tbody>
             <?php foreach ($applied as $row): ?>
               <tr>
-                <td style="cursor:default">
+                <td style="cursor:default" data-label="Change">
                   <b><?= e(migration_label($row['id'])) ?></b>
                   <small class="sub mono"><?= e($row['id']) ?></small>
                 </td>
-                <td class="ta-r muted" style="cursor:default">
+                <td class="ta-r muted" style="cursor:default" data-label="Applied">
                   <?= e(when($row['applied_at'], 'd M Y, H:i')) ?>
                 </td>
               </tr>

@@ -99,7 +99,7 @@ crud_handle([
             return '<b>' . e(money($r['price'])) . '</b>'
                  . '<small class="sub">' . e(money($per)) . ' per 1,000</small>';
         }],
-        ['label' => 'Badge', 'class' => 'hide-sm', 'render' => fn($r) => $r['badge'] !== ''
+        ['label' => 'Badge', 'render' => fn($r) => $r['badge'] !== ''
             ? '<span class="chipx">' . e($r['badge']) . '</span>'
             : '<span class="muted">-</span>'],
         ['label' => 'State', 'render' => fn($r) =>

@@ -117,16 +117,16 @@ crud_handle([
     'columns'  => [
         ['label' => 'Provider', 'key' => 'name', 'render' => fn($r) =>
             '<b>' . e($r['name']) . '</b><small class="sub">' . e($r['api_url']) . '</small>'],
-        ['label' => 'Balance', 'class' => 'hide-sm', 'render' => fn($r) =>
+        ['label' => 'Balance', 'render' => fn($r) =>
             '<b>' . e(provider_balance($r)['shown']) . '</b><small class="sub">'
             . ($r['balance_checked_at'] ? e(when($r['balance_checked_at'], 'd M, H:i')) : 'never checked')
             . '</small>'],
-        ['label' => 'Services', 'class' => 'hide-sm', 'render' => function ($r) {
+        ['label' => 'Services', 'render' => function ($r) {
             $n = (int) col('SELECT COUNT(*) FROM services WHERE provider_id = ?', [$r['id']], 0);
             $synced = $r['last_sync_at'] ? 'synced ' . when($r['last_sync_at'], 'd M, H:i') : 'never synced';
             return qty_fmt($n) . '<small class="sub">' . e($synced) . '</small>';
         }],
-        ['label' => 'API', 'class' => 'hide-sm', 'render' => function ($r) {
+        ['label' => 'API', 'render' => function ($r) {
             $bits = [];
             $bits[] = $r['currency'] !== ''
                 ? '<span class="chipx">' . e($r['currency']) . '</span>'

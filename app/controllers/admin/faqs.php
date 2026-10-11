@@ -21,7 +21,7 @@ crud_handle([
     'columns'  => [
         ['label' => 'Question', 'render' => fn($r) =>
             '<b>' . e($r['question']) . '</b><small class="sub">' . e(excerpt($r['answer'], 70)) . '</small>'],
-        ['label' => 'Platform', 'class' => 'hide-sm', 'render' => fn($r) =>
+        ['label' => 'Platform', 'render' => fn($r) =>
             $r['platform_id']
                 ? e(col('SELECT name FROM platforms WHERE id = ?', [$r['platform_id']], '-'))
                 : '<span class="muted">all</span>'],

@@ -33,9 +33,9 @@ $fields = array_unique(array_merge(array_keys($before), array_keys($after)));
         <tbody>
         <?php foreach ($fields as $field): ?>
           <tr>
-            <td><b><?= e($field) ?></b></td>
-            <td class="mono au-was"><?= e((string) ($before[$field] ?? '—')) ?></td>
-            <td class="mono au-now"><?= e((string) ($after[$field] ?? '—')) ?></td>
+            <td data-label="Field"><b><?= e($field) ?></b></td>
+            <td class="mono au-was" data-label="Was"><?= e((string) ($before[$field] ?? '—')) ?></td>
+            <td class="mono au-now" data-label="Became"><?= e((string) ($after[$field] ?? '—')) ?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>

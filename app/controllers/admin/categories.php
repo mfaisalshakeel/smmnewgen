@@ -37,7 +37,7 @@ crud_handle([
             '<b>' . e($r['name']) . '</b><small class="sub">/' . e($r['slug']) . '</small>'],
         ['label' => 'Platform', 'render' => fn($r) =>
             e(col('SELECT name FROM platforms WHERE id = ?', [$r['platform_id']], '-'))],
-        ['label' => 'Services', 'class' => 'hide-sm', 'render' => function ($r) use ($singleMode, $services) {
+        ['label' => 'Services', 'render' => function ($r) use ($singleMode, $services) {
             $count = (int) col('SELECT COUNT(*) FROM services WHERE category_id = ? AND is_active = 1',
                 [$r['id']], 0);
             if (!$singleMode) {

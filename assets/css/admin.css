@@ -264,10 +264,10 @@ svg{max-width:100%}
   .scard b{font-size:22px}
   .irow{grid-template-columns:minmax(0,1fr)}
   .field2{grid-template-columns:minmax(0,1fr)}
-  .hide-sm{display:none}
   .tbl{min-width:0}
   .tbl th,.tbl td{padding:11px 10px}
   .filters{gap:8px}
+  .filters>*{margin-left:0!important}
   .filters select,.filters input[type=date],.search.wide{width:100%;max-width:none;flex:none}
   .optbar{gap:13px}
   .impfoot .btn{margin-left:0;width:100%}
@@ -552,6 +552,55 @@ svg{max-width:100%}
 .tbl td.num,.tbl td.money{white-space:nowrap;font-variant-numeric:tabular-nums}
 .tbl thead th{background:var(--page)}
 .tbl tbody tr{transition:background .12s}
+
+/* --- tables on a phone ----------------------------------------------------
+   A row becomes a stack of labelled lines. Six columns do not fit in 360px,
+   and the answer used to be .hide-sm on every column that would not: the
+   Providers screen showed a name and an on/off switch, and dropped the
+   balance, the service count and the API details - the three things anyone
+   opens that screen to read.
+
+   The label comes from data-label on the cell, so it is the column heading
+   the table already carries. It is positioned rather than laid out, because
+   the value keeps its own markup - a <b> with a <small class="sub"> under it
+   - and both lines have to line up at the same left edge. A float would let
+   only the first line sit beside the label; a grid or flex row would need a
+   wrapper element around the value that none of these cells has.
+   A cell with no label (the checkbox, the row actions) simply has none.
+   --------------------------------------------------------------------------- */
+@media (max-width:760px){
+  .tbl:not(.tbl-plain){display:block}
+  .tbl:not(.tbl-plain) thead{display:none}
+  .tbl:not(.tbl-plain) tbody{display:block}
+
+  .tbl:not(.tbl-plain) tbody tr{display:block;padding:12px 2px;
+    border-bottom:1px solid var(--line)}
+  .tbl:not(.tbl-plain) tbody tr:last-child{border-bottom:0}
+  .tbl:not(.tbl-plain) tbody tr:hover{background:none;cursor:default}
+
+  .tbl:not(.tbl-plain) tbody td{display:block;position:relative;
+    padding:4px 0 4px 106px;border:0;text-align:left;width:auto}
+  .tbl:not(.tbl-plain) tbody td[data-label]::before{content:attr(data-label);
+    position:absolute;left:0;top:4px;width:96px;font-size:10.5px;font-weight:700;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--muted);line-height:1.95}
+
+  /* The tick box belongs to the whole stacked row, so it sits in its corner
+     rather than on a line of its own with nothing to say. */
+  .tbl:not(.tbl-plain) tbody tr{position:relative}
+  .tbl:not(.tbl-plain) tbody td.selcell{position:absolute;right:2px;top:10px;
+    padding:0;width:auto}
+  /* ...and the values keep clear of it, or a long service name runs under
+     the box on the line it shares. */
+  .tbl:not(.tbl-plain) tbody tr:has(td.selcell) td{padding-right:34px}
+
+  /* The row actions line up with the values, not with the labels. */
+  .tbl:not(.tbl-plain) tbody td.ta-r{padding-top:9px}
+  .tbl:not(.tbl-plain) tbody td.ta-r .rowacts{justify-content:flex-start}
+
+  /* The empty state is a message, not a row of values. */
+  .tbl:not(.tbl-plain) tbody td.empty{padding:28px 10px;text-align:center}
+  .tbl:not(.tbl-plain) tbody tr:has(td.empty){padding:0}
+}
 
 /* --- cards ----------------------------------------------------------------
    One soft shadow instead of a flat outline: the panel reads as layered

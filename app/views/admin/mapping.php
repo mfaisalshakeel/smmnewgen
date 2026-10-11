@@ -34,11 +34,11 @@
         <?php else: foreach ($rows as $row): ?>
           <?php $options = $choices[(int) $row['id']] ?? []; ?>
           <tr>
-            <td style="cursor:default">
+            <td style="cursor:default" data-label="Category">
               <b><?= e($row['platform']) ?> &middot; <?= e($row['name']) ?></b>
               <small class="sub">/<?= e($row['slug']) ?></small>
             </td>
-            <td style="cursor:default">
+            <td style="cursor:default" data-label="Service">
               <?php if (!$options): ?>
                 <span class="muted">No active service in this category yet</span>
               <?php else: ?>
@@ -62,7 +62,7 @@
                 </select>
               <?php endif; ?>
             </td>
-            <td class="ta-r" style="cursor:default">
+            <td class="ta-r" style="cursor:default" data-label="State">
               <span class="st st-<?= $row['is_active'] ? 'completed' : 'cancelled' ?>">
                 <?= $row['is_active'] ? 'active' : 'off' ?>
               </span>

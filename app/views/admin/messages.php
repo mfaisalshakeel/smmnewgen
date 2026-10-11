@@ -19,21 +19,21 @@
   <div class="tbl-wrap">
     <table class="tbl">
       <thead>
-        <tr><th>From</th><th>Message</th><th class="hide-sm">Received</th><th></th></tr>
+        <tr><th>From</th><th>Message</th><th>Received</th><th></th></tr>
       </thead>
       <tbody>
       <?php if (!$messages): ?>
         <tr><td colspan="4" class="empty">No messages yet.</td></tr>
       <?php else: foreach ($messages as $message): ?>
         <tr<?= $message['is_read'] ? ' class="dim"' : '' ?>>
-          <td>
+          <td data-label="From">
             <b><?= e($message['name']) ?></b>
             <small class="sub">
               <?= e($message['email'] ?: $message['whatsapp'] ?: 'no contact given') ?>
             </small>
           </td>
-          <td style="white-space:pre-wrap;max-width:460px"><?= e($message['body']) ?></td>
-          <td class="hide-sm"><?= e(when($message['created_at'])) ?></td>
+          <td style="white-space:pre-wrap;max-width:460px" data-label="Message"><?= e($message['body']) ?></td>
+          <td data-label="Received"><?= e(when($message['created_at'])) ?></td>
           <td class="ta-r" style="white-space:nowrap">
             <form method="post" action="<?= e(url('admin/messages/read')) ?>" style="display:inline">
               <?= csrf_field() ?>
