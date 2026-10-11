@@ -56,7 +56,7 @@ $post = $_SERVER['REQUEST_METHOD'] === 'POST';
 // ---------------------------------------------------------------------------
 $justFinished = $step === 4 && !empty($_SESSION['install_done']);
 
-if (is_file(LOCK_FILE) && !$justFinished) {
+if (already_installed() && !$justFinished) {
     http_response_code(403);
     if ($task !== '') {
         install_json(['ok' => false, 'error' => 'This site is already installed.']);
@@ -64,10 +64,12 @@ if (is_file(LOCK_FILE) && !$justFinished) {
     render_page('Already installed', 0, '
         <div class="box">
           <h2>This site is already installed</h2>
-          <p class="sub">The installer is locked by <code>install/install.lock</code>.</p>
-          <p class="note">If you really need to install again, delete <code>install/install.lock</code>
-             and <code>config/config.php</code> first &mdash; that wipes the link to your
-             current database, so take a backup.</p>
+          <p class="sub">There is a config file and an administrator account, so there is
+             nothing left for the installer to do.</p>
+          <p class="note">If you really need to install again, delete
+             <code>config/config.php</code>' . (is_file(LOCK_FILE)
+                ? ' and <code>install/install.lock</code>' : '') . ' first &mdash; that
+             wipes the link to your current database, so take a backup.</p>
           <p class="mt"><a class="btn" href="' . h(site_url('admin/login')) . '">Go to the admin login</a></p>
         </div>');
     exit;
@@ -236,7 +238,7 @@ if ($step === 2) {
         <h2>Step 2 &mdash; database</h2>
         <p class="sub">Pick where your data lives. MySQL is the usual choice on shared hosting;
            SQLite needs no database server at all and keeps everything in one file.</p>
-        ' . errors_html($errors) . '
+        ' . errors_html($errors) . config_handover() . '
 
         <div class="choice">
           <label class="opt' . ($chosen === "mysql" ? " on" : "") . ($hasMysql ? "" : " off") . '">
@@ -311,14 +313,21 @@ if ($step === 2) {
 // --- step 1: requirements ---------------------------------------------------
 $checks  = requirement_checks();
 $blocked = false;
+$soft    = false;        // something optional failed, worth a word but not a stop
 $rows    = '';
 foreach ($checks as $check) {
-    if (!$check['ok'] && $check['required']) {
-        $blocked = true;
+    if (!$check['ok']) {
+        $check['required'] ? $blocked = true : $soft = true;
     }
     $icon  = $check['ok'] ? '<span class="ok">&#10003;</span>' : ($check['required']
         ? '<span class="bad">&#10007;</span>' : '<span class="meh">!</span>');
-    $rows .= '<tr><td>' . $icon . '</td><td>' . h($check['label']) . '</td><td class="r">'
+    // The hint is only worth the room when the check did not pass - a wall of
+    // explanation beside nine green ticks is noise.
+    $hint = !$check['ok'] && !empty($check['hint'])
+        ? '<small class="chint">' . h($check['hint']) . '</small>'
+        : '';
+
+    $rows .= '<tr><td>' . $icon . '</td><td>' . h($check['label']) . $hint . '</td><td class="r">'
            . h($check['value']) . '</td></tr>';
 }
 
@@ -328,9 +337,15 @@ render_page('Requirements', 1, '
     <p class="sub">Everything below must pass before the panel can be installed.</p>
     <table>' . $rows . '</table>
     ' . ($blocked
-        ? '<p class="warn">Fix the items marked &#10007;, then check again.</p>
-           <a class="btn btn-ghost" href="?step=1" data-busy="Checking&hellip;">Check again</a>'
-        : '<a class="btn" href="?step=2" data-busy="Loading&hellip;">Continue</a>') . '
+        ? '<p class="warn">Fix the items marked &#10007;, then check again. The ones marked
+             ! are optional - the note beside each says what you lose.</p>'
+          . permission_help()
+          . '<a class="btn btn-ghost" href="?step=1" data-busy="Checking&hellip;">Check again</a>'
+        : ($soft
+            ? '<p class="note">The items marked ! are optional. The note beside each says
+                 what you lose by leaving it.</p>' . permission_help()
+            : '')
+          . '<a class="btn" href="?step=2" data-busy="Loading&hellip;">Continue</a>') . '
   </div>');
 
 
@@ -450,9 +465,32 @@ function run_database_task(string $key): array
                 'debug'      => false,
             ];
 
-            if (!write_config(CONFIG_FILE, $config)) {
-                return ['ok' => false, 'error' => 'Could not write config/config.php. Make the config/ folder writable (755) and try again.'];
+            // Already there and already right? Then there is nothing to do.
+            // This is the path back from the handover below: the admin uploads
+            // the file themselves, which means it belongs to them and the web
+            // user usually cannot overwrite it - so insisting on a write would
+            // reject the very file we asked for.
+            if (config_matches(CONFIG_FILE, $config)) {
+                unset($_SESSION['install_config_text']);
+                $_SESSION['install_db'] = true;
+                return ['ok' => true, 'note' => 'Already in place'];
             }
+
+            if (!write_config(CONFIG_FILE, $config)) {
+                // Not a dead end: the database is already set up at this point,
+                // and the only thing left is a file. Hand it over rather than
+                // sending the admin away to argue with their host about a
+                // permission - and keep it in the session so the step can be
+                // retried once the file is there.
+                $_SESSION['install_config_text'] = config_text($config);
+
+                return ['ok' => false,
+                        'config' => config_text($config),
+                        'error' => 'Could not write config/config.php - the folder is not '
+                                 . 'writable. Create that file yourself with exactly the '
+                                 . 'contents below, upload it, then press Try again.'];
+            }
+            unset($_SESSION['install_config_text']);
 
             $_SESSION['install_db'] = true;
             return ['ok' => true, 'note' => 'Saved'];
@@ -545,15 +583,17 @@ function run_admin_task(string $key): array
         }
 
         if ($key === 'lock') {
-            if (@file_put_contents(LOCK_FILE, 'Installed ' . date('c') . PHP_EOL) === false) {
-                return ['ok' => false, 'error' => 'Could not write install/install.lock. Make the install/ folder writable and try again.'];
-            }
+            // Not fatal. The lock file is a convenience - already_installed()
+            // works it out from the config and the admin row either way - and
+            // making install/ writable just to drop a marker in it was asking
+            // for a permission nobody needs.
+            $locked = @file_put_contents(LOCK_FILE, 'Installed ' . date('c') . PHP_EOL) !== false;
             @chmod(CONFIG_FILE, 0640);
 
             unset($_SESSION['install_db'], $_SESSION['install_input'], $_SESSION['install_admin']);
             $_SESSION['install_done'] = ['cron_key' => (string) ($config['cron_key'] ?? '')];
 
-            return ['ok' => true, 'note' => 'Locked'];
+            return ['ok' => true, 'note' => $locked ? 'Locked' : 'Installed'];
         }
     } catch (Throwable $e) {
         return ['ok' => false, 'error' => $e->getMessage()];
@@ -694,6 +734,93 @@ function guess_base_url(): string
     return site_url();
 }
 
+/**
+ * The config file, for an admin whose host will not let us write it.
+ *
+ * Shown only after a save has actually failed, because until then it is an
+ * instruction for a problem nobody has.
+ */
+function config_handover(): string
+{
+    $text = (string) ($_SESSION['install_config_text'] ?? '');
+    if ($text === '') {
+        return '';
+    }
+
+    return '<div class="perm">
+        <b>Create config/config.php yourself</b>
+        <p class="perm-note">The database is already set up - only this file is missing.
+           Make a file at <code>config/config.php</code> with exactly this in it, upload
+           it, then press Install again.</p>
+        <pre class="cfg">' . h($text) . '</pre>
+        <button class="btn btn-ghost btn-copy" type="button"
+                data-copy="' . h($text) . '">Copy the file</button>
+        <p class="perm-warn">Keep it out of anyone else\'s reach: it holds your database
+           password. <code>640</code> is right for it, and the shipped
+           <code>.htaccess</code> already refuses to serve the folder.</p>
+      </div>';
+}
+
+/**
+ * What to do about a folder the web server cannot write to.
+ *
+ * Said here because the alternative is what people actually do: search the
+ * web, find 777, and make the folder writable by every other account on the
+ * server. On shared hosting that is not a shortcut, it is handing the keys
+ * over - and it is never what is needed, because the files were uploaded by
+ * the same account PHP runs as on almost every cPanel host.
+ */
+function permission_help(): string
+{
+    return '<div class="perm">
+        <b>Making a folder writable</b>
+        <ol>
+          <li>In cPanel File Manager (or your FTP client) right-click the folder and
+              choose <b>Permissions</b>.</li>
+          <li>Set it to <code>755</code>. On nearly every host PHP runs as the account
+              that owns the files, so that is enough.</li>
+          <li>Still refused? Try <code>775</code>. That adds the group, which is how a
+              host running PHP under a separate web-server group is set up.</li>
+        </ol>
+        <p class="perm-warn"><b>Do not use 777.</b> It lets every other account on the
+           server write into your folder, and on shared hosting that is a lot of
+           strangers. It is also never the fix - if 775 does not work, the owner or
+           group is wrong and your host has to correct it.</p>
+      </div>';
+}
+
+/**
+ * Is this site already set up?
+ *
+ * The lock file is one answer and the easy one, but it needs install/ to be
+ * writable and writing a marker is not worth a permission. A config file
+ * pointing at a database that already has an administrator is the same fact,
+ * read from what the install actually produced.
+ */
+function already_installed(): bool
+{
+    if (is_file(LOCK_FILE)) {
+        return true;
+    }
+    if (!is_file(CONFIG_FILE)) {
+        return false;
+    }
+
+    try {
+        $config = require CONFIG_FILE;
+        if (!is_array($config) || ($config['db_name'] ?? '') === '') {
+            return false;
+        }
+        $pdo = connect_from_config($config);
+
+        return (int) $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn() > 0;
+    } catch (Throwable $e) {
+        // A config that cannot be read or a database that is not there yet is
+        // not an install; let the installer carry on and fix it.
+        return false;
+    }
+}
+
 function requirement_checks(): array
 {
     $writable = static fn(string $p): bool => is_dir($p) && is_writable($p);
@@ -713,16 +840,37 @@ function requirement_checks(): array
          'value' => extension_loaded('json') ? 'enabled' : 'missing', 'required' => true],
         ['label' => 'cURL extension (provider API)', 'ok' => extension_loaded('curl'),
          'value' => extension_loaded('curl') ? 'enabled' : 'missing', 'required' => true],
+        // None of the four folders below stops an install any more. config/
+        // was the only one that ever had to be written, and even that has a
+        // way through: when the save fails the installer hands over the file
+        // to create by hand, so stopping here would mean building that escape
+        // hatch and never reaching it. The rest were required because it was
+        // tidy, not because anything breaks - log_line() already writes with
+        // @ and carries on, and the lock file is a marker already_installed()
+        // can do without.
         ['label' => 'config/ is writable', 'ok' => $writable(BASE_PATH . '/config'),
-         'value' => $writable(BASE_PATH . '/config') ? 'writable' : 'not writable', 'required' => true],
-        ['label' => 'storage/logs/ is writable', 'ok' => $writable(BASE_PATH . '/storage/logs'),
-         'value' => $writable(BASE_PATH . '/storage/logs') ? 'writable' : 'not writable', 'required' => true],
-        ['label' => 'install/ is writable (for the lock file)', 'ok' => $writable(__DIR__),
-         'value' => $writable(__DIR__) ? 'writable' : 'not writable', 'required' => true],
-        ['label' => 'uploads/branding/ is writable (logo upload)',
+         'value' => $writable(BASE_PATH . '/config') ? 'writable' : 'not writable',
+         'required' => false,
+         'hint' => 'Only needed to save config/config.php. Leave it as it is and the '
+                 . 'installer will show you that one file to create by hand at the end '
+                 . 'of the next step.'],
+        ['label' => 'storage/ is writable', 'ok' => $writable(BASE_PATH . '/storage'),
+         'value' => $writable(BASE_PATH . '/storage') ? 'writable' : 'not writable',
+         'required' => false,
+         'hint' => 'Without it the panel still runs, but it keeps no log file and no '
+                 . 'cached provider catalogue. Required only if you pick SQLite, which '
+                 . 'keeps its database here.'],
+        ['label' => 'install/ is writable', 'ok' => $writable(__DIR__),
+         'value' => $writable(__DIR__) ? 'writable' : 'not writable',
+         'required' => false,
+         'hint' => 'Only used to drop install.lock when the install finishes. Without it '
+                 . 'the installer still closes itself - it can tell from your config and '
+                 . 'admin account that the job is done.'],
+        ['label' => 'uploads/branding/ is writable',
          'ok' => $writable(BASE_PATH . '/uploads/branding'),
          'value' => $writable(BASE_PATH . '/uploads/branding') ? 'writable' : 'not writable',
-         'required' => false],
+         'required' => false,
+         'hint' => 'Only needed to upload a logo and favicon from Settings.'],
         ['label' => 'GD extension (image resizing)', 'ok' => extension_loaded('gd'),
          'value' => extension_loaded('gd') ? 'enabled' : 'missing', 'required' => false],
     ];
@@ -823,7 +971,45 @@ function run_schema(PDO $pdo, string $file): void
     }
 }
 
-function write_config(string $path, array $config): bool
+/**
+ * Does the config on disk already say what we were about to write?
+ *
+ * Compared on the keys that decide which database is used. The generated
+ * keys differ every run, so comparing the whole file would never match and
+ * the admin would be asked for it again and again.
+ */
+function config_matches(string $path, array $config): bool
+{
+    if (!is_file($path) || !is_readable($path)) {
+        return false;
+    }
+    try {
+        $existing = require $path;
+    } catch (Throwable $e) {
+        return false;
+    }
+    if (!is_array($existing)) {
+        return false;
+    }
+
+    foreach (['db_driver', 'db_host', 'db_name', 'db_user'] as $key) {
+        if ((string) ($existing[$key] ?? '') !== (string) ($config[$key] ?? '')) {
+            return false;
+        }
+    }
+
+    // It must also actually work, or "already in place" is a lie that only
+    // shows up two steps later.
+    try {
+        connect_from_config($existing);
+    } catch (Throwable $e) {
+        return false;
+    }
+    return true;
+}
+
+/** The config file as text, so it can be written or handed over to be pasted. */
+function config_text(array $config): string
 {
     $lines = ["<?php", "/** Written by the installer - edit by hand only when moving servers. */", "return ["];
     foreach ($config as $key => $value) {
@@ -832,7 +1018,12 @@ function write_config(string $path, array $config): bool
     }
     $lines[] = "];";
 
-    return (bool) @file_put_contents($path, implode(PHP_EOL, $lines) . PHP_EOL);
+    return implode(PHP_EOL, $lines) . PHP_EOL;
+}
+
+function write_config(string $path, array $config): bool
+{
+    return (bool) @file_put_contents($path, config_text($config));
 }
 
 function errors_html(array $errors): string
@@ -920,6 +1111,20 @@ h2{margin:0 0 6px;font-size:19px;letter-spacing:-.02em}
 .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
 .fields label{display:block;margin-bottom:15px;font-size:13px;font-weight:600;color:var(--ink-2)}
 .hint{font-weight:400;color:#9aa0b4}
+.chint{display:block;color:#6b7280;font-weight:400;font-size:12.5px;line-height:1.5;margin-top:3px;
+  max-width:46ch}
+.perm{background:#f8f9fc;border:1px solid #e6e8f0;border-radius:12px;padding:15px 17px;margin:14px 0}
+.perm b{display:block;margin-bottom:8px;font-size:14px}
+.perm ol{margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.7;color:#4b5563}
+.perm code{background:#eef0f6;border-radius:5px;padding:1px 6px;font-size:12.5px}
+.perm-warn{margin:0;background:#fdeaea;border:1px solid #f6caca;border-radius:9px;padding:11px 13px;
+  font-size:13px;line-height:1.6;color:#b91c1c}
+.perm-warn b{display:inline;margin:0}
+.perm-note{margin:0 0 10px;font-size:13.5px;line-height:1.6;color:#4b5563}
+.cfg{background:#15152a;color:#e6e6f0;border-radius:10px;padding:13px 15px;overflow-x:auto;
+  font-size:12.5px;line-height:1.6;margin:0 0 10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.btn-copy{margin-bottom:12px}
 input{display:block;width:100%;margin-top:7px;padding:11px 13px;font-size:15px;font-weight:400;
   border:1px solid var(--line);border-radius:9px;background:#f9fafc;outline:none;color:var(--ink)}
 input:focus{border-color:var(--acc);background:#fff}
@@ -984,6 +1189,38 @@ code{background:var(--page);border-radius:5px;padding:1px 5px;font-size:13px}
 .tasks .nm{flex:1;min-width:0;font-weight:600}
 .tasks .st{flex:none;font-size:12px;color:var(--muted);font-weight:600}
 .tasks li.bad .st{color:var(--bad)}
+/* ---------------------------------------------------------------------------
+   Phones. There was no media query here at all, which is how four step
+   crumbs ended up sharing one flex row: at 360px each got about 85px and
+   every label ellipsed away, so the one thing the bar exists to say - what
+   is done and what is next - was the first thing to go.
+   --------------------------------------------------------------------------- */
+@media (max-width: 560px) {
+  body{padding:16px 12px}
+  .box{padding:18px 16px;border-radius:12px}
+  .head{margin-bottom:14px}
+
+  /* Numbers for the steps you are not on, the name only for the one you are.
+     A tick, a dot and a name reads at a glance; four truncated words do not. */
+  .crumbs{gap:5px;margin-bottom:14px}
+  .crumb{flex:none}
+  .crumb .nm{display:none}
+  .crumb.on{flex:1;min-width:0}
+  .crumb.on .nm{display:block}
+  .crumb .num{width:26px;height:26px;font-size:12.5px}
+
+  /* The row of ticks and values: let the label wrap instead of squeezing the
+     answer off the edge. */
+  table{font-size:13.5px}
+  td{padding:9px 4px}
+  .chint{font-size:12px}
+
+  .btn{width:100%;margin-top:8px}
+  .btn + .btn{margin-top:8px}
+  .perm{padding:13px 14px}
+  .perm ol{padding-left:17px;font-size:13px}
+  .cfg{font-size:11.5px}
+}
 CSS;
 }
 
@@ -991,9 +1228,35 @@ function install_js(): string
 {
     return <<<'JS'
 (function () {
-  /* Any plain link or button marked data-busy says so while the next page
-     loads, because a server check can take a second or two. */
+  /* Copy the config file over, for a host that will not let us write it.
+     Without this the button is decoration, and the alternative is selecting
+     twenty lines of PHP by hand on a phone. */
   document.addEventListener('click', function (event) {
+    var copier = event.target.closest('[data-copy]');
+    if (copier) {
+      var text = copier.getAttribute('data-copy');
+      var said = function () {
+        var was = copier.textContent;
+        copier.textContent = 'Copied';
+        setTimeout(function () { copier.textContent = was; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(said, function () {});
+      } else {
+        /* No clipboard API without HTTPS, and a fresh install is often
+           http:// on a bare domain. Select it so Ctrl+C still works. */
+        var pre = document.querySelector('.cfg');
+        if (pre && window.getSelection) {
+          var range = document.createRange();
+          range.selectNodeContents(pre);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+      return;
+    }
+
     var link = event.target.closest('a[data-busy]');
     if (!link) { return; }
     link.setAttribute('aria-busy', 'true');
@@ -1084,6 +1347,11 @@ function install_js(): string
 
           if (!result.ok) {
             stop(result.error || 'That step failed.');
+            /* The one failure with something to hand back: the config file we
+               could not write. Rendered here because the stepper never reloads
+               the page, so the copy of this block in the PHP would never be
+               seen by the person who needs it. */
+            if (result.config) { showConfig(result.config); }
             return;
           }
 
@@ -1104,6 +1372,43 @@ function install_js(): string
       ui.hidden = true;
       stop(error.message);
     });
+
+    function showConfig(text) {
+      if (form.querySelector('.cfg')) { return; }
+
+      var block = document.createElement('div');
+      block.className = 'perm';
+
+      var title = document.createElement('b');
+      title.textContent = 'Create config/config.php yourself';
+
+      var note = document.createElement('p');
+      note.className = 'perm-note';
+      note.textContent = 'The database is already set up - only this file is missing. '
+        + 'Put it at config/config.php, then press Try again.';
+
+      var pre = document.createElement('pre');
+      pre.className = 'cfg';
+      pre.textContent = text;          /* textContent, so the file is shown, not run */
+
+      var copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'btn btn-ghost btn-copy';
+      copy.setAttribute('data-copy', text);
+      copy.textContent = 'Copy the file';
+
+      var warn = document.createElement('p');
+      warn.className = 'perm-warn';
+      warn.textContent = 'It holds your database password, so keep it to yourself: 640 is '
+        + 'right for it, and the shipped .htaccess already refuses to serve that folder.';
+
+      block.appendChild(title);
+      block.appendChild(note);
+      block.appendChild(pre);
+      block.appendChild(copy);
+      block.appendChild(warn);
+      errBox.parentNode.insertBefore(block, errBox.nextSibling);
+    }
   });
 })();
 JS;
