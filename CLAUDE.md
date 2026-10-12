@@ -158,6 +158,19 @@ NULL into `providers.currency`, which is `NOT NULL`.
   own still gets one — which is why a theme must keep the ids the script
   needs: `#platStrip`, `#catTabs`, `#serviceCards`, `#heroTitle` with its
   `.grad` span, `#heroCta`, `#svcTitle`, and the card's `data-` attributes.
+  The script rewrites the `.grad` span and `#heroCta` with `textContent`, so
+  neither may hold markup that has to survive a switch — the arrow on the
+  button is a character for that reason.
+- **The hero is one partial**, `partials/hero.php`, rendered by both themes:
+  the band, the drawn phone and the floating chips are the same shape
+  whatever the colour, and the colour is mixed from `--brand` by whichever
+  stylesheet is loaded. A theme that wants a different hero drops in its own
+  copy of that partial, which is the same inheritance as every other view.
+- A page that opens on the hero gives the header to the band — no bar, no
+  line, white type on the colour. `body:has(.hero) > header` asks the
+  question the layout cannot, because the layout renders the header before it
+  knows what the page is; a browser without `:has()` keeps the white bar,
+  which is a plain page rather than a broken one.
 - A manifest may declare `brand`, the colour the theme was drawn around.
   Activating a theme adopts it — but only while the colour on record is still
   the **previous theme's** own, so a colour the admin chose is never

@@ -17,6 +17,18 @@
   --ok:#16a34a; --warn:#f59e0b; --radius:20px;
   --shadow:0 2px 4px rgba(21,21,42,.04), 0 12px 32px rgba(21,21,42,.06);
   --shadow-lg:0 8px 24px rgba(108,77,246,.10), 0 24px 60px rgba(21,21,42,.10);
+  /* The hero band. Mixed from --brand so the theme colour in Settings
+     re-tints it, rather than a hard-coded gradient that ignores the one
+     field an admin is given. Each one declares a plain value first, so a
+     browser with no color-mix() keeps a sensible colour instead of an
+     invalid declaration. */
+  --brand-deep:#30187a;
+  --brand-deep:color-mix(in oklab, var(--brand) 60%, #0d0526);
+  --brand-warm:#ff6f91;
+  --brand-warm:color-mix(in oklab, var(--brand) 38%, #ff7a4b);
+  --grad:linear-gradient(135deg,var(--brand),var(--brand-2));
+  --grad-deep:linear-gradient(125deg,var(--brand-deep) 0%,var(--brand) 40%,
+              var(--brand-2) 70%,var(--brand-warm) 100%);
 }
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;
@@ -61,6 +73,27 @@ button,input,select{font:inherit;color:inherit}
 /* ---------- header ---------- */
 header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.88);
   backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+/* A page that opens on the hero band gives the header to the band: no bar,
+   no line, white type straight on the colour. :has() asks the question the
+   layout cannot - it renders the header before it knows what the page is -
+   and a browser without it simply keeps the white bar. */
+body:has(.hero) > header{position:absolute;left:0;right:0;background:none;
+  backdrop-filter:none;border-bottom:0}
+body:has(.hero) > header .logo{color:#fff}
+body:has(.hero) > header .logo small{color:rgba(255,255,255,.72)}
+body:has(.hero) > header .logo-mark{background:rgba(255,255,255,.18);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+body:has(.hero) > header .nav-links a{color:rgba(255,255,255,.88)}
+body:has(.hero) > header .nav-links a:hover,
+body:has(.hero) > header .nav-links a.active{background:rgba(255,255,255,.16);color:#fff}
+body:has(.hero) > header .wa-link{color:#fff}
+body:has(.hero) > header .btn-ghost{background:rgba(255,255,255,.12);color:#fff;
+  border-color:rgba(255,255,255,.45)}
+body:has(.hero) > header .btn-ghost:hover{background:rgba(255,255,255,.22);border-color:#fff}
+body:has(.hero) > header .burger{color:#fff;border-color:rgba(255,255,255,.45)}
+/* The drawer drops out of a transparent header, so it carries its own
+   surface rather than borrowing the bar's. */
+body:has(.hero) > header .drawer{border-radius:0 0 18px 18px;box-shadow:var(--shadow)}
 .nav{display:flex;align-items:center;gap:18px;height:72px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.03em}
 .logo-mark{width:36px;height:36px;border-radius:11px;flex:none;
@@ -75,68 +108,118 @@ header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.88);
 .wa-link:hover{text-decoration:underline}
 .burger{display:none;background:none;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer}
 
-/* ---------- hero ---------- */
-.hero{position:relative;padding:64px 0 56px;overflow:hidden}
-.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;filter:blur(70px);z-index:-1}
-.hero::before{width:520px;height:520px;background:rgba(160,107,255,.18);top:-220px;right:-120px}
-.hero::after{width:420px;height:420px;background:rgba(108,77,246,.12);bottom:-240px;left:-140px}
+/* ---------- hero ----------
+   A coloured band with the page curving up into it. The headline sits on
+   colour, the only white things on it are the ones to act on - the button
+   and the platform bar riding the curve - and the picture beside it is a
+   phone rather than a card, which is what the reference site does and what
+   a customer recognises.
+
+   Everything is mixed from --brand, so the band follows the theme colour
+   instead of contradicting it. */
+.hero{position:relative;isolation:isolate;overflow:hidden;color:#fff;
+  padding:138px 0 124px;background:var(--brand);background:var(--grad-deep)}
+
+/* Decoration, both of it: a soft disc behind the phone and one diagonal
+   sheen across the band. Marked aria-hidden in the markup. */
+.hero-orb{position:absolute;z-index:-1;top:50%;right:4%;width:600px;height:600px;margin-top:-300px;
+  border-radius:50%;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.hero-ray{position:absolute;z-index:-1;top:-30%;left:40%;width:30%;height:170%;transform:rotate(16deg);
+  background:linear-gradient(90deg,rgba(255,255,255,.085),rgba(255,255,255,0))}
+
+/* The light page rising into the band: a box whose top corners are half an
+   ellipse. Wider than the hero so the arc is shallow rather than a dome. */
+.hero-edge{position:absolute;left:-8%;right:-8%;bottom:-1px;height:78px;background:var(--bg);
+  border-radius:50% 50% 0 0 / 78px 78px 0 0}
+
 /* minmax(0,...) rather than a bare 1fr: `1fr` is `minmax(auto,1fr)`, and
    that auto floor is the item's min-content width - a column then refuses
    to go narrower than the widest unbreakable thing inside it and the item
    spills out of the grid, where nothing can scroll to reach it. */
-.hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:52px;align-items:center}
-.badge-trust{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);
-  border-radius:999px;padding:7px 16px 7px 8px;font-size:13.5px;font-weight:700;box-shadow:var(--shadow)}
-.stars{display:inline-flex;gap:1px;color:#f5a623}
-.avatars{display:flex;padding-right:9px}
-.avatars span{width:24px;height:24px;border-radius:50%;border:2px solid #fff;margin-right:-9px;
-  background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;
-  font-size:10px;color:#fff;font-weight:800}
-h1{font-size:clamp(30px,4.6vw,52px);font-weight:800;margin:20px 0 16px}
-h1 .grad{background:linear-gradient(120deg,var(--brand),var(--brand-2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero-sub{color:var(--ink-2);font-size:16px;max-width:52ch}
-.hero-sub b{color:var(--ink)}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:28px 0}
-.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 12px;text-align:center;box-shadow:var(--shadow)}
-.stat .si{width:38px;height:38px;border-radius:11px;margin:0 auto 9px;display:grid;place-items:center;
-  background:var(--brand-soft);color:var(--brand);font-size:18px}
-.stat b{display:block;font-size:14.5px;font-weight:800}
-.stat small{color:var(--muted);font-size:11.5px;font-weight:600}
-.hero-cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.hero-note{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;font-weight:600}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
+.hero-copy{min-width:0}
 
-/* profile card */
-.pcard{background:#fff;border:1px solid var(--line);border-radius:26px;padding:24px;box-shadow:var(--shadow-lg);position:relative}
-.pcard-top{display:flex;align-items:center;gap:15px}
-.pavatar{width:68px;height:68px;border-radius:50%;flex:none;padding:3px;
-  background:conic-gradient(from 210deg,#f9ce34,#ee2a7b,#6228d7,#f9ce34)}
-.pavatar i{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#fff;font-size:27px;font-style:normal}
-.phandle{font-weight:800;font-size:17px;display:flex;align-items:center;gap:6px}
-.verified{color:#3897f0;font-size:15px}
-.pbio{color:var(--muted);font-size:13px;font-weight:600}
-.pstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:20px 0;text-align:center;
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:15px 0}
-.pstats b{display:block;font-size:19px;font-weight:800;transition:color .3s}
-.pstats small{color:var(--muted);font-size:11.5px;font-weight:600}
-.pstats .up b{color:var(--ok)}
-.pbtns{display:flex;gap:9px}
-.pbtns .btn{flex:1;padding:10px;font-size:14px}
-.float-pill{position:absolute;top:-16px;right:18px;background:var(--ok);color:#fff;font-weight:800;font-size:12.5px;
-  padding:8px 15px;border-radius:999px;box-shadow:0 8px 20px rgba(22,163,74,.35);animation:bob 3s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.badge-trust{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:8px 18px;font-size:13.5px;
+  font-weight:700;color:#fff;backdrop-filter:blur(6px)}
+.badge-trust .icon{color:#ffd166;font-size:15px}
 
-/* ---------- platform switcher ---------- */
-.psec{padding:8px 0 0}
-.plat-scroll{overflow-x:auto;scrollbar-width:none;padding:6px 0 14px;-webkit-overflow-scrolling:touch}
+h1{font-size:clamp(28px,4.2vw,42px);font-weight:800;margin:20px 0 16px}
+/* Only the hero's. Every other h1 on the site keeps the heavy weight the
+   rest of the headings are set in. */
+.hero h1{font-size:clamp(31px,4.3vw,47px);font-weight:600;letter-spacing:-.032em;
+  line-height:1.1;margin:22px 0 16px}
+/* On the band the headline is white throughout and weight is what separates
+   the words, not colour - a gradient fill would be invisible here. */
+.hero h1 .grad,.hero h1 .h1-rest b{font-weight:800;color:#fff;background:none;-webkit-text-fill-color:#fff}
+.hero-sub{color:rgba(255,255,255,.82);font-size:16px;max-width:50ch}
+
+/* The four promises: plain lines on the band. They were cards, which put
+   four more white boxes between the headline and the button. */
+.points{display:flex;flex-wrap:wrap;gap:14px 28px;margin:26px 0 30px}
+.point{display:inline-flex;align-items:center;gap:10px}
+.point .icon{font-size:17px;width:32px;height:32px;flex:none;border-radius:10px;padding:7px;
+  background:rgba(255,255,255,.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.point b{display:block;font-size:14px;font-weight:800;line-height:1.25}
+.point small{display:block;font-size:11.5px;font-weight:600;color:rgba(255,255,255,.72)}
+
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.btn-hero{background:#fff;color:var(--brand);padding:17px 32px;font-size:17px;font-weight:800;
+  box-shadow:0 14px 32px rgba(10,6,30,.22)}
+.btn-hero:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(10,6,30,.28)}
+.hero-note{font-size:13px;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:6px;font-weight:600}
+
+/* ---------- the phone and its chips ----------
+   Drawn, not photographed: it re-colours with the theme, weighs nothing and
+   there is no image to ship with a release. */
+.hero-art{position:relative;display:grid;place-items:center;min-height:470px}
+.phone{width:300px;background:#fff;border-radius:34px;padding:22px 18px;transform:rotate(-3deg);
+  box-shadow:0 30px 70px -20px rgba(10,6,30,.45), 0 0 0 1px rgba(255,255,255,.5)}
+.ph-head{display:flex;align-items:center;gap:12px}
+.ph-av{width:46px;height:46px;border-radius:50%;flex:none;background:var(--brand-soft);
+  box-shadow:inset 0 0 0 2px var(--brand)}
+.ph-say{color:var(--muted);font-size:12.5px;font-weight:600}
+.ph-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:18px 0 12px;
+  text-align:center;color:var(--muted);font-size:10.5px;font-weight:700}
+.ph-follow{background:var(--grad);color:#fff;border-radius:999px;text-align:center;
+  padding:11px;font-weight:800;font-size:14px}
+.ph-bars{margin:16px 0 14px}
+.ph-bars i{display:block;height:8px;border-radius:999px;background:var(--bg);margin-bottom:7px}
+.ph-bars i:nth-child(1){width:86%}
+.ph-bars i:nth-child(2){width:68%}
+.ph-bars i:nth-child(3){width:77%}
+.ph-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ph-grid i{aspect-ratio:1;border-radius:7px;background:var(--brand-soft)}
+
+.chip{position:absolute;display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--ink);
+  border-radius:15px;padding:11px 16px;box-shadow:0 14px 34px -10px rgba(10,6,30,.38);
+  animation:bob 3.4s ease-in-out infinite}
+.chip .icon{font-size:18px;color:var(--brand)}
+.chip b{display:block;font-size:14px;font-weight:800;line-height:1.2}
+.chip small{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+.chip-1{left:0;top:16%}
+.chip-2{right:0;top:44%;animation-delay:.6s}
+.chip-3{right:6%;bottom:14%;animation-delay:1.2s}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* ---------- platform switcher ----------
+   One floating bar sitting on the curve at the foot of the hero. It is the
+   first choice on the page and the first white thing under the band, so it
+   is where the eye lands coming off the headline. */
+.psec{position:relative;z-index:3;margin-top:-34px;padding:0 0 6px}
+.plat-bar{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px;
+  box-shadow:0 10px 30px -12px rgba(21,21,42,.3), 0 2px 6px rgba(21,21,42,.05);
+  width:max-content;max-width:100%;margin:0 auto}
+.plat-scroll{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .plat-scroll::-webkit-scrollbar{display:none}
-.plats{display:flex;gap:10px;min-width:max-content;justify-content:center}
-.plat{display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--line);
-  border-radius:14px;padding:11px 18px;font-weight:700;font-size:14.5px;cursor:pointer;
-  transition:all .18s ease;color:var(--ink-2)}
+.plats{display:flex;gap:4px;min-width:max-content;justify-content:center}
+.plat{display:flex;align-items:center;gap:9px;background:none;border:0;
+  border-radius:999px;padding:11px 24px;font-weight:700;font-size:14.5px;cursor:pointer;
+  transition:background .18s ease, color .18s ease, box-shadow .18s ease;color:var(--ink-2)}
 .plat .icon{font-size:19px}
-.plat:hover{border-color:#d9d4ee;transform:translateY(-2px)}
-.plat.active{color:#fff;border-color:transparent;background:var(--pc,var(--brand));
-  box-shadow:0 8px 20px -4px var(--pc,var(--brand))}
+.plat:hover{background:var(--bg-soft);color:var(--ink)}
+.plat.active{color:#fff;background:var(--pc,var(--brand));
+  box-shadow:0 8px 20px -6px var(--pc,var(--brand))}
 
 /* ---------- services ---------- */
 .section{padding:56px 0}
@@ -360,8 +443,21 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
 
 /* ---------- responsive ---------- */
 @media (max-width:1000px){
-  .hero-grid{grid-template-columns:minmax(0,1fr);gap:38px}
-  .pcard{max-width:420px}
+  /* One column, centred: the copy reads as a block rather than a column
+     with a hole beside it. */
+  .hero{padding:124px 0 104px}
+  .hero-grid{grid-template-columns:minmax(0,1fr);gap:34px;text-align:center}
+  .hero-sub{margin:0 auto}
+  .points{justify-content:center}
+  .hero-cta{justify-content:center}
+  /* The art moves under the copy, so it gets a width of its own and the
+     chips hang off that rather than off the far edges of the page. The
+     disc is centred on the hero, which once the art is below the copy
+     means a ring behind the headline - so it goes. */
+  .hero-art{min-height:430px;max-width:560px;margin:0 auto;width:100%}
+  .hero-orb{display:none}
+  .chip-1{left:0}
+  .chip-3{right:0;bottom:16%}
   .steps{grid-template-columns:minmax(0,1fr)}
   .fgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
 }
@@ -373,13 +469,21 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
   .nav-right{margin-left:auto;gap:8px}
   .nav-right .btn-ghost{padding:9px 14px;font-size:13.5px}
   .nav-right .btn-ghost .icon{display:none}
-  /* The profile mock is decoration, and on a phone it is a whole
+  /* The phone is decoration, and on a phone screen it is a whole
      screenful of it between the headline and the thing to tap. */
-  .pcard{display:none}
+  .hero-art{display:none}
+  /* The disc is only there to sit behind the phone. With the phone gone it
+     is a ring across the headline. */
+  .hero-orb{display:none}
   .nav{height:64px}
-  .hero{padding:36px 0 40px}
-  .stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .hero{padding:96px 0 86px}
+  .hero-edge{height:54px;border-radius:50% 50% 0 0 / 54px 54px 0 0}
+  .hero h1{line-height:1.14}
+  .points{gap:12px 20px}
+  .point .icon{width:28px;height:28px;padding:6px;font-size:15px}
   .plats{justify-content:flex-start}
+  .plat{padding:11px 18px}
+  .psec{margin-top:-26px}
   .section{padding:40px 0}
   .cards{grid-template-columns:minmax(0,1fr)}
   .band{padding:34px 22px;border-radius:22px}
@@ -466,6 +570,11 @@ body{padding-bottom:40px}
 .pmethod.on .pmradio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--acc-on)}
 .pmbody{display:none;padding:0 17px 17px;border-top:1px dashed var(--line);margin-top:2px;padding-top:15px}
 .pmethod.on .pmbody{display:block}
+/* The questions a manual method asks. They sit under the account details
+   inside the method's own block, so they need the gap that tells them apart
+   from it - and the last field must not add one before the button. */
+.pf-ask{margin-top:14px}
+.pf-ask .field:last-child{margin-bottom:0}
 .acct{display:flex;align-items:center;gap:12px;background:var(--page);border-radius:12px;padding:13px 15px;margin-bottom:9px}
 .acct div{flex:1;min-width:0}
 .acct small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
@@ -575,7 +684,7 @@ a.tab{align-items:center}
 .sk-button{width:100%;height:52px;border-radius:999px;margin-top:18px}
 
 @media (prefers-reduced-motion: reduce){
-  .sk{animation:none}
+  .sk,.chip,.fab::after{animation:none}
 }
 
 /* --- the order, once it exists --------------------------------------------

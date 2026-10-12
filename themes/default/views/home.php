@@ -11,72 +11,17 @@
  */
 $noun = $category['name'] ?? 'Followers';
 ?>
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div>
-      <div class="badge-trust">
-        <span class="avatars"><span>A</span><span>M</span><span>S</span><span>+</span></span>
-        <span class="stars">
-          <?php for ($i = 0; $i < 5; $i++): ?><svg class="icon"><use href="#i-star"></use></svg><?php endfor; ?>
-        </span>
-        Trusted by 10,000+ users
-      </div>
-
-      <h1 id="heroTitle">Buy <span class="grad"><?= e($platform['name'] . ' ' . $noun) ?></span>
-        With Safe &amp; Instant Delivery</h1>
-
-      <p class="hero-sub">No password required &bull; Starts within <b>2&ndash;15 minutes</b> &bull;
-        Secure payment &bull; High quality service &bull; <b>24/7 support</b></p>
-
-      <div class="stats">
-        <div class="stat"><div class="si"><svg class="icon"><use href="#i-shield"></use></svg></div>
-          <b>100% Safe</b><small>&amp; Secure</small></div>
-        <div class="stat"><div class="si"><svg class="icon"><use href="#i-bolt"></use></svg></div>
-          <b>Instant</b><small>Delivery</small></div>
-        <div class="stat"><div class="si"><svg class="icon"><use href="#i-users"></use></svg></div>
-          <b>10,000+</b><small>Happy customers</small></div>
-        <div class="stat"><div class="si"><svg class="icon"><use href="#i-chat"></use></svg></div>
-          <b>24/7</b><small>Support</small></div>
-      </div>
-
-      <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#services" id="heroCta">
-          Buy <?= e($platform['name'] . ' ' . $noun) ?> &rarr;</a>
-        <span class="hero-note">
-          <svg class="icon" style="color:var(--ok)"><use href="#i-check"></use></svg>
-          No login or password needed
-        </span>
-      </div>
-    </div>
-
-    <div class="pcard">
-      <div class="float-pill">+10K <?= e($noun) ?></div>
-      <div class="pcard-top">
-        <div class="pavatar"><i>&#129489;&#8205;&#127908;</i></div>
-        <div>
-          <div class="phandle">@yourbrand <svg class="icon verified"><use href="#i-check"></use></svg></div>
-          <div class="pbio">Creator &bull; Growing every day</div>
-        </div>
-      </div>
-      <div class="pstats">
-        <div><b>255</b><small>Posts</small></div>
-        <div class="up"><b>12.5K</b><small><?= e($noun) ?></small></div>
-        <div><b>318</b><small>Following</small></div>
-      </div>
-      <div class="pbtns">
-        <a class="btn btn-primary" href="#services">Order now</a>
-        <a class="btn btn-ghost" href="<?= e(url('track')) ?>">Track</a>
-      </div>
-    </div>
-  </div>
-</section>
+<?php partial('partials/hero', ['platform' => $platform, 'category' => $category]); ?>
 
 <!-- Platform switcher: real links, so it works without JS and search engines
-     can follow it. -->
+     can follow it. It is drawn as a floating bar sitting on the curve at the
+     foot of the hero - the first choice on the page, where the eye lands. -->
 <section class="psec" id="services">
   <div class="wrap">
-    <div class="plat-scroll">
-      <?php partial('partials/platforms', ['platforms' => $platforms, 'platform' => $platform]); ?>
+    <div class="plat-bar">
+      <div class="plat-scroll">
+        <?php partial('partials/platforms', ['platforms' => $platforms, 'platform' => $platform]); ?>
+      </div>
     </div>
   </div>
 </section>
