@@ -69,6 +69,15 @@ crud_handle([
                           'hint' => 'Shown on the tab and in the drawer. Left alone, the name '
                                   . 'decides it - Followers gets people, Likes a heart, Views an eye.',
                         ] : null,
+        // Same guard, same reason.
+        'link_kind'   => table_has_column('categories', 'link_kind') ? [
+                          'label' => 'Link the customer must paste', 'type' => 'select',
+                          'options' => array_map(static fn($words) => ucfirst($words), LINK_KINDS),
+                          'empty' => 'Work it out from the name',
+                          'hint' => 'Checked before the order is taken, so reel views cannot be '
+                                  . 'ordered with a profile link. Left alone, the service name '
+                                  . 'decides it and the category name settles it.',
+                        ] : null,
         'service_id'  => ['label' => 'Service shown here', 'type' => 'select', 'options' => $services,
                           'search' => true,
                           'empty' => 'The first active service in this category', 'nullable' => true,

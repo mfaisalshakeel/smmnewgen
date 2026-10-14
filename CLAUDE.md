@@ -450,6 +450,19 @@ These are the rules the code already follows; keep them.
   subdomain of it. "Contains" is not good enough — `instagram.com.example.net`
   contains `instagram.com`. The browser applies the same rule as you type, but
   only to answer sooner; the server still decides.
+- **...and the right kind of link on it.** Views are counted on one reel, so a
+  reel order placed with a profile link is an order the provider cannot fill.
+  `LINK_SHAPES` holds a path pattern and a worked example per platform and
+  kind; `link_kind()` reads the category's own setting first, then guesses
+  from the service name and then the category name — the service name is the
+  more specific of the two, which is how "Reel Views" sitting in a Views
+  category still asks for a reel. A platform nobody wrote shapes for, or a
+  kind that platform has no shape for, is not checked: an admin adding their
+  own platform gets the host rule and nothing in the way. `link_attrs()` is
+  the one place a card says all of this, because three partials draw a card
+  and a rule written three times drifts; the browser builds its RegExp from
+  the same pattern string and says the same sentence, so the answer does not
+  change with whether the script ran.
 - **Spam:** the order and contact forms each carry a hidden honeypot field and
   a per-IP throttle.
 

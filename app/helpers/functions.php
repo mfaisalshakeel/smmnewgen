@@ -919,6 +919,216 @@ function catalogue_explainer(): array
 }
 
 /**
+ * What a link has to be, per platform.
+ *
+ * The host check below says the link is on Instagram. This says it is the
+ * right *kind* of Instagram link: views are counted on one reel, so a reel
+ * order placed with a profile link is an order the provider cannot fill and
+ * a refund we have to argue about afterwards.
+ *
+ * Each entry is [path pattern, a worked example]. The pattern is matched
+ * against the path only - the host is already settled - and it is written
+ * without delimiters because the browser gets the same string to build a
+ * RegExp from, so the rule cannot drift between the two.
+ *
+ * A platform nobody has written shapes for, or a kind that platform has no
+ * shape for, is not checked: an admin adding their own platform gets the
+ * host rule and nothing in the way.
+ */
+const LINK_SHAPES = [
+    'instagram' => [
+        'profile' => ['^/[A-Za-z0-9._]{1,40}/?$', 'https://instagram.com/yourbrand'],
+        'post'    => ['^/(p|tv)/[\w-]+', 'https://instagram.com/p/Cx12AbCdEfG/'],
+        'reel'    => ['^/reels?/[\w-]+', 'https://instagram.com/reel/Cx12AbCdEfG/'],
+        'video'   => ['^/(reels?|tv|p)/[\w-]+', 'https://instagram.com/reel/Cx12AbCdEfG/'],
+        'story'   => ['^/stories/[\w.]+', 'https://instagram.com/stories/yourbrand/3211234567/'],
+    ],
+    'tiktok' => [
+        'profile' => ['^/@[\w.]{1,40}/?$', 'https://tiktok.com/@yourbrand'],
+        'post'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
+        'video'   => ['^/@[\w.]+/(video|photo)/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
+        'reel'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
+    ],
+    'youtube' => [
+        'profile' => ['^/(@[\w.-]+|channel/[\w-]+|c/[\w-]+|user/[\w-]+)/?$',
+                      'https://youtube.com/@yourchannel'],
+        'video'   => ['^/(watch|shorts/[\w-]+|live/[\w-]+|embed/[\w-]+|[\w-]{11}$)',
+                      'https://youtube.com/watch?v=dQw4w9WgXcQ'],
+        'post'    => ['^/(watch|shorts/[\w-]+|post/[\w-]+|[\w-]{11}$)',
+                      'https://youtube.com/watch?v=dQw4w9WgXcQ'],
+        'short'   => ['^/shorts/[\w-]+', 'https://youtube.com/shorts/abc123XYZ_1'],
+    ],
+    'facebook' => [
+        'profile' => ['^/[\w.-]{3,60}/?$', 'https://facebook.com/yourpage'],
+        'post'    => ['(/posts/|/permalink|/photo|story\.php|/share/p/)',
+                      'https://facebook.com/yourpage/posts/1234567890'],
+        'video'   => ['(/videos/|/watch|/reel/|/share/v/|/share/r/)',
+                      'https://facebook.com/yourpage/videos/1234567890'],
+        'reel'    => ['(/reel/|/share/r/)', 'https://facebook.com/reel/1234567890'],
+    ],
+    'twitter' => [
+        'profile' => ['^/[A-Za-z0-9_]{1,15}/?$', 'https://x.com/yourbrand'],
+        'post'    => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/yourbrand/status/1234567890'],
+        'video'   => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/yourbrand/status/1234567890'],
+    ],
+    'telegram' => [
+        'profile' => ['^/[A-Za-z0-9_]{4,40}/?$', 'https://t.me/yourchannel'],
+        'post'    => ['^/[A-Za-z0-9_]+/\d+', 'https://t.me/yourchannel/125'],
+        'video'   => ['^/[A-Za-z0-9_]+/\d+', 'https://t.me/yourchannel/125'],
+    ],
+];
+
+/** The kinds an admin can pick, and what each one is called in a sentence. */
+const LINK_KINDS = [
+    'any'     => 'Any link on the platform',
+    'profile' => 'a profile or channel link',
+    'post'    => 'a post link',
+    'video'   => 'a video link',
+    'reel'    => 'a reel link',
+    'short'   => 'a Shorts link',
+    'story'   => 'a story link',
+];
+
+/** Words that give a kind away, read off the service or the category name. */
+const LINK_KIND_WORDS = [
+    'reel' => 'reel',     'short' => 'short',   'story' => 'story',
+    'igtv' => 'video',    'video' => 'video',   'watch' => 'video',   'stream' => 'video',
+    'view' => 'video',    'play'  => 'video',
+    'like' => 'post',     'comment' => 'post',  'save'  => 'post',    'share' => 'post',
+    'repost' => 'post',   'retweet' => 'post',  'vote'  => 'post',
+    'follower' => 'profile', 'subscriber' => 'profile', 'member' => 'profile',
+    'friend'   => 'profile', 'connection' => 'profile',
+];
+
+/**
+ * What kind of link this order needs.
+ *
+ * The category can say outright, because that is where the admin sets it.
+ * Otherwise it is read from the service name first and the category name
+ * second - the same order the import screen guesses in, and for the same
+ * reason: "Reel Views" sitting in a Views category is a reel, and the
+ * service name is the more specific of the two.
+ */
+function link_kind(?array $service, ?array $category = null): string
+{
+    $chosen = trim((string) ($category['link_kind'] ?? ''));
+    if ($chosen !== '' && isset(LINK_KINDS[$chosen])) {
+        return $chosen;
+    }
+
+    foreach ([(string) ($service['name'] ?? ''), (string) ($category['name'] ?? '')] as $text) {
+        $text = strtolower($text);
+        foreach (LINK_KIND_WORDS as $word => $kind) {
+            if (preg_match('/\b' . $word . 's?\b/', $text)) {
+                return $kind;
+            }
+        }
+    }
+
+    return 'any';
+}
+
+/** The shape this platform expects for this kind, or null when it says nothing. */
+function link_shape(string $platformSlug, string $kind): ?array
+{
+    $slug = strtolower(trim($platformSlug));
+    if ($slug === 'x') {
+        $slug = 'twitter';     // the site was renamed; the rules did not change
+    }
+
+    return LINK_SHAPES[$slug][$kind] ?? null;
+}
+
+/**
+ * Does the link look like the kind of thing we are about to buy for it?
+ *
+ * Only the path is examined; the host is the other rule's job. A link we
+ * have no shape for passes, because refusing what we cannot check would
+ * block every platform an admin adds themselves.
+ */
+function link_matches_kind(string $link, string $platformSlug, string $kind): bool
+{
+    $shape = link_shape($platformSlug, $kind);
+    if ($shape === null) {
+        return true;
+    }
+
+    $path = (string) parse_url($link, PHP_URL_PATH);
+    $host = strtolower((string) parse_url($link, PHP_URL_HOST));
+
+    // youtu.be/<id> is a watch link with the id where the path is, and
+    // /watch is only a video link when it carries one.
+    if (str_ends_with($host, 'youtu.be')) {
+        $path = '/' . ltrim($path, '/');
+    } elseif ($path === '/watch' || str_starts_with($path, '/watch')) {
+        parse_str((string) parse_url($link, PHP_URL_QUERY), $query);
+        if (trim((string) ($query['v'] ?? '')) === '') {
+            return false;
+        }
+    }
+
+    return (bool) preg_match('~' . $shape[0] . '~i', $path);
+}
+
+/** What the field calls the link it wants. */
+const LINK_KIND_NOUNS = [
+    'any'     => 'link',        'profile' => 'profile link',  'post'  => 'post link',
+    'video'   => 'video link',  'reel'    => 'reel link',     'short' => 'Shorts link',
+    'story'   => 'story link',
+];
+
+/**
+ * Everything a card has to carry about the link it will ask for.
+ *
+ * One function because three partials draw a card - the service card, the
+ * package card and the custom panel - and a rule written three times is a
+ * rule that drifts. The browser gets the pattern as a string and builds its
+ * own RegExp from it, so the check it runs while you type is the one the
+ * server will run afterwards.
+ */
+function link_fields(array $service, array $platform, ?array $category = null): array
+{
+    $host  = trim((string) ($platform['url_prefix'] ?? ''));
+    $slug  = (string) ($platform['slug'] ?? '');
+    $kind  = link_kind($service, $category);
+    $shape = link_shape($slug, $kind);
+    $noun  = LINK_KIND_NOUNS[$kind] ?? 'link';
+
+    return [
+        'label'   => $host !== '' ? $platform['name'] . ' ' . $noun : ucfirst($noun),
+        'hint'    => link_example($slug, $kind, $host),
+        'host'    => $host,
+        'kind'    => $kind,
+        'pattern' => $shape[0] ?? '',
+        // The whole sentence, so the browser and the server say the same
+        // thing and the answer does not change with whether the script ran.
+        'needs'   => $shape === null ? '' : 'This needs ' . LINK_KINDS[$kind] . '.',
+    ];
+}
+
+/** The card attributes for the above, ready to print. */
+function link_attrs(array $service, array $platform, ?array $category = null): string
+{
+    $out = '';
+    foreach (link_fields($service, $platform, $category) as $key => $value) {
+        $out .= ' data-link-' . $key . '="' . e((string) $value) . '"';
+    }
+
+    return $out;
+}
+
+/** The example to show beside the field, or a plain host link when there is none. */
+function link_example(string $platformSlug, string $kind, string $host = ''): string
+{
+    $shape = link_shape($platformSlug, $kind);
+    if ($shape !== null) {
+        return $shape[1];
+    }
+
+    return $host !== '' ? 'https://' . $host . '/yourbrand' : 'https://...';
+}
+
+/**
  * Is this link on the platform's own host?
  *
  * "Contains" is not good enough: instagram.com.example.net contains

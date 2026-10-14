@@ -23,9 +23,7 @@ $noun      = card_label($service, $platform, $category ?? null);
          data-price="<?= e(money($package['price'])) ?>"
          data-name="<?= e($service['name']) ?>"
          data-label="<?= e($noun) ?>"
-         data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
-         data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>"
-         data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
+         <?= link_attrs($service, $platform, $category ?? null) ?>
          data-platform="<?= e($platform['name']) ?>">
 
   <?php if ($package['badge'] !== ''): ?>

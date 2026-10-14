@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS "categories" (
   "slug" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "icon" TEXT NOT NULL DEFAULT '',
+  "link_kind" TEXT NOT NULL DEFAULT '',
   "meta_title" TEXT NOT NULL DEFAULT '',
   "meta_description" TEXT NOT NULL DEFAULT '',
   "service_id" INTEGER,

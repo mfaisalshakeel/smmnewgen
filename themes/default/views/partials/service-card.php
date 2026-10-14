@@ -21,9 +21,7 @@ $feature = service_feature_lines($service);
          data-max="<?= $max ?>"
          data-name="<?= e($service['name']) ?>"
          data-label="<?= e(card_label($service, $platform, $category ?? null)) ?>"
-         data-link-label="<?= e($platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link') ?>"
-         data-link-hint="<?= e($platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...') ?>"
-         data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
+         <?= link_attrs($service, $platform, $category ?? null) ?>
          data-platform="<?= e($platform['name']) ?>">
 
   <?php if ($service['badge'] !== ''): ?>

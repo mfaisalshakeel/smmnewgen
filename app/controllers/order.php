@@ -65,10 +65,17 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $whatsapp  = trim((string) ($_POST['whatsapp'] ?? ''));
     $email     = trim((string) ($_POST['email'] ?? ''));
 
+    // The category comes along because it is where the admin says what kind of
+    // link this sells - a reel, a video, a profile - and the platform slug
+    // because the shapes are written per platform.
     $service = one(
-        'SELECT s.*, p.name AS platform_name, p.url_prefix, p.is_active AS platform_active
+        'SELECT s.*, p.name AS platform_name, p.slug AS platform_slug, p.url_prefix,
+                p.is_active AS platform_active,
+                c.name AS category_name' . (table_has_column('categories', 'link_kind')
+                    ? ', c.link_kind AS category_link_kind' : '') . '
            FROM services s
            LEFT JOIN platforms p ON p.id = s.platform_id
+           LEFT JOIN categories c ON c.id = s.category_id
           WHERE s.id = ? AND s.is_active = 1',
         [$serviceId]
     );
@@ -131,6 +138,20 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // wording depending on whether the script ran.
             $fail('That link is not on ' . $prefix . '.', 'link');
         }
+    }
+
+    // ...and the right kind of link on it. Views are counted on one reel, so
+    // a reel order placed with a profile link is an order the provider cannot
+    // fill and a refund to argue about afterwards.
+    $kind = link_kind($service, [
+        'name'      => (string) ($service['category_name'] ?? ''),
+        'link_kind' => (string) ($service['category_link_kind'] ?? ''),
+    ]);
+    $platformSlug = (string) ($service['platform_slug'] ?? '');
+    if (!link_matches_kind($link, $platformSlug, $kind)) {
+        // Word for word what the browser says, so the answer does not change
+        // with whether the script ran. The example is in the placeholder.
+        $fail('This needs ' . LINK_KINDS[$kind] . '.', 'link');
     }
 
     $digits = preg_replace('/\D/', '', $whatsapp);

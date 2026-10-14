@@ -73,6 +73,12 @@
     // The words the modal shows follow the chosen service too. Without this
     // the panel changed service and the order box kept naming the first one.
     card.dataset.label   = option.dataset.label || option.dataset.name;
+    // ...and so does the link it will ask for: two services in one category
+    // can want different ones - reel views and story views are both "views".
+    ['linkLabel', 'linkHint', 'linkHost', 'linkKind', 'linkPattern', 'linkNeeds']
+      .forEach(function (key) {
+        if (option.dataset[key] !== undefined) { card.dataset[key] = option.dataset[key]; }
+      });
 
     var min = parseInt(option.dataset.min, 10);
     var max = parseInt(option.dataset.max, 10);
@@ -167,8 +173,11 @@
         (card.querySelector('.qp-del') || { textContent: '' }).textContent.trim() || 'Starts shortly';
       document.getElementById('omLinkLabel').textContent = card.dataset.linkLabel;
       document.getElementById('omLink').placeholder      = card.dataset.linkHint;
-      // Carried on the form so the check below knows which host to insist on.
-      form.dataset.linkHost = card.dataset.linkHost || '';
+      // Carried on the form so the check below knows what to insist on: the
+      // host, and the shape of the link on it.
+      form.dataset.linkHost    = card.dataset.linkHost || '';
+      form.dataset.linkPattern = card.dataset.linkPattern || '';
+      form.dataset.linkNeeds   = card.dataset.linkNeeds || '';
       form.dataset.platform = card.dataset.platform || '';
       clearErrors();
       openModal();
@@ -251,6 +260,31 @@
     return actual === host || actual.endsWith('.' + host);
   }
 
+  // The second half of the same rule: the right host, and the right kind of
+  // link on it. The pattern comes from the card, which got it from the PHP,
+  // so the check that runs while you type is the one the server will run.
+  function linkPath(value) {
+    var parsed;
+    try { parsed = new URL(value); } catch (error) { return null; }
+
+    var host = parsed.hostname.toLowerCase();
+    var path = parsed.pathname || '/';
+
+    // youtu.be/<id> is a watch link with the id where the path is, and
+    // /watch only counts as a video when it carries one.
+    if (!/youtu\.be$/.test(host) && /^\/watch/.test(path) && !parsed.searchParams.get('v')) {
+      return '/watch-with-no-video';
+    }
+    return path;
+  }
+
+  function linkMatchesKind(value, pattern) {
+    if (!pattern) { return true; }
+    var path = linkPath(value);
+    if (path === null) { return false; }
+    try { return new RegExp(pattern, 'i').test(path); } catch (error) { return true; }
+  }
+
   // An error belongs under the field it is about, in the place the hint was
   // standing: the person is looking there, and the panel does not grow by a
   // line it has to be scrolled to reach.
@@ -288,15 +322,24 @@
 
     var host  = form.dataset.linkHost || '';
     var value = field.value.trim();
-    if (value === '' || linkIsOnHost(value, host)) {
+    if (value === '') {
       fieldError(field, '');
       return true;
     }
 
     // Short on purpose: an error sits where the hint was, and a message that
     // wraps to a second line is a message that pushes the button off a phone.
-    fieldError(field, 'That link is not on ' + host + '.');
-    return false;
+    if (!linkIsOnHost(value, host)) {
+      fieldError(field, 'That link is not on ' + host + '.');
+      return false;
+    }
+    if (!linkMatchesKind(value, form.dataset.linkPattern || '')) {
+      fieldError(field, form.dataset.linkNeeds || 'That is the wrong kind of link.');
+      return false;
+    }
+
+    fieldError(field, '');
+    return true;
   }
 
   document.addEventListener('input', function (event) {

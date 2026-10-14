@@ -424,6 +424,16 @@ return [
     ],
 
     // -----------------------------------------------------------------------
+    // Blank again means "work it out": link_kind() reads the service name and
+    // then the category name, so every category that existed before this ran
+    // already asks for the right kind of link.
+    '2026_10_category_link_kind' => [
+        'label'  => 'What kind of link each category needs',
+        'mysql'  => ["ALTER TABLE `categories` ADD COLUMN `link_kind` VARCHAR(20) NOT NULL DEFAULT '' AFTER `icon`"],
+        'sqlite' => ['ALTER TABLE "categories" ADD COLUMN "link_kind" TEXT NOT NULL DEFAULT \'\''],
+    ],
+
+    // -----------------------------------------------------------------------
     '2026_10_payment_fields' => [
         'label' => 'What a manual payment asks for',
         'mysql' => ["ALTER TABLE `orders` ADD COLUMN `payment_details` TEXT NULL"],

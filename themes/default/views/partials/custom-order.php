@@ -20,8 +20,6 @@ $min   = (int) $first['min_qty'];
 $max   = (int) $first['max_qty'];
 $start = min($max, max($min, 1000));
 
-$linkLabel = $platform['url_prefix'] ? $platform['name'] . ' link' : 'Profile or post link';
-$linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/yourbrand' : 'https://...';
 ?>
 <div class="customwrap">
   <div class="card custom"
@@ -31,9 +29,7 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
        data-max="<?= $max ?>"
        data-name="<?= e($first['name']) ?>"
        data-label="<?= e(card_label($first, $platform, $category ?? null)) ?>"
-       data-link-label="<?= e($linkLabel) ?>"
-       data-link-hint="<?= e($linkHint) ?>"
-       data-link-host="<?= e($platform['url_prefix'] ?? '') ?>"
+       <?= link_attrs($first, $platform, $category ?? null) ?>
        data-platform="<?= e($platform['name']) ?>">
 
     <h3>Custom <?= e(strtolower($category['name'] ?? 'order')) ?></h3>
@@ -50,6 +46,7 @@ $linkHint  = $platform['url_prefix'] ? 'https://' . $platform['url_prefix'] . '/
                     data-max="<?= (int) $service['max_qty'] ?>"
                     data-name="<?= e($service['name']) ?>"
                     data-label="<?= e(card_label($service, $platform, $category ?? null)) ?>"
+                    <?= link_attrs($service, $platform, $category ?? null) ?>
                     data-delivery="<?= e($service['delivery_time']) ?>">
               <?= e($service['name']) ?>
             </option>
