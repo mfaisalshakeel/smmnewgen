@@ -7,10 +7,11 @@
  * by whichever stylesheet is loaded. A theme that wants a different hero
  * still only has to drop its own copy of this partial in.
  *
- * The script swaps the platform and category without reloading, so three
- * things here are fixed points it looks for: #heroTitle with a .grad span
- * inside it, and #heroCta. It rewrites both with textContent, so neither may
- * hold markup that has to survive - the arrow is a character for that reason.
+ * The script swaps the platform and category without reloading, and what it
+ * looks for here is #heroTitle with a .grad span inside it, which it rewrites
+ * with textContent. There is no call to action and no row of promises: the
+ * badge, the headline and one line under it, and then the platform bar is the
+ * first thing to tap.
  *
  * @var array  $platform  @var ?array $category
  */
@@ -32,24 +33,6 @@ $label = $platform['name'] . ' ' . $noun;
 
       <p class="hero-sub">No password required &bull; Starts within 2&ndash;15 minutes &bull;
         Secure payment &bull; High quality service &bull; 24/7 support</p>
-
-      <div class="points">
-        <span class="point"><svg class="icon"><use href="#i-shield"></use></svg>
-          <span><b>100% Safe</b><small>&amp; secure</small></span></span>
-        <span class="point"><svg class="icon"><use href="#i-bolt"></use></svg>
-          <span><b>Instant</b><small>Delivery</small></span></span>
-        <span class="point"><svg class="icon"><use href="#i-users"></use></svg>
-          <span><b>10,000+</b><small>Happy customers</small></span></span>
-        <span class="point"><svg class="icon"><use href="#i-chat"></use></svg>
-          <span><b>24/7</b><small>Support</small></span></span>
-      </div>
-
-      <div class="hero-cta">
-        <a class="btn btn-hero" href="#services" id="heroCta">Buy <?= e($label) ?> &rarr;</a>
-        <span class="hero-note">
-          <svg class="icon"><use href="#i-check"></use></svg> No login or password needed
-        </span>
-      </div>
     </div>
 
     <!-- Decoration. Every word in it is repeated in the copy beside it, so

@@ -157,15 +157,19 @@ NULL into `providers.currency`, which is `NOT NULL`.
 - `theme_asset()` falls back the same way, so a theme with no `app.js` of its
   own still gets one — which is why a theme must keep the ids the script
   needs: `#platStrip`, `#catTabs`, `#serviceCards`, `#heroTitle` with its
-  `.grad` span, `#heroCta`, `#svcTitle`, and the card's `data-` attributes.
-  The script rewrites the `.grad` span and `#heroCta` with `textContent`, so
-  neither may hold markup that has to survive a switch — the arrow on the
-  button is a character for that reason.
+  `.grad` span, `#svcTitle`, and the card's `data-` attributes. The script
+  rewrites the `.grad` span with `textContent`, so it may not hold markup
+  that has to survive a switch. `#heroCta` is optional — the shipped hero has
+  no button and the script skips it — but a theme that adds one keeps the id
+  and keeps it to plain text, for the same reason.
 - **The hero is one partial**, `partials/hero.php`, rendered by both themes:
   the band, the drawn phone and the floating chips are the same shape
   whatever the colour, and the colour is mixed from `--brand` by whichever
   stylesheet is loaded. A theme that wants a different hero drops in its own
   copy of that partial, which is the same inheritance as every other view.
+  It carries a badge, the headline and one line under it — no promises row
+  and no button. The platform bar sits right under the band, so the first
+  thing to tap is the choice the whole page hangs off.
 - A page that opens on the hero gives the header to the band — no bar, no
   line, white type on the colour. `body:has(.hero) > header` asks the
   question the layout cannot, because the layout renders the header before it
