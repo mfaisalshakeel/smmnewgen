@@ -21,11 +21,10 @@ $noun = $category['name'] ?? 'Followers';
 
 <section class="psec" id="services">
   <div class="wrap">
+    <?php /* No heading above it: the tiles are pictures of the platforms and
+             say what they are, and two lines of text asking the question the
+             row already answers is two lines the phone has to scroll past. */ ?>
     <div class="chooser">
-      <div class="chooser-head">
-        <b>Which platform are you growing?</b>
-        <span>Pick one and the packages below follow.</span>
-      </div>
       <div class="plat-scroll">
         <?php partial('partials/platforms', ['platforms' => $platforms, 'platform' => $platform]); ?>
       </div>

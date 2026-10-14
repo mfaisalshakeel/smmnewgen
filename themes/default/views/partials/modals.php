@@ -49,14 +49,19 @@
         <small class="err" id="omWaErr" hidden></small>
       </div>
 
-      <div class="field" data-field="email">
-        <label for="omEmail">Email <span class="opt-tag">optional</span></label>
-        <input type="email" id="omEmail" name="email" placeholder="you@example.com"
-               aria-describedby="omEmailHint">
-        <small class="hint" id="omEmailHint">For a receipt. The order code still
-          goes to WhatsApp.</small>
-        <small class="err" id="omEmailErr" hidden></small>
-      </div>
+      <?php /* Off unless an admin asks for it. The order code and every update
+               go to WhatsApp, so on a phone this was one more box between the
+               customer and the button. */ ?>
+      <?php if (setting('ask_email', '0') === '1'): ?>
+        <div class="field" data-field="email">
+          <label for="omEmail">Email <span class="opt-tag">optional</span></label>
+          <input type="email" id="omEmail" name="email" placeholder="you@example.com"
+                 aria-describedby="omEmailHint">
+          <small class="hint" id="omEmailHint">For a receipt. The order code still
+            goes to WhatsApp.</small>
+          <small class="err" id="omEmailErr" hidden></small>
+        </div>
+      <?php endif; ?>
 
       <div class="safe-note">
         <svg class="icon" style="font-size:18px;flex:none"><use href="#i-shield"></use></svg>

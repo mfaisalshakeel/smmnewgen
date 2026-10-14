@@ -207,10 +207,7 @@ h1{font-size:clamp(28px,4.2vw,42px);font-weight:800;margin:20px 0 16px}
    Lifted out of the services section and up onto the hero, because choosing
    the platform is the decision the whole page hangs off. */
 .psec{margin-top:-78px;position:relative;z-index:2;padding:0}
-.chooser{background:#fff;border-radius:26px;padding:20px;box-shadow:0 14px 44px rgba(23,33,60,.16)}
-.chooser-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 4px 14px}
-.chooser-head b{font-size:15.5px;font-weight:800}
-.chooser-head span{color:var(--muted);font-size:13px;font-weight:600}
+.chooser{background:#fff;border-radius:26px;padding:12px;box-shadow:0 14px 44px rgba(23,33,60,.16)}
 .plat-scroll{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .plat-scroll::-webkit-scrollbar{display:none}
 .plats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(118px,1fr);gap:10px;min-width:max-content}
@@ -683,7 +680,7 @@ a.tab{display:inline-flex;align-items:center}
   .points{gap:12px 20px}
   .point .icon{width:28px;height:28px;padding:6px;font-size:15px}
   .psec{margin-top:-62px}
-  .chooser{padding:16px;border-radius:22px}
+  .chooser{padding:10px;border-radius:22px}
   .plats{grid-auto-columns:minmax(104px,1fr);gap:8px}
   .plat{padding:14px 10px;font-size:13px;border-radius:16px}
   .plat .icon{font-size:23px}

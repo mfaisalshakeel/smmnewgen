@@ -353,6 +353,7 @@ INSERT INTO `settings` (`k`, `v`) VALUES
   ('auto_send_orders',     '1'),
   ('auto_sync_statuses',   '1'),
   ('require_trx_id',       '1'),
+  ('ask_email',            '0'),
   ('allow_manual_services','1'),
   ('order_prefix',         'GK'),
   ('active_theme',         'default'),

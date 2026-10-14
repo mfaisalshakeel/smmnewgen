@@ -39,6 +39,12 @@ $GROUPS = [
         'auto_sync_statuses'    => ['label' => 'Let cron refresh order statuses', 'type' => 'checkbox'],
         'require_trx_id'        => ['label' => 'Require a transaction id before a customer can submit payment',
                                     'type' => 'checkbox'],
+        'ask_email'             => ['label' => 'Ask the customer for an email address',
+                                    'type' => 'checkbox',
+                                    'hint' => 'Off by default: the order code and every update go '
+                                            . 'to WhatsApp, so the field was one more box on a '
+                                            . 'form people fill in on a phone. Turn it on if you '
+                                            . 'want to email receipts as well.'],
         'allow_manual_services' => ['label' => 'Allow services with no provider (delivered by hand)',
                                     'type' => 'checkbox'],
         'default_markup'        => ['label' => 'Default markup %', 'type' => 'number',
