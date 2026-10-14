@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `platform_id` INT UNSIGNED NOT NULL,
   `slug` VARCHAR(60) NOT NULL,
   `name` VARCHAR(60) NOT NULL,
+  `icon` VARCHAR(40) NOT NULL DEFAULT '',
   `meta_title` VARCHAR(190) NOT NULL DEFAULT '',
   `meta_description` VARCHAR(255) NOT NULL DEFAULT '',
   `service_id` INT UNSIGNED NULL,

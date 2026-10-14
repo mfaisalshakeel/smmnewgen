@@ -108,7 +108,10 @@ if (($_SERVER['HTTP_X_FRAGMENT'] ?? '') === '1') {
     echo json_encode([
         'title'     => $title,
         'heroTitle' => $platform['name'] . ' ' . $noun,
-        'ctaLabel'  => 'Buy ' . $platform['name'] . ' ' . $noun . ' \u2192',
+        // The arrow is the character itself. '\u2192' in single quotes is six
+        // literal characters, and that is exactly what the button showed
+        // after a switch: "Buy Instagram Followers \u2192".
+        'ctaLabel'  => 'Buy ' . $platform['name'] . ' ' . $noun . ' ' . "\u{2192}",
         'url'       => $canonical,
         'platforms' => render('partials/platforms', ['platforms' => $platformRows, 'platform' => $platform]),
         'tabs'      => render('partials/tabs', ['categories' => $categories, 'category' => $category, 'platform' => $platform]),

@@ -176,6 +176,33 @@ function table_exists(string $table): bool
     }
 }
 
+/**
+ * Does this table have this column yet?
+ *
+ * Same reason as table_exists(): between uploading the files and running the
+ * migrations the panel has to keep working, and a screen that writes to a
+ * column the database has not got yet fails on save rather than on load -
+ * which is the worst moment to find out. Asked by selecting it, because
+ * MySQL and SQLite keep their catalogues in different places.
+ */
+function table_has_column(string $table, string $column): bool
+{
+    static $known = [];
+    $key = $table . '.' . $column;
+    if (isset($known[$key])) {
+        return $known[$key];
+    }
+    try {
+        q('SELECT `' . $column . '` FROM `' . $table . '` LIMIT 1');
+        return $known[$key] = true;
+    } catch (PDOException $e) {
+        if (!is_missing_schema($e)) {
+            throw $e;
+        }
+        return $known[$key] = false;
+    }
+}
+
 /** Insert an associative array and return the new id. */
 function insert_row(string $table, array $data): int
 {
@@ -718,6 +745,81 @@ function service_tiers(array $service): array
     }
 
     return $tiers;
+}
+
+/**
+ * Every icon id the sprite actually defines.
+ *
+ * Read from the sprite rather than kept as a list beside it, because a list
+ * beside it is a list that goes stale: an icon added to the sprite has to show
+ * up in the admin's picker without anyone remembering to add it twice.
+ */
+function icon_choices(): array
+{
+    static $choices = null;
+    if ($choices !== null) {
+        return $choices;
+    }
+
+    $sprite = APP_PATH . '/views/partials/icons.php';
+    $markup = is_file($sprite) ? (string) file_get_contents($sprite) : '';
+    preg_match_all('/id="(i-[a-z0-9-]+)"/', $markup, $found);
+
+    $choices = [];
+    foreach ($found[1] as $id) {
+        $choices[$id] = ucfirst(str_replace('-', ' ', substr($id, 2)));
+    }
+    ksort($choices);
+
+    return $choices;
+}
+
+/**
+ * What a word in a category name means in pictures.
+ *
+ * Only words a shop actually sells by. A name with none of them in it gets
+ * the generic tag rather than a picture that says the wrong thing.
+ */
+const CATEGORY_ICON_WORDS = [
+    'subscriber' => 'i-bell',    'follower'   => 'i-users',  'member'  => 'i-users',
+    'friend'     => 'i-users',   'connection' => 'i-users',
+    'like'       => 'i-heart',   'reaction'   => 'i-heart',  'love'    => 'i-heart',
+    'view'       => 'i-eye',     'impression' => 'i-eye',    'reach'   => 'i-eye',
+    'play'       => 'i-play',    'stream'     => 'i-play',   'live'    => 'i-play',
+    'watch'      => 'i-clock',   'hour'       => 'i-clock',  'minute'  => 'i-clock',
+    'comment'    => 'i-chat',    'reply'      => 'i-chat',   'message' => 'i-chat',
+    'share'      => 'i-share',   'repost'     => 'i-share',  'retweet' => 'i-share',
+    'save'       => 'i-tag',     'bookmark'   => 'i-tag',
+    'vote'       => 'i-star',    'rating'     => 'i-star',   'review'  => 'i-star',
+    'download'   => 'i-down',    'install'    => 'i-down',
+    'traffic'    => 'i-globe',   'visit'      => 'i-globe',  'click'   => 'i-globe',
+];
+
+/**
+ * The icon a category tab carries.
+ *
+ * The admin picks one; a category that has never been given an icon - which
+ * is every category on a fresh install, and every one that existed before the
+ * column did - is read from its own name instead. The guess is what keeps the
+ * tabs looking right without an admin filling in a field per category.
+ */
+function category_icon(?array $category): string
+{
+    $chosen = trim((string) ($category['icon'] ?? ''));
+    if ($chosen !== '' && isset(icon_choices()[$chosen])) {
+        return $chosen;
+    }
+
+    $words = strtolower((string) ($category['name'] ?? '') . ' ' . (string) ($category['slug'] ?? ''));
+    foreach (CATEGORY_ICON_WORDS as $word => $icon) {
+        // Whole word and a plural, because the category is "Followers" and
+        // the word here is "follower".
+        if (preg_match('/\b' . preg_quote($word, '/') . 's?\b/', $words)) {
+            return $icon;
+        }
+    }
+
+    return 'i-tag';
 }
 
 /**

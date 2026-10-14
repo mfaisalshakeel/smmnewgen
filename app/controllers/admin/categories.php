@@ -34,7 +34,8 @@ crud_handle([
     ],
     'columns'  => [
         ['label' => 'Category', 'render' => fn($r) =>
-            '<b>' . e($r['name']) . '</b><small class="sub">/' . e($r['slug']) . '</small>'],
+            '<span class="cat-ico"><svg class="icon"><use href="#' . e(category_icon($r)) . '"></use></svg></span>'
+            . '<b>' . e($r['name']) . '</b><small class="sub">/' . e($r['slug']) . '</small>'],
         ['label' => 'Platform', 'render' => fn($r) =>
             e(col('SELECT name FROM platforms WHERE id = ?', [$r['platform_id']], '-'))],
         ['label' => 'Services', 'render' => function ($r) use ($singleMode, $services) {
@@ -54,11 +55,20 @@ crud_handle([
             '<span class="st st-' . ($r['is_active'] ? 'completed' : 'cancelled') . '">'
             . ($r['is_active'] ? 'active' : 'off') . '</span>'],
     ],
-    'fields' => [
+    'fields' => array_filter([
         'platform_id' => ['label' => 'Platform', 'type' => 'select', 'options' => $platforms, 'required' => true],
         'name'        => ['label' => 'Name', 'required' => true],
         'slug'        => ['label' => 'URL slug', 'required' => true, 'rules' => ['slug'],
                           'hint' => 'Used in the address: /instagram/followers'],
+        // Left out until the migration that adds the column has run, because
+        // the panel is where that button lives: a field the database has not
+        // got yet fails on save, which is the worst moment to find out.
+        'icon'        => table_has_column('categories', 'icon') ? [
+                          'label' => 'Tab icon', 'type' => 'select', 'options' => icon_choices(),
+                          'search' => true, 'empty' => 'Read it from the name',
+                          'hint' => 'Shown on the tab and in the drawer. Left alone, the name '
+                                  . 'decides it - Followers gets people, Likes a heart, Views an eye.',
+                        ] : null,
         'service_id'  => ['label' => 'Service shown here', 'type' => 'select', 'options' => $services,
                           'search' => true,
                           'empty' => 'The first active service in this category', 'nullable' => true,
@@ -68,5 +78,5 @@ crud_handle([
         'meta_description' => ['label' => 'Meta description', 'type' => 'textarea', 'rows' => 2],
         'sort_order'  => ['label' => 'Sort order', 'type' => 'number', 'default' => 0],
         'is_active'   => ['label' => 'Active', 'type' => 'checkbox', 'default' => 1],
-    ],
+    ]),
 ], $params);

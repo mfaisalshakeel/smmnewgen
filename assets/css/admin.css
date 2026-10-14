@@ -142,6 +142,10 @@ svg{max-width:100%}
 .tbl tbody tr:hover{background:var(--hover);cursor:pointer}
 .tbl tr.dim td{opacity:.62}
 .tbl .sub{display:block;color:var(--muted);font-size:12px;font-weight:500;margin-top:2px}
+/* The glyph a category tab carries, shown beside the name so the admin can
+   see what the storefront will draw without opening the form. */
+.cat-ico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;
+  margin-right:9px;vertical-align:-7px;background:var(--acc-soft);color:var(--acc);font-size:14px}
 .tbl .empty{text-align:center;color:var(--muted);padding:40px 14px;cursor:default}
 .tbl input[type=checkbox]{width:17px;height:17px;accent-color:var(--acc);cursor:pointer}
 .chipx{background:var(--acc-soft);color:var(--acc-ink);border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700}

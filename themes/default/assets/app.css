@@ -231,9 +231,14 @@ h2{font-size:clamp(25px,3.4vw,36px);font-weight:800}
 .tabs{display:flex;gap:6px;justify-content:center;background:var(--surface);border:1px solid var(--line);
   border-radius:999px;padding:6px;width:max-content;max-width:100%;margin:0 auto 34px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{border:0;background:none;border-radius:999px;padding:10px 24px;font-weight:700;font-size:14.5px;
+.tab{display:inline-flex;align-items:center;gap:9px;border:0;background:none;border-radius:999px;
+  padding:10px 22px;font-weight:700;font-size:14.5px;
   cursor:pointer;color:var(--ink-2);white-space:nowrap;transition:all .18s}
+/* The icon says what the tab sells at a glance; the word still has to be
+   there, because a picture of a heart is not the word Likes. */
+.tab .icon{font-size:17px;opacity:.75}
 .tab.active{background:#fff;color:var(--brand);box-shadow:var(--shadow)}
+.tab.active .icon{opacity:1}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:22px}
 .card{container-type:inline-size;min-width:0;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius);padding:24px;
   display:flex;flex-direction:column;position:relative;box-shadow:var(--shadow);

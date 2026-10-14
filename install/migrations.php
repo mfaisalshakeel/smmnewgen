@@ -414,6 +414,16 @@ return [
     ],
 
     // -----------------------------------------------------------------------
+    // Blank is a real answer here, not a missing one: category_icon() reads
+    // the name when the column is empty, so every category that existed
+    // before this ran already has the right picture on it.
+    '2026_10_category_icon' => [
+        'label'  => 'An icon on every category tab',
+        'mysql'  => ["ALTER TABLE `categories` ADD COLUMN `icon` VARCHAR(40) NOT NULL DEFAULT '' AFTER `name`"],
+        'sqlite' => ['ALTER TABLE "categories" ADD COLUMN "icon" TEXT NOT NULL DEFAULT \'\''],
+    ],
+
+    // -----------------------------------------------------------------------
     '2026_10_payment_fields' => [
         'label' => 'What a manual payment asks for',
         'mysql' => ["ALTER TABLE `orders` ADD COLUMN `payment_details` TEXT NULL"],
