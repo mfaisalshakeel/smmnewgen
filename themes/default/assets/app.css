@@ -216,7 +216,12 @@ h1{font-size:clamp(28px,4.2vw,42px);font-weight:800;margin:20px 0 16px}
 .plat{display:flex;align-items:center;gap:9px;background:none;border:0;
   border-radius:999px;padding:11px 24px;font-weight:700;font-size:14.5px;cursor:pointer;
   transition:background .18s ease, color .18s ease, box-shadow .18s ease;color:var(--ink-2)}
+/* A platform that has a logo is only its logo: the mark is the name, and the
+   card underneath says it in words anyway. One that has none keeps the text,
+   because a row of identical default glyphs chooses nothing. */
+.plat-icon{padding:11px;width:46px;height:46px;justify-content:center}
 .plat .icon{font-size:19px}
+.plat-icon .icon{font-size:23px}
 .plat:hover{background:var(--bg-soft);color:var(--ink)}
 .plat.active{color:#fff;background:var(--pc,var(--brand));
   box-shadow:0 8px 20px -6px var(--pc,var(--brand))}
@@ -488,6 +493,7 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
   .point .icon{width:28px;height:28px;padding:6px;font-size:15px}
   .plats{justify-content:flex-start}
   .plat{padding:11px 18px}
+  .plat-icon{padding:10px;width:42px;height:42px}
   .psec{margin-top:-26px}
   .section{padding:40px 0}
   .cards{grid-template-columns:minmax(0,1fr)}

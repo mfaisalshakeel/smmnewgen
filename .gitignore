@@ -9,3 +9,6 @@ uploads/branding/*
 !uploads/branding/.gitignore
 .DS_Store
 build/
+
+# Preview screenshots dropped in the root for review; never part of a release.
+/*.png

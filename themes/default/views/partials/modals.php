@@ -43,9 +43,7 @@
 
       <div class="field" data-field="whatsapp">
         <label for="omWa">WhatsApp number</label>
-        <input type="tel" id="omWa" name="whatsapp" placeholder="+92 300 1234567" required
-               aria-describedby="omWaHint">
-        <small class="hint" id="omWaHint">We send your order code and updates here.</small>
+        <input type="tel" id="omWa" name="whatsapp" placeholder="+92 300 1234567" required>
         <small class="err" id="omWaErr" hidden></small>
       </div>
 

@@ -210,12 +210,17 @@ h1{font-size:clamp(28px,4.2vw,42px);font-weight:800;margin:20px 0 16px}
 .chooser{background:#fff;border-radius:26px;padding:12px;box-shadow:0 14px 44px rgba(23,33,60,.16)}
 .plat-scroll{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .plat-scroll::-webkit-scrollbar{display:none}
-.plats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(118px,1fr);gap:10px;min-width:max-content}
+.plats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(96px,1fr);gap:10px;min-width:max-content}
 .plat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
   background:var(--bg-soft);border:1.5px solid transparent;border-radius:18px;padding:16px 12px;
   font-weight:700;font-size:14px;cursor:pointer;color:var(--ink-2);text-align:center;
   transition:border-color .18s, transform .18s, box-shadow .18s, color .18s}
+/* A platform that has a logo is only its logo: the mark is the name, and the
+   card underneath says it in words anyway. One that has none keeps the text,
+   because a row of identical default glyphs chooses nothing. */
+.plat-icon{padding:14px}
 .plat .icon{font-size:26px;color:var(--pc,var(--brand))}
+.plat-icon .icon{font-size:30px}
 .plat:hover{transform:translateY(-3px);border-color:var(--brand-line);background:#fff;
   box-shadow:0 10px 24px rgba(23,33,60,.08)}
 .plat.active{color:#fff;background:var(--pc,var(--brand));border-color:transparent;
@@ -681,7 +686,7 @@ a.tab{display:inline-flex;align-items:center}
   .point .icon{width:28px;height:28px;padding:6px;font-size:15px}
   .psec{margin-top:-62px}
   .chooser{padding:10px;border-radius:22px}
-  .plats{grid-auto-columns:minmax(104px,1fr);gap:8px}
+  .plats{grid-auto-columns:minmax(84px,1fr);gap:8px}
   .plat{padding:14px 10px;font-size:13px;border-radius:16px}
   .plat .icon{font-size:23px}
   .section{padding:40px 0}
