@@ -473,6 +473,30 @@
   var SWAP = { platforms: '#platStrip', tabs: '#catTabs', cards: '#serviceCards' };
   var loading = false;
 
+  // A strip with more in it than fits scrolls, and the one that matters is
+  // the chosen one - which is exactly the one that ends up half under the
+  // bar's own rounded edge when the browser decides where to leave it. Put
+  // it in the middle of what can be seen; scrollLeft only, so the page
+  // itself never moves.
+  function showChosen(selector) {
+    var strip = document.querySelector(selector);
+    if (!strip || strip.scrollWidth <= strip.clientWidth) { return; }
+
+    var chosen = strip.querySelector('.active');
+    if (!chosen) { return; }
+
+    strip.scrollLeft = Math.max(0,
+      chosen.offsetLeft - (strip.clientWidth - chosen.offsetWidth) / 2);
+  }
+
+  function showChosenTabs() {
+    showChosen(SWAP.tabs);
+    showChosen(SWAP.platforms);
+  }
+
+  showChosenTabs();
+  window.addEventListener('resize', showChosenTabs);
+
   function skeleton() {
     var cards = document.querySelector(SWAP.cards);
     if (!cards) { return; }
@@ -515,6 +539,7 @@
 
     if (data.title) { document.title = data.title; }
 
+    showChosenTabs();
     document.querySelectorAll('.card').forEach(recalc);
   }
 

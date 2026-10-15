@@ -676,6 +676,18 @@ a.tab{display:inline-flex;align-items:center}
   .section{padding:40px 0}
   /* One to a row: at this width two cards squeeze the name, the price and
      every feature line onto two words each. */
+  /* Three tabs with an icon each stopped fitting a 320px bar, and a bar
+     that scrolls leaves the chosen one half under its own rounded edge -
+     which is what it did. Full width, tighter, and the tabs share the row
+     between them; past four of them it scrolls, and the script keeps the
+     chosen one in the middle of what can be seen. */
+  .tabs{width:100%;max-width:100%;padding:5px;gap:4px;justify-content:flex-start;
+    scroll-padding-inline:5px}
+  /* Grow to share the row, never shrink: a shrinking tab goes under its own
+     min-content width and the label ends up printed over the icon. Past what
+     fits, the strip scrolls instead. */
+  .tab{flex:1 0 auto;justify-content:center;padding:9px 10px;font-size:13px;gap:6px}
+  .tab .icon{font-size:15px}
   .cards{grid-template-columns:minmax(0,1fr);gap:14px}
   .card.pkg{border-radius:16px}
   .pkg-head{min-height:78px;padding:14px 14px 15px}
