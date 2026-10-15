@@ -444,6 +444,131 @@ if (($params[1] ?? '') === 'start' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $answer(['ok' => true, 'redirect' => url('order/' . $order['code'])]);
 }
 
+// --- the hosted QR page -----------------------------------------------------
+// A gateway that can be watched rather than typed sends the customer here
+// instead of away: the QR is ours, the waiting is ours, and the order marks
+// itself paid the moment the gateway says the money landed.
+if (($params[1] ?? '') === 'qr') {
+    require_once APP_PATH . '/helpers/qr.php';
+
+    // Nothing to scan for an order that is already settled, and a live QR on
+    // one is an invitation to pay for it twice.
+    if (!in_array($order['status'], ['pending', 'api_error'], true)) {
+        redirect('order/' . $order['code']);
+    }
+
+    $method = $order['payment_method_id']
+        ? one('SELECT * FROM payment_methods WHERE id = ? AND is_active = 1',
+            [(int) $order['payment_method_id']])
+        : null;
+
+    // Opened from a kept link rather than reached through /start, so the order
+    // does not name a method yet. Nothing is written down to fix that: the
+    // check below answers the same question the same way, and a GET that
+    // changes an order is a GET a reload can surprise somebody with.
+    $method ??= sole_watched_method();
+
+    $drawing = $method ? payment_qr($method, $order) : [];
+
+    if (!$drawing || $drawing['text'] === '' || $drawing['error'] !== '') {
+        flash('error', ($drawing['error'] ?? '') !== ''
+            ? (string) $drawing['error']
+            : 'That payment method cannot show a QR code. Please pay from this page instead.');
+        redirect('order/' . $order['code']);
+    }
+
+    // The encoder stops at 271 bytes. Nothing we build comes close, but a
+    // gateway's own text is a gateway's own business, so a refusal lands here
+    // rather than as a 500 on a page the customer is trying to pay from.
+    try {
+        $svg = qr_svg($drawing['text'], 230, 'QR code to pay order ' . $order['code']);
+    } catch (RuntimeException $e) {
+        log_line('QR for order ' . $order['code'] . ' could not be drawn: ' . $e->getMessage());
+        flash('error', 'The payment QR could not be drawn. Please pay from this page instead.');
+        redirect('order/' . $order['code']);
+    }
+
+    view('order-qr', [
+        'title'       => 'Pay for order ' . $order['code'],
+        'meta_robots' => 'noindex, nofollow',
+        'order'       => $order,
+        'method'      => $method,
+        'qr'          => $drawing,
+        'svg'         => $svg,
+    ]);
+}
+
+// --- has the money landed? --------------------------------------------------
+// Asked by the QR page every few seconds, and by cron for the customer who
+// paid and closed the tab. Both answers come from the gateway, never from the
+// browser: this endpoint takes no input beyond which order it is about.
+if (($params[1] ?? '') === 'check' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+
+    $asJson = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
+    $answer = static function (array $payload) use ($asJson, $order): never {
+        if ($asJson) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($payload);
+            exit;
+        }
+        if (($payload['message'] ?? '') !== '') {
+            flash($payload['state'] === 'paid' ? 'success' : 'warning', (string) $payload['message']);
+        }
+        redirect($payload['state'] === 'paid'
+            ? 'order/' . $order['code']
+            : 'order/' . $order['code'] . '/qr');
+    };
+
+    // A poll is one outbound request to the gateway, so the budget is the
+    // page's own pace with room to spare - not something to be ground on.
+    if (!rate_limit('check_payment', 200, 600)) {
+        $answer(['state' => 'waiting', 'message' => 'Checking too often. Please wait a moment.']);
+    }
+
+    // Settled while the page was watching, by an admin or by the last poll.
+    // Paid and beyond is the good news the page is waiting for; cancelled or
+    // refunded is news too, and it is not "keep waiting".
+    if (!in_array($order['status'], ['pending', 'api_error'], true)) {
+        $answer(in_array($order['status'], ['cancelled', 'refunded'], true)
+            ? ['state' => 'failed', 'message' => 'This order is no longer open.']
+            : ['state' => 'paid', 'message' => '', 'redirect' => url('order/' . $order['code'])]);
+    }
+
+    $method = $order['payment_method_id']
+        ? one('SELECT * FROM payment_methods WHERE id = ? AND is_active = 1',
+            [(int) $order['payment_method_id']])
+        : null;
+
+    $method ??= sole_watched_method();
+
+    if (!$method) {
+        $answer(['state' => 'waiting', 'message' => 'This order has no payment method to check.']);
+    }
+
+    $result = payment_poll($method, $order);
+
+    // Worth recording the first time it is seen and worthless every time
+    // after: a short payment or a gateway that cannot be reached.
+    if ($result['state'] !== 'paid' && ($result['summary'] ?? '') !== '') {
+        order_log_once((int) $order['id'], (string) $result['summary']);
+    }
+
+    if ($result['state'] === 'paid') {
+        // Not checked: whoever loses the claim is still being told the truth,
+        // which is that this order is paid for.
+        confirm_order_payment($order, $method, $result);
+
+        $answer([
+            'state'    => 'paid',
+            'message'  => $result['message'] !== '' ? $result['message'] : 'Payment received.',
+            'redirect' => url('order/' . $order['code']),
+        ]);
+    }
+
+    $answer(['state' => $result['state'], 'message' => (string) $result['message']]);
+}
+
 // ---------------------------------------------------------------- view ----
 view('order', [
     'title'       => 'Order ' . $order['code'],

@@ -29,9 +29,11 @@ const QR_ALIGNMENT = [
 /**
  * Render $text as an SVG QR code.
  *
- * @param int $size   the drawn square, in CSS pixels
+ * @param int    $size   the drawn square, in CSS pixels
+ * @param string $label  what it is, for a screen reader - a QR code is a
+ *                       picture, and "QR code" alone says nothing about which
  */
-function qr_svg(string $text, int $size = 190): string
+function qr_svg(string $text, int $size = 190, string $label = 'QR code'): string
 {
     $matrix = qr_matrix($text);
     $count  = count($matrix);
@@ -52,7 +54,7 @@ function qr_svg(string $text, int $size = 190): string
     return '<svg class="qr" width="' . $size . '" height="' . $size . '" '
         . 'viewBox="0 0 ' . $span . ' ' . $span . '" '
         . 'shape-rendering="crispEdges" role="img" '
-        . 'aria-label="Two-factor setup QR code">'
+        . 'aria-label="' . e($label) . '">'
         . '<rect width="' . $span . '" height="' . $span . '" fill="#fff"/>'
         . '<path d="' . $path . '" fill="#15152a"/></svg>';
 }

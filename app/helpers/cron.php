@@ -11,6 +11,7 @@
  */
 
 require_once APP_PATH . '/helpers/orders.php';
+require_once APP_PATH . '/helpers/payments.php';
 require_once APP_PATH . '/helpers/sync.php';
 require_once APP_PATH . '/helpers/currency.php';
 require_once APP_PATH . '/helpers/guard.php';
@@ -30,6 +31,14 @@ function cron_tasks(): array
             'detail'   => 'Any order marked paid that has not reached its provider yet.',
             'every'    => 'Every 5 minutes',
             'handler'  => 'cron_send_orders',
+        ],
+        'check_payments' => [
+            'label'    => 'Check watched payments',
+            'detail'   => 'Asks the gateway about orders still awaiting payment on a method '
+                        . 'that confirms itself. This is what catches the customer who paid '
+                        . 'the QR and then closed the tab.',
+            'every'    => 'Every 5 minutes',
+            'handler'  => 'cron_check_payments',
         ],
         'sync_statuses' => [
             'label'    => 'Refresh order statuses',
@@ -95,6 +104,53 @@ function cron_send_orders(): string
     return $waiting
         ? sprintf('%d sent, %d failed', $sent, $failed)
         : 'nothing waiting';
+}
+
+/**
+ * Catch the payments the browser was not around to see confirmed.
+ *
+ * Only orders on a method that can be asked, only while they are still
+ * awaiting payment, and only for a day: a QR nobody ever scanned would
+ * otherwise be asked about for ever, one outbound request at a time.
+ */
+function cron_check_payments(): string
+{
+    $since = date('Y-m-d H:i:s', time() - 86400);
+
+    $waiting = all("SELECT o.* FROM orders o
+                     WHERE o.status IN ('pending', 'api_error')
+                       AND o.payment_method_id IS NOT NULL
+                       AND o.created_at >= ?
+                  ORDER BY o.created_at DESC LIMIT 25", [$since]);
+
+    $asked = $paid = 0;
+
+    foreach ($waiting as $order) {
+        $method = one('SELECT * FROM payment_methods WHERE id = ? AND is_active = 1',
+            [(int) $order['payment_method_id']]);
+
+        if (!$method || !payment_is_watched($method)) {
+            continue;
+        }
+
+        $asked++;
+        $result = payment_poll($method, $order);
+
+        if ($result['state'] !== 'paid') {
+            if (($result['summary'] ?? '') !== '') {
+                order_log_once((int) $order['id'], (string) $result['summary']);
+            }
+            continue;
+        }
+
+        if (confirm_order_payment($order, $method, $result)) {
+            $paid++;
+        }
+    }
+
+    return $asked
+        ? sprintf('%d asked, %d confirmed', $asked, $paid)
+        : 'nothing to check';
 }
 
 function cron_sync_statuses(): string

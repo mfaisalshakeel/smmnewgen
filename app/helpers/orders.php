@@ -63,6 +63,99 @@ function order_log(int $orderId, string $message): void
 }
 
 /**
+ * Log a line unless that exact line is already on the order.
+ *
+ * For anything written by something that repeats. A page checking a payment
+ * every few seconds has something worth recording the first time it sees it -
+ * a short payment, a gateway that cannot be reached - and nothing worth
+ * recording the hundredth time.
+ */
+function order_log_once(int $orderId, string $message): void
+{
+    $message = mb_substr($message, 0, 500);
+
+    if (col('SELECT 1 FROM order_logs WHERE order_id = ? AND message = ?',
+            [$orderId, $message], null)) {
+        return;
+    }
+
+    order_log($orderId, $message);
+}
+
+/**
+ * Record that a gateway confirmed the money for an order, and act on it.
+ *
+ * This is the automatic half of what an admin does by hand on the order
+ * screen: mark it paid, keep the gateway's reference, tell the customer and
+ * hand it to the provider. It is one function because the QR page, cron and
+ * any later gateway all have to do exactly the same things in the same order.
+ *
+ * The status is claimed, not checked and then written: a browser polling in
+ * two tabs and cron arriving at the same moment would otherwise both mark it
+ * paid and both set off a send, and the order would be bought twice.
+ *
+ * Only from a status the customer could still be paying from. A paid or
+ * cancelled order is never reopened by a status read.
+ *
+ * @param  array $result  a payment_poll() reply with state 'paid'
+ * @return bool   true only for the caller that actually marked it paid
+ */
+function confirm_order_payment(array $order, array $method, array $result): bool
+{
+    $id        = (int) $order['id'];
+    $now       = date('Y-m-d H:i:s');
+    $reference = mb_substr(trim((string) ($result['reference'] ?? '')), 0, 120);
+    $amount    = $result['amount'] ?? null;
+
+    $took = claim('orders', [
+        'status'            => 'paid',
+        'paid_at'           => $now,
+        'paid_amount'       => $amount !== null ? round((float) $amount, 2) : (float) $order['price'],
+        'payment_method_id' => (int) $method['id'],
+        'trx_id'            => $reference,
+        'updated_at'        => $now,
+    ], "id = ? AND status IN ('pending', 'api_error')", [$id]);
+
+    if (!$took) {
+        return false;
+    }
+
+    $summary = trim((string) ($result['summary'] ?? ''));
+
+    order_log($id, 'Payment confirmed by ' . $method['name']
+        . ($summary !== '' ? ' - ' . $summary : '') . '.');
+    audit_row('order.paid', 'orders', $id, $order, [
+        'severity' => 'warn',
+        'summary'  => $order['code'] . ' confirmed by ' . $method['name']
+                    . ($summary !== '' ? ' - ' . $summary : ''),
+    ]);
+
+    $tokens = [
+        'order_code' => $order['code'],
+        'service'    => $order['service_label'] ?: $order['service_name'],
+        'quantity'   => qty_fmt((int) $order['quantity']),
+        'amount'     => money((float) $order['price']),
+        'method'     => $method['name'],
+        'reference'  => $reference !== '' ? $reference : 'none given',
+        'order_url'  => url('order/' . $order['code']),
+        'admin_url'  => url('admin/orders/' . $id),
+        'admin_link' => 'admin/orders/' . $id,
+        'email'      => $order['email'] ?? '',
+    ];
+
+    notify('admin_payment_submitted', $tokens);
+    if (($order['email'] ?? '') !== '') {
+        notify('order_paid', $tokens);
+    }
+
+    if (setting('auto_send_orders', '1') === '1') {
+        send_order_to_provider($id);
+    }
+
+    return true;
+}
+
+/**
  * Translate whatever a provider calls a status into one of ours.
  * Unknown values stay 'processing' rather than silently completing an order.
  */

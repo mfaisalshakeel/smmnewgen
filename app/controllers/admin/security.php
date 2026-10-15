@@ -125,7 +125,8 @@ if ($admin['two_factor'] === 'off') {
     $pending = [
         'secret'   => $secret,
         'readable' => totp_readable($secret),
-        'qr'       => qr_svg(totp_uri($secret, (string) $admin['username'], $issuer), 190),
+        'qr'       => qr_svg(totp_uri($secret, (string) $admin['username'], $issuer), 190,
+                             'Two-factor setup QR code'),
     ];
 }
 

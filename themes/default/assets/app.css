@@ -599,6 +599,33 @@ body{padding-bottom:40px}
 .help{text-align:center;font-size:13px;font-weight:600;color:var(--muted);margin-top:16px}
 .help a{color:var(--acc);font-weight:800}
 
+/* ---------- paying by QR ----------
+   One column, because the whole page is the code and the amount: a phone is
+   held up to the screen, or the link under it is tapped, and there is nothing
+   else to be done while that happens. */
+.qrpay{max-width:520px;margin:0 auto}
+.qrwait{display:flex;align-items:center;gap:9px;background:var(--page);border-radius:999px;
+  padding:9px 16px;font-size:13px;font-weight:800;color:var(--ink-2);margin-bottom:18px}
+.qrwait .d{width:8px;height:8px;border-radius:50%;background:var(--acc);flex:none;
+  animation:qrpulse 1.4s ease-in-out infinite}
+@keyframes qrpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.45}}
+/* Once there is an answer the dot has nothing left to say, so it stops. */
+.qrwait-ok{background:rgba(22,163,74,.12);color:#15803d}
+.qrwait-ok .d{background:#16a34a;animation:none}
+.qrwait-bad{background:#fdeaea;color:#b91c1c}
+.qrwait-bad .d{background:#dc2626;animation:none}
+.qrwait-idle .d{background:var(--muted);animation:none}
+.qrbox{display:grid;place-items:center;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+/* A QR scaled past legibility is not a QR, so it keeps the size it was drawn
+   at and only gives way on a screen narrower than itself. */
+.qr{display:block;width:230px;height:auto;max-width:100%}
+.qramt{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--acc);
+  color:var(--acc-on);border-radius:14px;padding:14px 18px;margin:16px 0 12px}
+.qramt small{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.qramt b{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.qrcap{text-align:center;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 14px}
+
 @media (max-width:900px){ .ogrid{grid-template-columns:minmax(0,1fr)} }
 @media (max-width:760px){
   .opage{padding:20px 0 6px}

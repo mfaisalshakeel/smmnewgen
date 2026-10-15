@@ -201,6 +201,38 @@ unknown provider status stays *processing*.
 
 ---
 
+## Taking payment with Paytm Business
+
+Paytm Business collects into a UPI id, so the customer is shown a QR for the
+exact amount and the order confirms itself when the money lands. Nobody types a
+transaction id and nobody has to match one up afterwards.
+
+1. **Admin → Payment Methods → New**, pick **Paytm Business (UPI QR)**.
+2. Fill in your **Merchant ID (MID)** and **Business UPI ID**, both from the
+   Paytm Business dashboard, and optionally the name you want shown in the UPI
+   app (the site name is used otherwise).
+3. Save it active.
+
+What the customer sees: they place the order, land on `/order/{CODE}/qr`, scan
+the QR with any UPI app - or tap *Pay in your UPI app* on a phone - and the page
+notices the payment within a few seconds and moves them on. With *auto-send
+orders* on, the order goes to the provider the moment it is confirmed.
+
+Two things worth knowing:
+
+- **UPI settles in rupees.** If your base currency is not INR, add **INR** under
+  Admin → Currencies so there is a rate to convert with. Without one the QR is
+  refused rather than drawn for a figure nobody can stand behind.
+- **The customer who pays and closes the tab is still covered.** The
+  *Check watched payments* cron task asks Paytm about orders that are still
+  awaiting payment, for a day after they were placed.
+
+A payment Paytm reports for less than the order asks for is *not* confirmed: the
+order stays where it is and both figures are written into its log, because the
+alternative is delivering for nothing.
+
+---
+
 ## Layout
 
 ```

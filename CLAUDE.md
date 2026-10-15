@@ -322,6 +322,48 @@ them, which puts those services back on the default set.
   has its own **Multi-status** button, and Check asks as well.
 - Every state change writes an `order_logs` row.
 
+## Payment gateways
+
+A gateway is **one file in `app/payments/`** returning a manifest, and
+`payment_gateways()` scans the folder - dropping a file in registers it, so
+adding one never means editing a file that already exists. The admin screen
+renders whatever `fields` the manifest declares into the method's `config`
+JSON, which is why it needed no change for either gateway shipped after it.
+
+Only `name` is required. `kind` is `manual` (show an account, take a
+reference, a person confirms) or `redirect` (the gateway takes the payment).
+Everything else is optional and falls back to the manual behaviour.
+
+Two of the optional callbacks go together, and they are what a gateway writes
+when the payment can be **watched instead of typed**:
+
+- `qr` returns the text to encode and the amount to print. An `error` instead
+  of them means there is nothing honest to draw, and the page says so rather
+  than showing a QR that collects the wrong number.
+- `poll` answers `paid`, `failed` or `waiting`. **Anything a gateway does not
+  recognise is `waiting`, never `paid`** - the same rule as
+  `map_provider_status()`, for the same reason: waiting too long costs a
+  question, guessing costs the delivery.
+
+`start` then redirects to `/order/{CODE}/qr`, which is ours: the QR is drawn
+by `qr_svg()` and the page asks `/order/{CODE}/check` every few seconds, one
+request at a time. Without the script that page is a button that does the
+same thing in one round trip.
+
+`confirm_order_payment()` in `helpers/orders.php` is the **only** place a
+gateway's yes turns into a paid order. It claims the status rather than
+checking it first, because the page polling in two tabs and cron arriving
+together would otherwise both mark it paid and both set off a send. It is
+also what the `check_payments` cron task calls, which is what catches the
+customer who paid and closed the tab.
+
+Paytm Business is the worked example: a UPI intent in the QR carrying the
+order code in `tr`, and Paytm's order-status endpoint asked about exactly
+that id. **A reported amount short of the order's is not a payment** - the
+order stays where it is with both figures in its log. TLS verification stays
+on; a payment status read over a connection nobody checked is one anybody in
+the way can write.
+
 ## Versions and updating
 
 - The release version lives in **one place**, `app/core/version.php`.
