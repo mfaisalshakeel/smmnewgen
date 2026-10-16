@@ -8,7 +8,7 @@
  *
  * @var array  $order  @var array $method  @var array $qr  @var string $svg
  */
-$wa = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
+$chat = chat_channels('order');
 ?>
 <main class="wrap opage">
   <div class="qrpay">
@@ -66,10 +66,11 @@ $wa = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
       </div>
       <p class="help">
         <a href="<?= e(url('order/' . $order['code'])) ?>">Pay another way instead</a>
-        <?php if ($wa !== ''): ?>
-          &bull; <a href="https://wa.me/<?= e($wa) ?>" target="_blank" rel="noopener">
-            Message us on WhatsApp</a>
-        <?php endif; ?>
+        <?php foreach ($chat as $channel): ?>
+          &bull; <a href="<?= e($channel['url']) ?>"
+             <?= $channel['key'] === 'email' ? '' : 'target="_blank" rel="noopener"' ?>
+             >Message us on <?= e($channel['name']) ?></a>
+        <?php endforeach; ?>
       </p>
     </div>
   </div>

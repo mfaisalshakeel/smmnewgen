@@ -31,6 +31,28 @@ if (($params[0] ?? '') === 'refresh' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // --- make one the base ------------------------------------------------------
+//
+// Two steps, because there is no undo. The first shows what the change would
+// touch and asks for the code to be typed; the second does it. A screen
+// rather than a confirm() box: the counts are the point, and a browser with
+// no JavaScript must not be able to walk past this one.
+if (($params[0] ?? '') === 'base' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    require_once APP_PATH . '/helpers/rebase.php';
+
+    $row = one('SELECT * FROM currencies WHERE id = ?', [(int) ($params[1] ?? 0)]);
+    if (!$row) {
+        flash('error', 'That currency no longer exists.');
+        redirect('admin/currencies');
+    }
+
+    view('admin/currency-base', [
+        'title'    => 'Change the base currency',
+        'subtitle' => 'Currencies',
+        'row'      => $row,
+        'plan'     => rebase_preview((string) $row['code']),
+    ], 'layouts/admin');
+}
+
 if (($params[0] ?? '') === 'base' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id  = (int) ($_POST['id'] ?? 0);
     $row = one('SELECT * FROM currencies WHERE id = ?', [$id]);
@@ -40,24 +62,28 @@ if (($params[0] ?? '') === 'base' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('admin/currencies');
     }
 
-    // Everything is stored in the base currency, so changing it would
-    // revalue every price in the database. Say so instead of doing it.
-    $priced = (int) col('SELECT COUNT(*) FROM services WHERE price_per_1000 > 0', [], 0);
-    $orders = (int) col('SELECT COUNT(*) FROM orders', [], 0);
+    // Everything stored is in the base currency and carries no currency of
+    // its own, so moving the base rewrites every amount in the database.
+    // That is worth typing the code out for - there is no undo.
+    require_once APP_PATH . '/helpers/rebase.php';
 
-    if ($priced > 0 || $orders > 0) {
-        flash('error', 'The base currency cannot be changed once there are priced services or orders - '
-            . 'every stored amount is in it. Set it up before you import services.');
+    $typed = strtoupper(trim((string) ($_POST['confirm'] ?? '')));
+    $plan  = rebase_preview((string) $row['code']);
+
+    if (!$plan['ok']) {
+        flash('error', $plan['message']);
         redirect('admin/currencies');
     }
 
-    q('UPDATE currencies SET is_base = 0');
-    update_row('currencies', ['is_base' => 1, 'rate_to_base' => 1, 'is_active' => 1], 'id = ?', [$id]);
-    set_setting('base_currency', strtoupper($row['code']));
-    set_setting('currency_symbol', $row['symbol']);
-    currencies(true);
+    if ($typed !== strtoupper((string) $row['code'])) {
+        flash('error', 'Type ' . strtoupper((string) $row['code']) . ' in the box to confirm.');
+        redirect('admin/currencies/base/' . (int) $row['id']);
+    }
 
-    flash('success', $row['code'] . ' is now your base currency.');
+    @set_time_limit(120);
+    $result = rebase_currency((string) $row['code']);
+
+    flash($result['ok'] ? 'success' : 'error', $result['message']);
     redirect('admin/currencies');
 }
 
@@ -97,11 +123,8 @@ crud_handle([
             if ($r['is_base']) {
                 return '<span class="st st-completed">base</span>';
             }
-            return '<form method="post" action="' . e(url('admin/currencies/base')) . '" style="display:inline"'
-                 . ' data-confirm="Make ' . e($r['code']) . ' the base currency?">'
-                 . csrf_field()
-                 . '<input type="hidden" name="id" value="' . (int) $r['id'] . '">'
-                 . '<button class="btn btn-ghost btn-sm" type="submit">Make base</button></form>';
+            return '<a class="btn btn-ghost btn-sm" href="'
+                 . e(url('admin/currencies/base/' . (int) $r['id'])) . '">Make base</a>';
         }],
     ],
     'fields' => [

@@ -7,7 +7,7 @@ $delivered = $order && $order['remains'] !== null
 <section class="page-head">
   <div class="wrap">
     <h1>Track your order</h1>
-    <p>Enter the order code we sent you on WhatsApp.</p>
+    <p>Enter the order code you were given when you placed the order.</p>
   </div>
 </section>
 
@@ -15,7 +15,10 @@ $delivered = $order && $order['remains'] !== null
   <div class="wrap track-wrap">
     <div class="track-card">
       <form class="track-form" method="get" action="<?= e(url('track')) ?>">
-        <input name="code" value="<?= e($code) ?>" placeholder="GK-8F42KD" required
+        <?php /* No placeholder: a sample code sitting in the box reads as a
+                 value that is already there, and the label above the form
+                 has already said what to type. */ ?>
+        <input name="code" value="<?= e($code) ?>" required
                autocomplete="off" aria-label="Order code">
         <button class="btn btn-primary btn-lg" type="submit">
           <svg class="icon"><use href="#i-search"></use></svg> Track
@@ -27,7 +30,7 @@ $delivered = $order && $order['remains'] !== null
       <?php endif; ?>
 
       <?php if ($order): ?>
-        <div class="summary" style="margin:22px 0 0">
+        <div class="osum" style="margin:22px 0 0">
           <div class="si"><svg class="icon"><use href="#i-bolt"></use></svg></div>
           <div>
             <b><?= qty_fmt($order['quantity']) ?> &times; <?= e(order_label($order)) ?></b>

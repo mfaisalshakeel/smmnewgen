@@ -1,28 +1,29 @@
 <?php
 /** @var array $errors  @var array $input */
-$wa    = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
-$email = setting('support_email', '');
+$chat = chat_channels('contact');
 ?>
 <section class="page-head">
   <div class="wrap">
     <h1>Contact us</h1>
     <p>Questions before you order, or something wrong with one you placed? Write to us here,
-       or message us on WhatsApp for the fastest reply.</p>
+       or message us for the fastest reply.</p>
   </div>
 </section>
 
 <section class="section" style="padding-top:24px">
   <div class="wrap" style="max-width:760px">
-    <?php if ($wa !== '' || $email !== ''): ?>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:28px">
-        <?php if ($wa !== ''): ?>
-          <a class="btn btn-wa btn-lg" href="https://wa.me/<?= e($wa) ?>" target="_blank" rel="noopener">
-            <svg class="icon"><use href="#i-whatsapp"></use></svg> WhatsApp us
+    <?php if ($chat): ?>
+      <?php /* The address is worth printing here - this is the page someone
+               came to looking for it. Everywhere else it is a button. */ ?>
+      <div class="chatrow">
+        <?php foreach ($chat as $channel): ?>
+          <a class="btn btn-lg <?= e($channel['class']) ?>" href="<?= e($channel['url']) ?>"
+             <?= $channel['key'] === 'email' ? '' : 'target="_blank" rel="noopener"' ?>
+             title="<?= e($channel['title']) ?>" aria-label="<?= e($channel['title']) ?>">
+            <svg class="icon"><use href="#<?= e($channel['icon']) ?>"></use></svg>
+            <?= e($channel['key'] === 'email' ? $channel['detail'] : $channel['label']) ?>
           </a>
-        <?php endif; ?>
-        <?php if ($email !== ''): ?>
-          <a class="btn btn-ghost btn-lg" href="mailto:<?= e($email) ?>"><?= e($email) ?></a>
-        <?php endif; ?>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
@@ -33,7 +34,7 @@ $email = setting('support_email', '');
       </div>
 
       <div class="field">
-        <label for="c-name">Your name</label>
+        <label for="c-name">Your Name</label>
         <input id="c-name" name="name" value="<?= e($input['name']) ?>" required
                <?= isset($errors['name']) ? 'aria-invalid="true"' : '' ?>>
         <?php if (isset($errors['name'])): ?><span class="err"><?= e($errors['name']) ?></span><?php endif; ?>
@@ -49,8 +50,11 @@ $email = setting('support_email', '');
       </div>
 
       <div class="field">
-        <label for="c-wa">WhatsApp number</label>
-        <input id="c-wa" name="whatsapp" value="<?= e($input['whatsapp']) ?>" placeholder="+92 300 1234567">
+        <label for="c-wa">WhatsApp Number</label>
+        <input id="c-wa" type="tel" name="whatsapp" value="<?= e($input['whatsapp']) ?>"
+               inputmode="tel" maxlength="18" placeholder="+92 300 1234567"
+               <?= isset($errors['whatsapp']) ? 'aria-invalid="true"' : '' ?>>
+        <?php if (isset($errors['whatsapp'])): ?><span class="err"><?= e($errors['whatsapp']) ?></span><?php endif; ?>
       </div>
 
       <div class="field">

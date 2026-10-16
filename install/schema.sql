@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `providers` (
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `sort_order` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `ix_providers_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -128,6 +129,7 @@ CREATE TABLE IF NOT EXISTS `payment_methods` (
   `extra_label` VARCHAR(60) NOT NULL DEFAULT '',
   `extra_value` VARCHAR(190) NOT NULL DEFAULT '',
   `instructions` TEXT NULL,
+  `logo_path` VARCHAR(190) NOT NULL DEFAULT '',
   `sort_order` INT NOT NULL DEFAULT 0,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),

@@ -112,15 +112,23 @@
   var form    = document.getElementById('orderForm');
   var lastFocus = null;
 
+  // A text field focused as the modal opens brings the phone keyboard up with
+  // it, which covers the price the customer opened the modal to check. So the
+  // link box is only focused where focusing it costs nothing - a mouse and a
+  // keyboard - and on a touch screen the dialog itself takes the focus
+  // instead. Something inside has to hold it either way: that is what keeps
+  // Escape and the tab trap working and what announces the dialog.
+  var pointerIsFine = !window.matchMedia
+    || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   function openModal() {
     if (!modal) { return; }
-    var done = document.getElementById('omDone');
-    if (done) { done.hidden = true; }
-    if (form) { form.hidden = false; }
     lastFocus = document.activeElement;
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
-    var first = modal.querySelector('#omLink');
+    var first = pointerIsFine
+      ? modal.querySelector('#omLink')
+      : modal.querySelector('.modal');
     if (first) { first.focus(); }
   }
 
@@ -167,10 +175,8 @@
       // noise at the point of paying, so the plain words win where there are
       // any.
       document.getElementById('omTitle').textContent =
-        fmt(qty) + ' × ' + (card.dataset.label || card.dataset.name);
+        fmt(qty) + ' ' + (card.dataset.label || card.dataset.name);
       document.getElementById('omPrice').textContent = price;
-      document.getElementById('omDelivery').textContent =
-        (card.querySelector('.qp-del') || { textContent: '' }).textContent.trim() || 'Starts shortly';
       document.getElementById('omLinkLabel').textContent = card.dataset.linkLabel;
       document.getElementById('omLink').placeholder      = card.dataset.linkHint;
       // Carried on the form so the check below knows what to insist on: the
@@ -195,13 +201,26 @@
       if (drawer) { drawer.classList.toggle('show'); }
     }
 
-    // payment method: move the open panel to whichever radio is now checked
+    // payment method: light the chosen tile and open only its step
     var pmRadio = event.target.closest('[data-pm-radio]');
     if (pmRadio) {
-      document.querySelectorAll('[data-pm]').forEach(function (block) {
-        block.classList.toggle('on', block.contains(pmRadio));
+      document.querySelectorAll('[data-pay-opt]').forEach(function (opt) {
+        opt.classList.toggle('on', opt.contains(pmRadio));
+      });
+      document.querySelectorAll('[data-pay-for]').forEach(function (step) {
+        step.classList.toggle('on', step.getAttribute('data-pay-for') === pmRadio.value);
       });
       syncPaymentFields();
+    }
+
+    // Any button that sends the customer onward says so while it works. The
+    // next thing is a page load - a gateway, or the order page coming back -
+    // so there is nothing to put it back for, and a button that looks idle
+    // gets pressed twice.
+    var payGo = event.target.closest('[data-pay-go]');
+    if (payGo && payGo.form && payGo.form.checkValidity()) {
+      payGo.classList.add('btn-wait');
+      payGo.textContent = 'Just a moment…';
     }
 
     // FAQ accordion
@@ -342,8 +361,45 @@
     return true;
   }
 
+  // ------------------------------------------------------- phone number --
+  // The server allows fifteen digits, so the field stops accepting them at
+  // fifteen rather than taking a longer number and refusing it afterwards.
+  // Digits are what is counted, not characters: "+92 300 1234567" is a
+  // fifteen-digit number written in eighteen, and the separators a person
+  // types to keep their place are not the thing with a limit on it.
+  var WHATSAPP_DIGITS = 15;
+
+  function capNumber(input) {
+    var value  = input.value;
+    var digits = 0;
+    var out    = '';
+
+    for (var i = 0; i < value.length; i++) {
+      var ch = value.charAt(i);
+      if (ch >= '0' && ch <= '9') {
+        if (digits === WHATSAPP_DIGITS) { continue; }
+        digits++;
+      } else if ('+ -()'.indexOf(ch) < 0) {
+        continue;                     // a letter is not part of a number
+      }
+      out += ch;
+    }
+
+    if (out === value) { return; }
+
+    // Only ever shorter, so the caret moves back by whatever was dropped -
+    // which is nothing at all in the ordinary case of typing at the end.
+    var caret = input.selectionStart;
+    input.value = out;
+    if (caret !== null && input.setSelectionRange) {
+      caret = Math.max(0, caret - (value.length - out.length));
+      input.setSelectionRange(caret, caret);
+    }
+  }
+
   document.addEventListener('input', function (event) {
     if (event.target.id === 'omLink') { checkLink(); }
+    if (event.target.name === 'whatsapp') { capNumber(event.target); }
   });
   // ------------------------------------------------------- submit (ajax) --
   // Posting over fetch keeps the typed link and number on screen when the
@@ -363,8 +419,13 @@
 
       var button = document.getElementById('omSubmit');
       var error  = document.getElementById('omError');
+
+      // Stays in this state until the next screen replaces the page: where a
+      // single gateway takes the payment, the answer to this request is the
+      // page to go to, so there is nothing to put the button back for.
       button.disabled = true;
-      button.textContent = 'Placing order…';
+      button.classList.add('btn-wait');
+      button.textContent = 'Placing your order…';
       clearErrors();
 
       fetch(form.action, {
@@ -395,7 +456,8 @@
             error.classList.add('show');
           }
           button.disabled = false;
-          button.innerHTML = 'Continue to payment &rarr;';
+          button.classList.remove('btn-wait');
+          button.textContent = 'Place Order';
         })
         .catch(function () {
           // Network trouble: fall back to a normal submit rather than dead-ending.
@@ -408,61 +470,38 @@
 
   // ------------------------------------------------------- order placed --
   //
-  // The order exists now, so the customer sees its code and amount before
-  // anything moves. Where a single gateway takes the payment itself there is
-  // nothing here to read, so we start it and go; where payment is made by
-  // hand, the order page carries the account details and the reference box.
+  // Straight to whatever comes next: the Paytm QR where one gateway takes
+  // the payment, the order page where there is a choice of method to make.
+  // The modal used to stop at a panel saying "Order placed" with a button
+  // to carry on, which was a screen whose only purpose was to be left - and
+  // the page it led to says the same things anyway, order code included.
   function showPlaced(data) {
-    var done = document.getElementById('omDone');
-    if (!done) { window.location.href = data.redirect; return; }
-
-    document.getElementById('omDoneCode').textContent   = data.code;
-    document.getElementById('omDoneAmount').textContent = data.amount || '';
-    document.getElementById('omDoneStatus').textContent = data.status || '';
-
-    var note = document.getElementById('omDoneNote');
-    var go   = document.getElementById('omDoneGo');
-
-    form.hidden = true;
-    done.hidden = false;
-
-    var payment = data.payment || {};
-
-    if (payment.mode !== 'redirect') {
-      note.textContent = 'Keep this code. You can track the order with it at any time.';
-      go.href = data.redirect;
+    // One gateway and nothing else on: the server already began the payment
+    // and this is the page to pay on.
+    if (data.payment && data.payment.mode === 'redirect') {
+      window.location.href = data.redirect;
       return;
     }
 
-    note.textContent = 'Opening ' + (payment.name || 'secure payment') + '\u2026';
-    go.href = data.redirect;
-    go.textContent = 'Pay later';
+    var pay = document.getElementById('omPay');
+    if (!pay || !data.pay) {
+      window.location.href = data.redirect;
+      return;
+    }
 
-    var body = new FormData();
-    body.append('payment_method_id', payment.method);
-    body.append('_token', payment.token);
+    // The markup is the order page's own, and everything the script binds to
+    // in it is delegated, so it behaves the same injected as it does served.
+    pay.innerHTML = data.pay;
+    form.hidden = true;
+    pay.hidden = false;
 
-    fetch(payment.start, {
-      method: 'POST',
-      body: body,
-      headers: { 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin'
-    }).then(function (response) { return response.json(); })
-      .then(function (out) {
-        if (out && out.ok && out.redirect) {
-          window.location.href = out.redirect;
-          return;
-        }
-        throw new Error((out && out.error) || 'Payment could not start.');
-      })
-      .catch(function (problem) {
-        // The order is placed either way, so never leave the customer
-        // thinking it is not - say what failed and offer the way on.
-        note.textContent = problem.message
-          + ' Your order is saved; you can pay from the order page.';
-        note.classList.add('om-done-warn');
-        go.textContent = 'Go to the order \u2192';
-      });
+    var heading = document.getElementById('orderModalTitle');
+    if (heading) { heading.textContent = 'How would you like to pay?'; }
+
+    var sub = modal.querySelector('.mhead p');
+    if (sub) { sub.textContent = 'Order ' + data.code + ' · ' + data.amount; }
+
+    modal.scrollTop = 0;
   }
 
   // ------------------------------------------- switching without a reload --
@@ -525,17 +564,11 @@
       }
     });
 
-    var hero = document.getElementById('heroTitle');
-    if (hero && data.heroTitle) {
-      var grad = hero.querySelector('.grad');
-      if (grad) { grad.textContent = data.heroTitle; }
-    }
-
     var cta = document.getElementById('heroCta');
     if (cta && data.ctaLabel) { cta.textContent = data.ctaLabel; }
 
     var svc = document.getElementById('svcTitle');
-    if (svc && data.heroTitle) { svc.textContent = data.heroTitle; }
+    if (svc && data.sectionTitle) { svc.textContent = data.sectionTitle; }
 
     if (data.title) { document.title = data.title; }
 

@@ -10,7 +10,6 @@
  */
 $siteName = setting('site_name', 'SMM Panel');
 $themeCss = ':root{--brand:' . preg_replace('/[^#0-9a-fA-F]/', '', setting('theme_color', '#6c4df6')) . '}';
-$waNumber = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
 ?><!doctype html>
 <html lang="en" data-currency="<?= e(setting('currency_symbol', 'Rs ')) ?>">
 <head>
@@ -56,11 +55,19 @@ $waNumber = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
 <?php partial('partials/footer'); ?>
 <?php partial('partials/modals'); ?>
 
-<?php if ($waNumber !== ''): ?>
-<a class="fab" href="https://wa.me/<?= e($waNumber) ?>" target="_blank" rel="noopener"
-   aria-label="Chat on WhatsApp">
-  <svg class="icon"><use href="#i-whatsapp"></use></svg><span>WhatsApp</span>
-</a>
+<?php /* Whichever channels Settings puts here, stacked. The word is "Chat"
+         whatever the app; the icon says which, and the accessible name says
+         it in words for anyone the icon does not reach. */ ?>
+<?php if ($chatFloat = chat_channels('float')): ?>
+<div class="fabs">
+  <?php foreach ($chatFloat as $channel): ?>
+    <a class="fab fab-<?= e($channel['key']) ?>" href="<?= e($channel['url']) ?>"
+       <?= $channel['key'] === 'email' ? '' : 'target="_blank" rel="noopener"' ?>
+       title="<?= e($channel['title']) ?>" aria-label="<?= e($channel['title']) ?>">
+      <svg class="icon"><use href="#<?= e($channel['icon']) ?>"></use></svg>
+    </a>
+  <?php endforeach; ?>
+</div>
 <?php endif; ?>
 
 <script src="<?= e(theme_asset('app.js')) ?>"></script>

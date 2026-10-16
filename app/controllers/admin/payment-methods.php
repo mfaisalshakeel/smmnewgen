@@ -9,6 +9,7 @@
 require_once APP_PATH . '/helpers/crud.php';
 require_once APP_PATH . '/helpers/payments.php';
 require_once APP_PATH . '/helpers/payfields.php';
+require_once APP_PATH . '/helpers/upload.php';
 
 $gateways = payment_gateways(true);
 $action   = $params[0] ?? 'index';
@@ -83,11 +84,28 @@ if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('admin/payment-methods/' . ($id ? 'edit/' . $id : 'new'));
     }
 
+    // Kept unless a new one arrives or the box is ticked to clear it, so
+    // saving an unrelated field never silently drops the logo.
+    $logo = $id > 0 ? (string) col('SELECT logo_path FROM payment_methods WHERE id = ?', [$id], '') : '';
+
+    if (!empty($_FILES['logo']['name'])) {
+        $stored = store_image_upload('logo', 'methods', $logo);
+        if ($stored['ok']) {
+            $logo = $stored['path'];
+        } else {
+            flash('error', 'Logo: ' . $stored['error']);
+        }
+    }
+    if (isset($_POST['remove_logo'])) {
+        $logo = '';
+    }
+
     $data = [
         'name'           => $name,
         'driver'         => $driver,
         'config'         => json_encode($config),
         'short_name'     => trim((string) ($_POST['short_name'] ?? '')),
+        'logo_path'      => $logo,
         'account_title'  => trim((string) ($_POST['account_title'] ?? '')),
         'account_number' => trim((string) ($_POST['account_number'] ?? '')),
         'extra_label'    => trim((string) ($_POST['extra_label'] ?? '')),

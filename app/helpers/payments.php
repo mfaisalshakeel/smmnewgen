@@ -258,27 +258,45 @@ function sole_watched_method(): ?array
 }
 
 /**
- * The one gateway we can send a customer straight to, if there is exactly one.
+ * The active methods a customer can actually be shown.
  *
- * A redirect gateway takes the payment itself, so there is nothing for the
- * customer to read first. With several, picking for them would be wrong; with
- * none, the order page is where the account numbers and the reference box
- * live. Either way the answer is "show the page".
+ * A manual method with no account number has nowhere to send the money, so
+ * listing it offers a dead end. A hosted gateway has no account number by
+ * nature and is listed regardless.
+ */
+function payable_methods(): array
+{
+    return array_values(array_filter(
+        all('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY sort_order, id'),
+        static function (array $method): bool {
+            $gateway = payment_gateway((string) ($method['driver'] ?? 'manual'));
+            return $gateway !== null
+                && ($gateway['kind'] !== 'manual' || trim((string) $method['account_number']) !== '');
+        }
+    ));
+}
+
+/**
+ * The gateway a customer can be sent straight to, when it is the only way to
+ * pay at all.
+ *
+ * Two conditions, and both matter. It has to be a redirect gateway, because
+ * one of those takes the payment itself and there is nothing to read first.
+ * And it has to be the **only active method**, counting the manual ones: a
+ * shop with Paytm and a bank transfer switched on is offering a choice, and
+ * skipping past it to the one we happen to be able to open automatically
+ * decides for the customer. With anything else on, the order page is where
+ * that choice lives.
  */
 function sole_redirect_method(): ?array
 {
-    $found = null;
+    $methods = all('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY sort_order, id');
 
-    foreach (all('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY sort_order, id') as $method) {
-        $gateway = payment_gateway((string) ($method['driver'] ?? 'manual'));
-        if (($gateway['kind'] ?? 'manual') !== 'redirect') {
-            continue;
-        }
-        if ($found !== null) {
-            return null;    // more than one: the customer chooses
-        }
-        $found = $method;
+    if (count($methods) !== 1) {
+        return null;
     }
 
-    return $found;
+    $gateway = payment_gateway((string) ($methods[0]['driver'] ?? 'manual'));
+
+    return ($gateway['kind'] ?? 'manual') === 'redirect' ? $methods[0] : null;
 }

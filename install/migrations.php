@@ -439,4 +439,42 @@ return [
         'mysql' => ["ALTER TABLE `orders` ADD COLUMN `payment_details` TEXT NULL"],
         'sqlite' => ['ALTER TABLE "orders" ADD COLUMN "payment_details" TEXT'],
     ],
+
+    // -----------------------------------------------------------------------
+    // A logo on the payment method. The chooser used the first two letters of
+    // the name in a coloured square, which told a customer looking for the
+    // app they recognise nothing at all.
+    '2026_10_payment_logo' => [
+        'label'  => 'A logo on each payment method',
+        'mysql'  => ["ALTER TABLE `payment_methods` ADD COLUMN `logo_path` VARCHAR(190) NOT NULL DEFAULT ''"],
+        'sqlite' => ['ALTER TABLE "payment_methods" ADD COLUMN "logo_path" TEXT NOT NULL DEFAULT \'\''],
+    ],
+
+    // -----------------------------------------------------------------------
+    // The Providers screen saves with `timestamps => true`, so every edit
+    // wrote a column the table never had - which took the save to a 500 on
+    // both drivers. The column, not the flag: providers are the one thing in
+    // the panel whose key and endpoint are worth having a changed-at date on.
+    '2026_10_provider_updated_at' => [
+        'label'  => 'A changed-at date on providers',
+        'mysql'  => ["ALTER TABLE `providers` ADD COLUMN `updated_at` DATETIME NULL"],
+        'sqlite' => ['ALTER TABLE "providers" ADD COLUMN "updated_at" TEXT'],
+    ],
+
+    // -----------------------------------------------------------------------
+    // The values written here are what the site already did, so running this
+    // changes nothing on screen - it only makes the choice visible on the
+    // Settings screen. CHAT_PLACEMENTS carries the same defaults, which is
+    // what a panel whose database is behind the code reads instead.
+    '2026_10_chat_buttons' => [
+        'label' => 'Telegram, and which chat button goes where',
+        'both'  => [
+            "INSERT INTO settings (`k`, `v`) VALUES ('telegram_username', '')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('chat_float', 'whatsapp')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('chat_header', 'whatsapp')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('chat_home', 'whatsapp')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('chat_contact', 'whatsapp,email')",
+            "INSERT INTO settings (`k`, `v`) VALUES ('chat_order', 'whatsapp')",
+        ],
+    ],
 ];

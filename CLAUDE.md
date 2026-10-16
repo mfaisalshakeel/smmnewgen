@@ -115,6 +115,16 @@ payment methods, pages and FAQs all work this way.
 Write a screen by hand only when it needs more than the spec can say — services
 (bulk actions), import, orders (detail with actions), settings, messages.
 
+`unique` on a field is unique in the whole table; **`unique:column`** is
+unique only among the rows sharing that column's value. Categories are why:
+the constraint on them is `(platform_id, slug)`, because every platform is
+meant to have its own `/followers`, and a table-wide check would refuse the
+second platform. Declaring it is not optional politeness - without it the
+database raises the violation and the admin gets an error page instead of
+the field saying what is wrong. `crud_save()` also catches a duplicate key
+around the write itself and hands the form back, which covers a constraint
+a spec never declared and two admins saving the same new slug at once.
+
 Two spec keys are easy to confuse:
 
 - `empty` is only the **label on a select's blank choice**. It says nothing
@@ -156,20 +166,29 @@ NULL into `providers.currency`, which is `NOT NULL`.
   written in the same order so they read side by side.
 - `theme_asset()` falls back the same way, so a theme with no `app.js` of its
   own still gets one — which is why a theme must keep the ids the script
-  needs: `#platStrip`, `#catTabs`, `#serviceCards`, `#heroTitle` with its
-  `.grad` span, `#svcTitle`, and the card's `data-` attributes. The script
-  rewrites the `.grad` span with `textContent`, so it may not hold markup
-  that has to survive a switch. `#heroCta` is optional — the shipped hero has
-  no button and the script skips it — but a theme that adds one keeps the id
-  and keeps it to plain text, for the same reason.
+  needs: `#platStrip`, `#catTabs`, `#serviceCards`, `#svcTitle`, and the
+  card's `data-` attributes. `#svcTitle` is rewritten with `textContent`, so
+  it may not hold markup that has to survive a switch. `#heroCta` is optional
+  — the shipped hero has no button and the script skips it — but a theme that
+  adds one keeps the id and keeps it to plain text, for the same reason.
+  The hero headline is **not** in that list: it is one fixed sentence, so
+  nothing rewrites it and a theme may say whatever it likes there.
 - **The hero is one partial**, `partials/hero.php`, rendered by both themes:
   the band, the drawn phone and the floating chips are the same shape
   whatever the colour, and the colour is mixed from `--brand` by whichever
   stylesheet is loaded. A theme that wants a different hero drops in its own
   copy of that partial, which is the same inheritance as every other view.
-  It carries a badge, the headline and one line under it — no promises row
-  and no button. The platform bar sits right under the band, so the first
-  thing to tap is the choice the whole page hangs off.
+  **It carries the headline and four points** — no badge, no sentence of
+  promises, no button. The headline is one fixed sentence rather than the
+  platform and category being viewed: those are already named by the lit
+  tab, the heading over the cards and the cards themselves, and saying it
+  again in the largest type only pushed the platform bar further down. The
+  points are two words each because the prose line they replaced was three
+  lines of reading on a phone between the headline and that bar, which is
+  the choice the whole page hangs off and so should be first to tap.
+  `support_channel_line()` writes the fourth one's second line from the
+  channels that are actually switched on — "On Telegram" under a headline is
+  a promise, and a shop with no Telegram would be making it to everyone.
 - A page that opens on the hero gives the header to the band — no bar, no
   line, white type on the colour. `body:has(.hero) > header` asks the
   question the layout cannot, because the layout renders the header before it
@@ -321,6 +340,79 @@ them, which puts those services back on the default set.
   answers "cannot tell yet" and records nothing rather than guessing. Providers
   has its own **Multi-status** button, and Check asks as well.
 - Every state change writes an `order_logs` row.
+
+## Contact channels
+
+The shop is reachable on WhatsApp, Telegram or email, and **which button goes
+where is a setting**. `chat_channels($placement)` in `functions.php` answers
+that once; the views only draw what comes back, so no theme decides it and no
+two places can disagree.
+
+- `CHAT_CHANNELS` is the three channels and where each one's address lives.
+  A blank address means the channel is not set up, so `chat_channel()` returns
+  null and nothing is drawn - there is no second "is it configured" test
+  anywhere.
+- `CHAT_PLACEMENTS` is the five places, and **it carries the defaults**. They
+  are what the site did before any of this existed, so an install that never
+  opens the screen looks unchanged - and one whose database is behind the code
+  reads them from here rather than from a row that is not there yet. That is
+  the same rule as the rest of the panel: nothing drawn on every page may
+  assume a migration has run.
+- A saved row that is **empty** means "no button here". So the default only
+  applies when the row is absent altogether, which is why
+  `chat_placement_keys()` looks at `settings_all()` rather than taking
+  `setting()`'s fallback.
+- The admin screen needs the chosen keys whether or not each channel has an
+  address yet - it draws Telegram ticked and greyed, because "off because you
+  have not given a username" is the answer the admin needs. That is why the
+  keys and the ready-to-draw channels are two functions.
+
+**No button is named after its app.** A customer is choosing a way to reach
+us, not a brand, and a shop that changes messenger should not have to find
+every button that named the old one. The icon says which, and the words live
+in `title` and `aria-label` - the same trade the admin's icon row actions
+make. The burger menu is the one exception: it has no icons, so there each
+channel is named.
+
+`label` is the word on the button and **an empty one is deliberate** - that
+button is its icon alone, which is why every view that prints a label checks
+for it first. Telegram's is empty: two pills both reading "Chat" say nothing
+the icons have not. `title` is separate from it for the same reason, so an
+unlabelled button still has a name to announce.
+
+The floating bubbles are round and wordless at every width - a fixed square
+with `border-radius:50%`, not a pill that happens to hold one icon, because
+the stack has to stay a stack of equal shapes once there is more than one
+channel in it.
+
+Telegram's `t.me` links cannot carry a prefilled message, which is why
+`chat_channel()` takes one and uses it only where the channel supports it, and
+why the order code is on screen with a copy button either way.
+
+## Adding a provider
+
+**A provider is tested before it is saved.** `provider_probe()` asks for the
+balance and touches no table, so the add form can prove the key works before
+there is a row - a provider whose key is wrong is otherwise a row that accepts
+services, takes orders and fails every one of them at the moment the money has
+already changed hands.
+
+- Only a **refused connection** stops the save. A billing currency with no
+  exchange rate, or a batch-status question that cannot be answered until an
+  order exists, are things to go and do - not reasons to throw away a key the
+  provider just accepted. `connected` is that distinction; `ok` is "everything
+  came back clean".
+- The same call brings back the balance, the currency and the batch-status
+  answer, so a provider that passes is **saved already knowing all three**.
+  What the provider said fills the boxes left blank and never overwrites a
+  currency the admin picked by hand, which is why the probe is told what was
+  in that box. `supports_multi_status` is the one finding the admin can
+  overrule, because "work it out automatically" is that select's blank choice.
+- `provider_check()` is the same probe plus the write, so the Check button and
+  the add form cannot drift into testing different things.
+- Editing re-tests **only when the URL or the key changed**. On a shared host a
+  slow provider is most of the request, and changing a sort order should not
+  cost one.
 
 ## Payment gateways
 

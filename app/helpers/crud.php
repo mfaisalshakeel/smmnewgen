@@ -14,10 +14,12 @@
  *   required  bool
  *   default   value for a new row
  *   rules     ['slug'] | ['email'] | ['url'] | ['min:n'] | ['max:n'] | ['unique']
+ *             ['unique:column'] - unique among rows sharing that column
  *   save      callable(mixed $value, array $input): mixed  - transform before storing
  *   skip_empty bool - leave the stored value alone when submitted empty (passwords)
  */
 require_once APP_PATH . '/helpers/audit.php';
+require_once APP_PATH . '/helpers/guard.php';   // is_duplicate_key()
 
 
 function crud_handle(array $spec, array $params): void
@@ -166,12 +168,32 @@ function crud_save(array $spec): void
             if ($rule === 'max' && $value !== '' && (float) $value > (float) $arg) {
                 $errors[$name] = 'Must be at most ' . $arg . '.';
             }
+            // `unique` is unique in the table; `unique:column` is unique only
+            // among the rows sharing that column's value. Categories are the
+            // reason: every platform is meant to have its own /followers, so
+            // the constraint on them is (platform_id, slug) and a check
+            // across the whole table would refuse the second platform.
             if ($rule === 'unique' && $value !== '') {
-                $clash = $id
-                    ? col("SELECT 1 FROM `{$spec['table']}` WHERE `$name` = ? AND id <> ?", [$value, $id])
-                    : col("SELECT 1 FROM `{$spec['table']}` WHERE `$name` = ?", [$value]);
-                if ($clash) {
-                    $errors[$name] = 'That value is already used.';
+                $where  = "`$name` = ?";
+                $binds  = [$value];
+
+                // Only a field this screen declares may name a column here -
+                // the rule is written in the spec, never in the request.
+                if ($arg !== null && isset($spec['fields'][$arg])) {
+                    $where  .= " AND `$arg` = ?";
+                    $binds[] = $_POST[$arg] ?? null;
+                }
+                if ($id) {
+                    $where  .= ' AND id <> ?';
+                    $binds[] = $id;
+                }
+
+                if (col("SELECT 1 FROM `{$spec['table']}` WHERE {$where}", $binds)) {
+                    $errors[$name] = $arg !== null
+                        ? 'Another ' . strtolower((string) ($spec['single'] ?? 'record'))
+                          . ' here already uses that. It only has to be different within the '
+                          . strtolower((string) ($spec['fields'][$arg]['label'] ?? $arg)) . '.'
+                        : 'That value is already used.';
                 }
             }
         }
@@ -210,25 +232,40 @@ function crud_save(array $spec): void
     // categories, payment methods, pages and FAQs all save through this, and
     // an API key or a payment account changing is exactly what the record is
     // for. audit_mask() keeps the secrets out of it.
-    if ($id > 0) {
-        if (!empty($spec['timestamps'])) {
-            $data['updated_at'] = date('Y-m-d H:i:s');
+    // A unique constraint the checks above did not know about must not reach
+    // the customer-facing error page. Two admins saving the same new slug at
+    // the same moment is the honest case; a screen whose spec never declared
+    // the constraint is the common one, and either way the person wants the
+    // form back with their typing in it, not a stack trace.
+    try {
+        if ($id > 0) {
+            if (!empty($spec['timestamps'])) {
+                $data['updated_at'] = date('Y-m-d H:i:s');
+            }
+            $before = one('SELECT * FROM `' . $spec['table'] . '` WHERE id = ?', [$id]);
+            update_row($spec['table'], $data, 'id = ?', [$id]);
+            audit_row($spec['table'] . '.updated', $spec['table'], $id, $before,
+                ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' updated',
+                 'severity' => 'warn']);
+            flash('success', ($spec['single'] ?? 'Record') . ' updated.');
+        } else {
+            if (!empty($spec['timestamps'])) {
+                $data['created_at'] = date('Y-m-d H:i:s');
+            }
+            $id = insert_row($spec['table'], $data);
+            audit_row($spec['table'] . '.created', $spec['table'], $id, [],
+                ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' created',
+                 'severity' => 'warn']);
+            flash('success', ($spec['single'] ?? 'Record') . ' created.');
         }
-        $before = one('SELECT * FROM `' . $spec['table'] . '` WHERE id = ?', [$id]);
-        update_row($spec['table'], $data, 'id = ?', [$id]);
-        audit_row($spec['table'] . '.updated', $spec['table'], $id, $before,
-            ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' updated',
-             'severity' => 'warn']);
-        flash('success', ($spec['single'] ?? 'Record') . ' updated.');
-    } else {
-        if (!empty($spec['timestamps'])) {
-            $data['created_at'] = date('Y-m-d H:i:s');
+    } catch (PDOException $e) {
+        if (!is_duplicate_key($e)) {
+            throw $e;
         }
-        $id = insert_row($spec['table'], $data);
-        audit_row($spec['table'] . '.created', $spec['table'], $id, [],
-            ['summary' => ($spec['single'] ?? 'Record') . ' #' . $id . ' created',
-             'severity' => 'warn']);
-        flash('success', ($spec['single'] ?? 'Record') . ' created.');
+        keep_old($_POST);
+        flash('error', 'That would clash with one you already have - something here has to be '
+            . 'unique and this is not. Change it and save again.');
+        redirect($spec['base'] . ($id ? '/edit/' . $id : '/new'));
     }
 
     if (isset($spec['after_save']) && is_callable($spec['after_save'])) {

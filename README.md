@@ -183,6 +183,19 @@ server {
 To sell something you fulfil by hand, add a service and leave **Buy from** set to
 *Manual*. Those orders move to *processing* on payment and wait for you.
 
+**Adding a provider tests it first.** Saving the form asks the provider for its
+balance before the row is written: a URL or key it refuses is not saved, and
+the reason is shown under the key field. One that answers is saved already
+knowing its balance, the currency it bills in and whether it can report on
+several orders in one request — so there is nothing to press afterwards. The
+screen then says what else it found: a billing currency with no exchange rate
+yet, or a catalogue that came back empty, are things to go and fix rather than
+reasons to refuse a working key.
+
+Editing re-tests only when the URL or the key changed. Changing a sort order
+does not cost you a round trip to the provider, and the **Check** button on the
+list is there for asking again whenever you want.
+
 ---
 
 ## How an order moves
@@ -198,6 +211,86 @@ With *auto-send orders* on (Settings), marking an order paid sends it straight
 to the provider. Cron then refreshes statuses, pulls back start count and
 remains, and marks orders completed. Nothing is ever silently completed — an
 unknown provider status stays *processing*.
+
+---
+
+## Emptying things out, and changing the base currency
+
+**Admin → Maintenance** clears things in bulk. Three jobs, each needing the
+word DELETE typed before it will run, each recorded in the audit log before it
+runs:
+
+- **Clear the catalogue** — every service and package. Orders keep the name,
+  quantity and price they were placed with, so history still reads correctly.
+- **Clear orders** — orders, their logs and any payment screenshots.
+- **Start fresh** — both, plus messages, notifications, the email log and cron
+  history. Keeps your admin account, settings, providers, platforms,
+  categories, payment methods, currencies, pages, FAQs and the audit log.
+
+Deleting a service no longer deactivates it when orders point at it. It did,
+out of caution, but it was never needed: `orders.service_id` is
+`ON DELETE SET NULL` and each order carries its own copy of what it bought.
+
+**The base currency can now be changed after you have prices.** Currencies →
+*Make base* shows how many services, packages, orders and rates will be
+rewritten, asks you to type the currency code, then converts all of them at
+one ratio in a single transaction. Nothing is re-fetched from providers:
+dividing a stored amount by the rate gives exactly what rebuilding it against
+the new base would.
+
+Two things to know. Past order amounts are converted too, so they read in the
+new currency rather than the one they were taken in. And money is stored to
+two decimals, so switching back and forth drifts by a paisa or a cent per
+row — take a backup before a change you might want to reverse.
+
+---
+
+## Chat buttons: WhatsApp, Telegram and email
+
+The shop can be reached on any of three channels, and **which button appears
+where is a setting**, not something baked into the theme.
+
+Fill the channels in under **Admin → Settings → Contact**: a WhatsApp number
+with its country code, a Telegram username (`@yourshop`, `yourshop` or the
+whole `https://t.me/yourshop` link — all three are accepted) and a support
+email. A channel you leave blank is simply not offered anywhere.
+
+Then tick which of them belongs in each place under **Settings → Chat
+buttons**:
+
+| Place | What it is |
+|---|---|
+| Floating bubble | The bubble in the corner of every page |
+| Header and menu | The "Need help?" link beside Track Order |
+| Home page band | The "not sure which package" block |
+| Contact page | The buttons above the message form |
+| Order and payment pages | Sending a receipt, and the "something wrong?" line |
+
+Tick none for a place and no button appears there. Tick two and both appear,
+side by side or stacked.
+
+**No button is named after its app.** A customer looking for help is choosing
+a way to reach you, not a brand, and a shop that moves from one messenger to
+another should not have to hunt down every button that named the old one.
+Which app it is, is the icon's job — and the name is in every button's `title`
+and `aria-label`, so a screen reader still says it.
+
+- The **floating bubbles are round and carry no words at all**, one circle per
+  channel, stacked in the corner.
+- In-page buttons say **Chat** (WhatsApp), nothing (Telegram — its icon alone)
+  or the address (email).
+- The menu inside the burger is the exception: it is a list of words with no
+  icons, so there each channel is named.
+
+Two things worth knowing:
+
+- **A receipt is prefilled where the channel can carry one.** WhatsApp and
+  email both take a message; Telegram's `t.me` links cannot, so that one just
+  opens the chat — which is why the order code is always on screen with a copy
+  button beside it.
+- **The number the order form asks the customer for is still a WhatsApp
+  number.** That is how you reach *them*, and it is a separate thing from how
+  they reach you.
 
 ---
 

@@ -113,7 +113,92 @@ crud_handle([
              . $form('admin/providers/sync', 'Sync the catalogue', 'i-refresh', 'iact-go');
     },
     'form_note'=> 'The API URL is usually the provider\'s /api/v2 endpoint. Your key is stored as given '
-                . 'and only ever sent to that provider.',
+                . 'and only ever sent to that provider. Saving tests the connection first: a key the '
+                . 'provider refuses is not saved, and one it accepts arrives with its balance and '
+                . 'billing currency already filled in.',
+
+    // Test first, save second.
+    //
+    // A provider whose key does not work is a row that accepts services,
+    // takes orders and fails every one of them at the moment money has
+    // already changed hands. So the connection is proved before the row
+    // exists - and because the same call brings back the balance, the
+    // currency and the batch-status answer, a provider that passes is saved
+    // knowing all three rather than waiting for somebody to press Check.
+    //
+    // Only a refused connection stops the save. A currency with no exchange
+    // rate yet, or a batch-status question that cannot be answered until an
+    // order has been sent, are things to go and do - not reasons to throw
+    // away a key the provider just accepted.
+    'before_save' => function (array $data, int $id, array $input): array {
+        $url     = (string) ($data['api_url'] ?? '');
+        $typedKey = (string) ($data['api_key'] ?? '');
+
+        // Editing with the key box left empty means "keep the saved one", so
+        // that is the key to test with.
+        $key = $typedKey !== '' || $id === 0
+            ? $typedKey
+            : (string) col('SELECT api_key FROM providers WHERE id = ?', [$id], '');
+
+        if ($url === '' || $key === '') {
+            return $data;         // crud_save already refused this as required
+        }
+
+        // Only when there is something new to test. Changing a sort order
+        // should not cost the admin a round trip to the provider - and on a
+        // shared host a slow provider is most of the time the request has.
+        // The Check button is there for asking again on purpose.
+        $sameAsSaved = $id > 0
+            && $typedKey === ''
+            && $url === (string) col('SELECT api_url FROM providers WHERE id = ?', [$id], '');
+
+        if ($sameAsSaved) {
+            return $data;
+        }
+
+        $probe = provider_probe($url, $key, (string) ($data['currency'] ?? ''), $id);
+
+        if (!$probe['connected']) {
+            $why = $probe['checks'][0]['detail'] ?? 'the provider did not answer';
+
+            keep_old($input);
+            $_SESSION['_errors'] = ['api_key' => 'The provider refused this: ' . $why];
+            flash('error', 'Not saved - the provider could not be reached with these details: '
+                . $why . ' Check the URL and the key, then try again.');
+            redirect('admin/providers/' . ($id ? 'edit/' . $id : 'new'));
+        }
+
+        // Said once, after the row is written, so the admin reads "saved, and
+        // here is what it told us" rather than a wall of green before it.
+        $_SESSION['_provider_checks'] = $probe['checks'];
+
+        $found = $probe['fields'];
+
+        // The one finding the admin is allowed to overrule. "Work it out
+        // automatically" is the blank choice on that select, so a blank is an
+        // invitation to answer it here - and anything else is an instruction
+        // not to.
+        if (($data['supports_multi_status'] ?? null) !== null) {
+            unset($found['supports_multi_status']);
+        }
+
+        // What the provider said fills the boxes left empty; a currency the
+        // admin picked by hand is never overwritten, which is why the probe
+        // was told what was in that box.
+        return $found + $data;
+    },
+
+    'after_save' => function (int $id, array $data, array $input): void {
+        foreach ($_SESSION['_provider_checks'] ?? [] as $check) {
+            // The connection is the one that just passed; repeating it is
+            // noise next to "Provider created".
+            if ($check['label'] === 'Connection and API key') {
+                continue;
+            }
+            flash($check['ok'] ? 'success' : 'warning', $check['label'] . ': ' . $check['detail']);
+        }
+        unset($_SESSION['_provider_checks']);
+    },
     'columns'  => [
         ['label' => 'Provider', 'key' => 'name', 'render' => fn($r) =>
             '<b>' . e($r['name']) . '</b><small class="sub">' . e($r['api_url']) . '</small>'],

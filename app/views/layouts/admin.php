@@ -54,6 +54,8 @@ $nav = [
     ['key' => 'emails',    'label' => 'Email templates', 'icon' => 'i-mail', 'href' => 'admin/emails'],
     ['key' => 'audit',     'label' => 'Audit log',       'icon' => 'i-history',
      'href' => 'admin/audit', 'badge' => $auditAlerts ?: null],
+    ['key' => 'maintenance', 'label' => 'Maintenance',   'icon' => 'i-trash',
+     'href' => 'admin/maintenance'],
     ['key' => 'settings',  'label' => 'Settings',        'icon' => 'i-gear', 'href' => 'admin/settings'],
     ['key' => 'security',  'label' => 'Two-factor',      'icon' => 'i-lock', 'href' => 'admin/security'],
     ['key' => 'password',  'label' => 'Change Password', 'icon' => 'i-key','href' => 'admin/password'],

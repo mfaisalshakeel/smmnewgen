@@ -31,6 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input['email'] === '' && $input['whatsapp'] === '') {
         $errors['email'] = 'Give us an email or a WhatsApp number so we can reply.';
     }
+    // The same fifteen digits the order form allows, and for the same reason:
+    // a half-typed number looks like a way to reach somebody and is not. The
+    // field stops at fifteen as it is typed, so this is the browser being
+    // taken out of the decision rather than a second rule.
+    $digits = preg_replace('/\D/', '', $input['whatsapp']);
+    if ($input['whatsapp'] !== '' && (strlen($digits) < 10 || strlen($digits) > 15)) {
+        $errors['whatsapp'] = 'That WhatsApp number does not look right.';
+    }
     if (mb_strlen($input['body']) < 5) {
         $errors['body'] = 'Please write your message.';
     }

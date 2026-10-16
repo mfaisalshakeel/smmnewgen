@@ -58,7 +58,11 @@ crud_handle([
     'fields' => array_filter([
         'platform_id' => ['label' => 'Platform', 'type' => 'select', 'options' => $platforms, 'required' => true],
         'name'        => ['label' => 'Name', 'required' => true],
-        'slug'        => ['label' => 'URL slug', 'required' => true, 'rules' => ['slug'],
+        // Unique per platform, not across the table: every platform is meant
+        // to have its own /followers, and only a second one on the *same*
+        // platform is a clash. That is the constraint the database carries.
+        'slug'        => ['label' => 'URL slug', 'required' => true,
+                          'rules' => ['slug', 'unique:platform_id'],
                           'hint' => 'Used in the address: /instagram/followers'],
         // Left out until the migration that adds the column has run, because
         // the panel is where that button lives: a field the database has not

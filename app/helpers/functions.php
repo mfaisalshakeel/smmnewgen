@@ -13,6 +13,7 @@
  *   forms           csrf_token, csrf_field, csrf_verify, old, flash, flashes
  *   auth            admin_user, is_admin, require_admin
  *   misc            slugify, random_code, client_ip, rate_limit, log_line
+ *   contact         chat_channel, chat_channels, chat_placement_keys
  */
 
 // ===========================================================================
@@ -645,6 +646,202 @@ function log_line(string $message): void
     @file_put_contents($file, '[' . date('c') . '] ' . $message . PHP_EOL, FILE_APPEND | LOCK_EX);
 }
 
+// ===========================================================================
+// Contact channels
+//
+// The shop can be reached on more than one thing, and which one belongs in
+// which place is the admin's decision, not the theme's. So the question "what
+// goes here" is answered once, by chat_channels(), and the views only draw
+// what comes back.
+//
+// The button says **Chat**, never the name of the app. A customer looking for
+// help is picking a way to reach us, not a brand, and a shop that switches
+// from one messenger to another should not have to find every button that
+// named the old one. Which app it is, is the icon's job - and the words are
+// in `title` and `aria-label`, the same way the admin's icon row actions
+// carry theirs, so it is still said out loud to anyone who needs it.
+// ===========================================================================
+
+/**
+ * Every channel, in the order they are offered.
+ *
+ * `setting` is where the address lives, and a blank one means the channel is
+ * simply not set up - there is nothing to link to, so nothing is drawn.
+ */
+/**
+ * `label` is the word on the button, and an empty one is deliberate: that
+ * button is its icon alone. Telegram's is empty because the two chat
+ * channels sit side by side, and two pills both reading "Chat" tell the
+ * customer nothing that the icons have not already said. The name is still
+ * in `title` and `aria-label` wherever the button is drawn, so nobody has to
+ * recognise a glyph to know what they are pressing.
+ */
+const CHAT_CHANNELS = [
+    'whatsapp' => ['name' => 'WhatsApp', 'setting' => 'whatsapp_number',
+                   'icon' => 'i-whatsapp', 'label' => 'Chat', 'class' => 'btn-wa',
+                   'title' => 'Chat on WhatsApp'],
+    'telegram' => ['name' => 'Telegram', 'setting' => 'telegram_username',
+                   'icon' => 'i-telegram', 'label' => '', 'class' => 'btn-tg',
+                   'title' => 'Chat on Telegram'],
+    'email'    => ['name' => 'Email',    'setting' => 'support_email',
+                   'icon' => 'i-mail',   'label' => 'Email', 'class' => 'btn-ghost',
+                   'title' => 'Email us'],
+];
+
+/**
+ * Where a button can go, what the admin calls each place, and what is there
+ * now if nobody has said otherwise.
+ *
+ * The defaults are what the site did before any of this existed, so an
+ * install that never opens the screen looks exactly as it did - and an
+ * install whose database is still behind the code reads them from here
+ * rather than from a row that is not there yet.
+ */
+const CHAT_PLACEMENTS = [
+    'float'   => ['label'   => 'Floating bubble',
+                  'hint'    => 'Bottom corner of every page.',
+                  'default' => 'whatsapp'],
+    'header'  => ['label'   => 'Header and menu',
+                  'hint'    => 'The "Need help?" link beside Track Order.',
+                  'default' => 'whatsapp'],
+    'home'    => ['label'   => 'Home page band',
+                  'hint'    => 'The "not sure which package" block near the bottom.',
+                  'default' => 'whatsapp'],
+    'contact' => ['label'   => 'Contact page',
+                  'hint'    => 'The buttons above the message form.',
+                  'default' => 'whatsapp,email'],
+    'order'   => ['label'   => 'Order and payment pages',
+                  'hint'    => 'Sending a receipt, and the "something wrong?" line.',
+                  'default' => 'whatsapp'],
+];
+
+/**
+ * One channel, ready to draw, or null when it is not set up.
+ *
+ * $message is prefilled where the channel can carry one. WhatsApp and mail
+ * both can; Telegram's t.me links cannot, so the chat simply opens - which is
+ * why the order code is on the screen with a copy button beside it either way.
+ */
+function chat_channel(string $key, string $message = ''): ?array
+{
+    $channel = CHAT_CHANNELS[$key] ?? null;
+    if ($channel === null) {
+        return null;
+    }
+
+    $value = trim((string) setting($channel['setting'], ''));
+    if ($value === '') {
+        return null;
+    }
+
+    $url    = '';
+    $detail = '';
+
+    if ($key === 'whatsapp') {
+        $digits = preg_replace('/\D/', '', $value);
+        if ($digits === '') {
+            return null;
+        }
+        $url    = 'https://wa.me/' . $digits
+                . ($message !== '' ? '?text=' . rawurlencode($message) : '');
+        $detail = '+' . $digits;
+    } elseif ($key === 'telegram') {
+        // Typed as @name, name, t.me/name or the whole link - all the same
+        // place, so all of them are accepted rather than one being correct.
+        $handle = preg_replace('~^(?:https?://)?(?:t\.me|telegram\.me)/~i', '', $value);
+        $handle = ltrim(trim($handle, " /"), '@');
+        if (!preg_match('/^[A-Za-z0-9_+]{3,64}$/', $handle)) {
+            return null;
+        }
+        $url    = 'https://t.me/' . $handle;
+        $detail = '@' . $handle;
+    } else {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+        $url    = 'mailto:' . $value
+                . ($message !== '' ? '?body=' . rawurlencode($message) : '');
+        $detail = $value;
+    }
+
+    return $channel + ['key' => $key, 'url' => $url, 'detail' => $detail];
+}
+
+/**
+ * Where support actually is, for the line under "Support" in the hero.
+ *
+ * Named from the channels that are switched on rather than written into the
+ * markup, because "On Telegram" under a headline is a promise - and a shop
+ * with no Telegram would be making it to every visitor. With nothing set up
+ * at all it says when instead of where, which is the one claim that stays
+ * true either way.
+ */
+function support_channel_line(): string
+{
+    foreach (array_keys(CHAT_CHANNELS) as $key) {
+        $channel = chat_channel($key);
+        if ($channel === null) {
+            continue;
+        }
+        return $key === 'email' ? 'By email' : 'On ' . $channel['name'];
+    }
+
+    return '24/7';
+}
+
+/**
+ * Which channels the admin asked for in one place, set up or not.
+ *
+ * Separate from chat_channels() because the admin screen needs this answer
+ * too - it draws a ticked box for Telegram whether or not a username has
+ * been given yet - and a rule written twice is a rule that drifts.
+ *
+ * A row that exists but is empty means "no button here", which is why the
+ * default only applies when the row is absent altogether.
+ *
+ * @return array<int, string>  channel keys, in CHAT_CHANNELS order
+ */
+function chat_placement_keys(string $placement): array
+{
+    $place = CHAT_PLACEMENTS[$placement] ?? null;
+    if ($place === null) {
+        return [];
+    }
+
+    $saved = settings_all();
+    $raw   = array_key_exists('chat_' . $placement, $saved)
+        ? (string) $saved['chat_' . $placement]
+        : (string) $place['default'];
+
+    return array_values(array_intersect(
+        array_keys(CHAT_CHANNELS),
+        array_filter(array_map('trim', explode(',', $raw)))
+    ));
+}
+
+/**
+ * What belongs in one place on the page, ready to draw.
+ *
+ * An unknown placement returns nothing rather than guessing, so a theme that
+ * asks for a place this version has never heard of draws nothing instead of
+ * drawing the wrong thing.
+ *
+ * @return array<int, array>  in CHAT_CHANNELS order, whatever order was saved
+ */
+function chat_channels(string $placement, string $message = ''): array
+{
+    $channels = [];
+
+    foreach (chat_placement_keys($placement) as $key) {
+        $channel = chat_channel($key, $message);
+        if ($channel !== null) {
+            $channels[] = $channel;
+        }
+    }
+
+    return $channels;
+}
+
 /**
  * The preset packages a service is sold in, cheapest first.
  *
@@ -937,17 +1134,17 @@ function catalogue_explainer(): array
  */
 const LINK_SHAPES = [
     'instagram' => [
-        'profile' => ['^/[A-Za-z0-9._]{1,40}/?$', 'https://instagram.com/yourbrand'],
+        'profile' => ['^/[A-Za-z0-9._]{1,40}/?$', 'https://instagram.com/username'],
         'post'    => ['^/(p|tv)/[\w-]+', 'https://instagram.com/p/Cx12AbCdEfG/'],
         'reel'    => ['^/reels?/[\w-]+', 'https://instagram.com/reel/Cx12AbCdEfG/'],
         'video'   => ['^/(reels?|tv|p)/[\w-]+', 'https://instagram.com/reel/Cx12AbCdEfG/'],
-        'story'   => ['^/stories/[\w.]+', 'https://instagram.com/stories/yourbrand/3211234567/'],
+        'story'   => ['^/stories/[\w.]+', 'https://instagram.com/stories/username/3211234567/'],
     ],
     'tiktok' => [
-        'profile' => ['^/@[\w.]{1,40}/?$', 'https://tiktok.com/@yourbrand'],
-        'post'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
-        'video'   => ['^/@[\w.]+/(video|photo)/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
-        'reel'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@yourbrand/video/7312345678901234567'],
+        'profile' => ['^/@[\w.]{1,40}/?$', 'https://tiktok.com/@username'],
+        'post'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@username/video/7312345678901234567'],
+        'video'   => ['^/@[\w.]+/(video|photo)/\d+', 'https://tiktok.com/@username/video/7312345678901234567'],
+        'reel'    => ['^/@[\w.]+/video/\d+', 'https://tiktok.com/@username/video/7312345678901234567'],
     ],
     'youtube' => [
         'profile' => ['^/(@[\w.-]+|channel/[\w-]+|c/[\w-]+|user/[\w-]+)/?$',
@@ -967,9 +1164,9 @@ const LINK_SHAPES = [
         'reel'    => ['(/reel/|/share/r/)', 'https://facebook.com/reel/1234567890'],
     ],
     'twitter' => [
-        'profile' => ['^/[A-Za-z0-9_]{1,15}/?$', 'https://x.com/yourbrand'],
-        'post'    => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/yourbrand/status/1234567890'],
-        'video'   => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/yourbrand/status/1234567890'],
+        'profile' => ['^/[A-Za-z0-9_]{1,15}/?$', 'https://x.com/username'],
+        'post'    => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/username/status/1234567890'],
+        'video'   => ['^/[A-Za-z0-9_]{1,15}/status/\d+', 'https://x.com/username/status/1234567890'],
     ],
     'telegram' => [
         'profile' => ['^/[A-Za-z0-9_]{4,40}/?$', 'https://t.me/yourchannel'],
@@ -1072,9 +1269,9 @@ function link_matches_kind(string $link, string $platformSlug, string $kind): bo
 
 /** What the field calls the link it wants. */
 const LINK_KIND_NOUNS = [
-    'any'     => 'link',        'profile' => 'profile link',  'post'  => 'post link',
-    'video'   => 'video link',  'reel'    => 'reel link',     'short' => 'Shorts link',
-    'story'   => 'story link',
+    'any'     => 'Link',        'profile' => 'Profile Link',  'post'  => 'Post Link',
+    'video'   => 'Video Link',  'reel'    => 'Reel Link',     'short' => 'Shorts Link',
+    'story'   => 'Story Link',
 ];
 
 /**
@@ -1125,7 +1322,7 @@ function link_example(string $platformSlug, string $kind, string $host = ''): st
         return $shape[1];
     }
 
-    return $host !== '' ? 'https://' . $host . '/yourbrand' : 'https://...';
+    return $host !== '' ? 'https://' . $host . '/username' : 'https://...';
 }
 
 /**

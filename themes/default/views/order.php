@@ -32,13 +32,15 @@ $step = match ($order['status']) {
     default                  => 1,
 };
 
-$wa = preg_replace('/\D/', '', (string) setting('whatsapp_number', ''));
-$waMessage = rawurlencode(
-    "Hi, order {$order['code']}\n"
+// Written out once and handed to the channels, which prefill it where they
+// can. Telegram's links cannot carry a message, which is why the order code
+// is also on the screen with a copy button beside it.
+$chatMessage = "Hi, order {$order['code']}\n"
     . qty_fmt($order['quantity']) . ' x ' . order_label($order) . "\n"
     . 'Amount: ' . money($order['price'])
-    . ($order['trx_id'] !== '' ? "\nTRX: {$order['trx_id']}" : '')
-);
+    . ($order['trx_id'] !== '' ? "\nTRX: {$order['trx_id']}" : '');
+
+$chat = chat_channels('order', $chatMessage);
 ?>
 <main class="wrap opage">
   <?php if (($order['status'] ?? '') === 'pending'): ?>
@@ -64,7 +66,10 @@ $waMessage = rawurlencode(
     <a href="<?= e(url('')) ?>" class="btn btn-ghost" style="margin-left:auto">&larr; Back to services</a>
   </div>
 
-  <div class="ogrid">
+  <?php /* While it is waiting to be paid, the pay panel is the whole
+           point of the page and goes first on a narrow screen - see
+           .ogrid-pay. Once it is paid, the delivery status is. */ ?>
+  <div class="ogrid<?= $awaitingPayment ? ' ogrid-pay' : '' ?>">
     <!-- ======================= left ======================= -->
     <div>
       <div class="panel">
@@ -78,7 +83,9 @@ $waMessage = rawurlencode(
         <div class="orow"><span>Service</span><b><?= e(order_label($order)) ?></b></div>
         <div class="orow"><span>Quantity</span><b><?= qty_fmt($order['quantity']) ?></b></div>
         <div class="orow"><span>Link</span><b><?= e($order['link']) ?></b></div>
-        <div class="orow"><span>WhatsApp</span><b><?= e($order['whatsapp']) ?></b></div>
+        <?php if (($order['whatsapp'] ?? '') !== ''): ?>
+          <div class="orow"><span>WhatsApp</span><b><?= e($order['whatsapp']) ?></b></div>
+        <?php endif; ?>
         <div class="ototal"><span>Total to pay</span><span class="big"><?= e(money($order['price'])) ?></span></div>
       </div>
 
@@ -126,148 +133,8 @@ $waMessage = rawurlencode(
     <!-- ======================= right ======================= -->
     <div>
       <?php if ($awaitingPayment): ?>
-        <div class="panel">
-          <div class="ptitle"><svg class="icon"><use href="#i-shield"></use></svg>
-            Pay <?= e(money($order['price'])) ?></div>
-          <div class="psubtitle">Send the exact amount, then tell us the transaction id below.</div>
-
-          <?php if (!$methods): ?>
-            <div class="note">
-              <svg class="icon"><use href="#i-chat"></use></svg>
-              <span>No payment methods are set up yet.
-                <?php if ($wa !== ''): ?>Message us on WhatsApp and we will send you the details.<?php endif; ?>
-              </span>
-            </div>
-          <?php else: ?>
-            <form method="post" action="<?= e(url('order/' . $order['code'] . '/pay')) ?>" id="payForm"
-                  enctype="multipart/form-data">
-              <?= csrf_field() ?>
-
-              <div class="pm">
-                <?php foreach ($methods as $i => $method): ?>
-                  <?php $gateway = $gateways[$method['driver']] ?? null; ?>
-                  <div class="pmethod<?= $i === 0 ? ' on' : '' ?>" data-pm
-                       data-kind="<?= e($gateway['kind'] ?? 'manual') ?>">
-                    <label class="pmhead">
-                      <input type="radio" name="payment_method_id" value="<?= (int) $method['id'] ?>"
-                             <?= $i === 0 ? 'checked' : '' ?> hidden data-pm-radio>
-                      <span class="pmlogo" style="background:var(--brand)">
-                        <?= e($method['short_name'] !== ''
-                             ? $method['short_name']
-                             : mb_strtoupper(mb_substr($method['name'], 0, 2))) ?>
-                      </span>
-                      <span>
-                        <b><?= e($method['name']) ?></b>
-                        <small><?= e($method['account_title']) ?></small>
-                      </span>
-                      <span class="pmradio"></span>
-                    </label>
-
-                    <div class="pmbody">
-                      <?php if (($gateway['kind'] ?? 'manual') !== 'manual'): ?>
-                        <div class="note">
-                          <svg class="icon"><use href="#i-shield"></use></svg>
-                          <span><?= e(payment_instructions($method, $order)) ?></span>
-                        </div>
-                        <button class="btn btn-primary btn-block" type="submit"
-                                formaction="<?= e(url('order/' . $order['code'] . '/start')) ?>">
-                          Pay with <?= e($method['name']) ?> &rarr;
-                        </button>
-                      <?php else: ?>
-                      <div class="acct">
-                        <div><small>Account number</small><b><?= e($method['account_number']) ?></b></div>
-                        <button class="copy" type="button"
-                                data-copy="<?= e($method['account_number']) ?>">Copy</button>
-                      </div>
-                      <?php if ($method['account_title'] !== ''): ?>
-                        <div class="acct"><div><small>Account title</small>
-                          <b><?= e($method['account_title']) ?></b></div></div>
-                      <?php endif; ?>
-                      <?php if ($method['extra_value'] !== ''): ?>
-                        <div class="acct"><div><small><?= e($method['extra_label'] ?: 'Details') ?></small>
-                          <b><?= e($method['extra_value']) ?></b></div></div>
-                      <?php endif; ?>
-                      <?php if (trim((string) $method['instructions']) !== ''): ?>
-                        <div class="note"><svg class="icon"><use href="#i-chat"></use></svg>
-                          <span><?= e($method['instructions']) ?></span></div>
-                      <?php endif; ?>
-
-                      <?php /* This method's own questions. They live inside its block
-                               so only the chosen method's are asked, and the script
-                               disables the others so they are not even sent. With no
-                               script every field posts and the server reads only the
-                               ones the chosen method defines. */ ?>
-                      <div class="pf-ask" data-pf-for="<?= (int) $method['id'] ?>">
-                        <?php foreach (payfields($method) as $field): ?>
-                          <?php $id = 'pf-' . (int) $method['id'] . '-' . $field['key']; ?>
-                          <div class="field">
-                            <label for="<?= e($id) ?>">
-                              <?= e($field['label']) ?><?= $field['required'] ? '' : ' (optional)' ?>
-                            </label>
-                            <?php if ($field['type'] === 'textarea'): ?>
-                              <textarea id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>" rows="3"
-                                <?= $field['required'] ? 'data-pf-required' : '' ?>
-                                ><?= e(old('pf_' . $field['key'], '')) ?></textarea>
-                            <?php elseif ($field['type'] === 'select'): ?>
-                              <select id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>"
-                                      <?= $field['required'] ? 'data-pf-required' : '' ?>>
-                                <option value="">Choose one</option>
-                                <?php foreach ($field['options'] as $option): ?>
-                                  <option value="<?= e($option) ?>"
-                                    <?= old('pf_' . $field['key'], '') === $option ? ' selected' : '' ?>>
-                                    <?= e($option) ?></option>
-                                <?php endforeach; ?>
-                              </select>
-                            <?php elseif ($field['type'] === 'image'): ?>
-                              <input id="<?= e($id) ?>" type="file" name="pf_<?= e($field['key']) ?>"
-                                     accept="image/png,image/jpeg,image/gif,image/webp"
-                                     <?= $field['required'] ? 'data-pf-required' : '' ?>>
-                            <?php else: ?>
-                              <input id="<?= e($id) ?>" name="pf_<?= e($field['key']) ?>"
-                                     type="<?= e($field['type'] === 'number' ? 'text' : $field['type']) ?>"
-                                     <?= $field['type'] === 'number' ? 'inputmode="decimal"' : '' ?>
-                                     value="<?= e(old('pf_' . $field['key'], '')) ?>"
-                                     <?= $field['required'] ? 'data-pf-required' : '' ?>>
-                            <?php endif; ?>
-                            <?php if ($field['hint'] !== ''): ?>
-                              <small class="hint"><?= e($field['hint']) ?></small>
-                            <?php endif; ?>
-                            <?php if (!empty($payErrors[$field['key']])): ?>
-                              <small class="err"><?= e($payErrors[$field['key']]) ?></small>
-                            <?php endif; ?>
-                          </div>
-                        <?php endforeach; ?>
-                      </div>
-                      <?php endif; ?>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-
-              <div class="note">
-                <svg class="icon"><use href="#i-clock"></use></svg>
-                <span>Payments are confirmed by a person, usually within a few minutes.
-                      Delivery starts right after.</span>
-              </div>
-
-              <div class="stack" data-manual-fields>
-                <div class="field" style="margin-bottom:0">
-                  <label for="amt">Amount you sent</label>
-                  <input id="amt" name="paid_amount" inputmode="decimal"
-                         value="<?= e($order['paid_amount'] ?? $order['price']) ?>">
-                </div>
-                <button class="btn btn-primary btn-block btn-lg" type="submit">Submit payment</button>
-                <?php if ($wa !== ''): ?>
-                  <a class="btn btn-wa btn-block" target="_blank" rel="noopener"
-                     href="https://wa.me/<?= e($wa) ?>?text=<?= $waMessage ?>">
-                    <svg class="icon"><use href="#i-whatsapp"></use></svg> Send receipt on WhatsApp
-                  </a>
-                <?php endif; ?>
-              </div>
-            </form>
-          <?php endif; ?>
-        </div>
-
+        <?php partial('partials/pay', ['order' => $order, 'methods' => $methods,
+            'gateways' => $gateways, 'chat' => $chat, 'payErrors' => $payErrors]); ?>
       <?php else: ?>
         <div class="panel">
           <div class="ptitle"><svg class="icon"><use href="#i-check"></use></svg> Payment confirmed</div>
@@ -292,10 +159,12 @@ $waMessage = rawurlencode(
           <div><small>Your order code</small><b><?= e($order['code']) ?></b></div>
           <button class="copy" type="button" data-copy="<?= e($order['code']) ?>">Copy</button>
         </div>
-        <?php if ($wa !== ''): ?>
+        <?php if ($chat): ?>
           <p class="help">Something wrong?
-            <a href="https://wa.me/<?= e($wa) ?>?text=<?= $waMessage ?>" target="_blank" rel="noopener">
-              Message us on WhatsApp</a>
+            <?php foreach ($chat as $i => $channel): ?><?= $i ? ' &bull; ' : '' ?><a
+               href="<?= e($channel['url']) ?>"
+               <?= $channel['key'] === 'email' ? '' : 'target="_blank" rel="noopener"' ?>
+               >Message us on <?= e($channel['name']) ?></a><?php endforeach; ?>
           </p>
         <?php endif; ?>
       </div>
@@ -303,22 +172,3 @@ $waMessage = rawurlencode(
   </div>
 </main>
 
-<script>
-/* The reference box belongs to methods paid by hand; a hosted gateway has its
-   own button. Without this everything still shows, which is only untidy. */
-(function () {
-  var fields = document.querySelector('[data-manual-fields]');
-  if (!fields) { return; }
-
-  function sync() {
-    var open = document.querySelector('.pmethod.on');
-    var kind = open ? open.getAttribute('data-kind') : 'manual';
-    fields.style.display = kind === 'manual' ? '' : 'none';
-  }
-
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('.pmhead')) { setTimeout(sync, 0); }
-  });
-  sync();
-})();
-</script>

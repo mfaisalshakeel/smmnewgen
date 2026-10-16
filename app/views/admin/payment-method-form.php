@@ -14,7 +14,8 @@ $current = (string) $val('driver', 'manual');
 ?>
 <a class="lnk back" href="<?= e(url('admin/payment-methods')) ?>">&larr; Back to payment methods</a>
 
-<form method="post" action="<?= e(url('admin/payment-methods/save')) ?>" class="split2">
+<form method="post" action="<?= e(url('admin/payment-methods/save')) ?>" class="split2"
+      enctype="multipart/form-data">
   <?= csrf_field() ?>
   <input type="hidden" name="id" value="<?= (int) $id ?>">
 
@@ -171,10 +172,21 @@ $current = (string) $val('driver', 'manual');
                  <?= $err('name') ? 'aria-invalid="true"' : '' ?> placeholder="JazzCash">
           <?php if ($err('name')): ?><span class="err"><?= e($err('name')) ?></span><?php endif; ?>
         </div>
+        <?php /* The logo the customer looks for. Without one the short code
+                 is drawn in a coloured square instead, which is why that is
+                 still here and still worth filling in. */ ?>
+        <?php partial('admin/_upload', [
+            'name'    => 'logo',
+            'label'   => 'Logo',
+            'current' => (string) $val('logo_path'),
+            'accept'  => 'image/png,image/jpeg,image/gif,image/webp',
+            'hint'    => 'Shown to the customer when they pick how to pay. '
+                       . 'A square PNG around 120px reads best.',
+        ]); ?>
         <div class="field">
           <label for="f-short_name">Short code</label>
           <input id="f-short_name" name="short_name" value="<?= e($val('short_name')) ?>" placeholder="JC">
-          <small>Two letters for the little badge.</small>
+          <small>Two letters, used when there is no logo.</small>
         </div>
         <div class="field">
           <label for="f-instructions">Instructions</label>

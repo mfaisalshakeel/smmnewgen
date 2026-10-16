@@ -76,15 +76,21 @@ if ($action === 'bulk' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'delete':
+            // Orders used to block this and the services were deactivated
+            // instead. They do not need to: orders.service_id is ON DELETE
+            // SET NULL and every order carries its own name, quantity, price
+            // and cost, so a finished order still reads correctly once the
+            // service it was bought from is gone. Say how many are affected
+            // rather than refusing on their behalf.
             $used = (int) col("SELECT COUNT(*) FROM orders WHERE service_id IN ($in)", $ids, 0);
-            if ($used > 0) {
-                q("UPDATE services SET is_active = 0 WHERE id IN ($in)", $ids);
-                flash('warning', "{$used} order(s) point at these services, so they were deactivated "
-                    . 'rather than deleted. Order history stays intact.');
-            } else {
-                q("DELETE FROM services WHERE id IN ($in)", $ids);
-                flash('success', "Deleted {$count} {$noun}.");
-            }
+
+            q("DELETE FROM services WHERE id IN ($in)", $ids);
+
+            flash('success', "Deleted {$count} {$noun}."
+                . ($used > 0
+                    ? " {$used} order(s) referred to them and keep the name and price they were "
+                      . 'placed with.'
+                    : ''));
             break;
 
         default:
@@ -171,15 +177,16 @@ if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // -------------------------------------------------------------- delete ----
 if ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $id   = (int) ($_POST['id'] ?? 0);
+    // Same as the bulk action: the order keeps its own copy of everything it
+    // needs, so deleting the service does not take the history with it.
     $used = (int) col('SELECT COUNT(*) FROM orders WHERE service_id = ?', [$id], 0);
-    if ($used > 0) {
-        update_row('services', ['is_active' => 0], 'id = ?', [$id]);
-        flash('warning', "That service has {$used} order(s) against it, so it was deactivated "
-            . 'rather than deleted.');
-    } else {
-        delete_row('services', 'id = ?', [$id]);
-        flash('success', 'Service deleted.');
-    }
+
+    delete_row('services', 'id = ?', [$id]);
+
+    flash('success', 'Service deleted.'
+        . ($used > 0
+            ? " {$used} order(s) referred to it and keep the name and price they were placed with."
+            : ''));
     redirect('admin/services');
 }
 

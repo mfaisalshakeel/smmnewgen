@@ -19,24 +19,41 @@ require_once APP_PATH . '/helpers/currency.php';
 require_once APP_PATH . '/helpers/orders.php';
 
 /**
- * Put a provider through its paces and record what we learn.
+ * Ask a provider everything worth knowing, without needing a saved row.
  *
- * @return array{ok: bool, checks: array<int, array{label: string, ok: bool, detail: string}>}
+ * Nothing here touches the database, which is the whole point: a provider is
+ * tested *before* it is added, so a key that does not work never becomes a
+ * row that quietly fails every order sent to it. The caller decides what to
+ * do with the findings - the add form refuses to save, the Check button
+ * writes them down.
+ *
+ * `connected` is the only answer that means "do not save this": the key works
+ * and the provider told us its balance. The rest are things to go and fix -
+ * a currency with no rate yet, a batch-status question that cannot be
+ * answered until an order exists - and none of them is a reason to throw away
+ * a working connection.
+ *
+ * @param  int $id  an existing provider's id, so the batch probe may use its
+ *                  real order ids; 0 for one that does not exist yet
+ * @return array{ok: bool, connected: bool, checks: array<int, array{label: string, ok: bool, detail: string}>, fields: array}
  */
-function provider_check(array $provider): array
+function provider_probe(string $url, string $key, string $billsIn = '', int $id = 0): array
 {
-    $api    = new SmmApi($provider['api_url'], $provider['api_key']);
+    $api    = new SmmApi($url, $key);
     $checks = [];
     $fields = [];
+    $as     = ['id' => $id, 'api_url' => $url, 'api_key' => $key];
 
     // --- 1. the key works, and what it bills in --------------------------
     $balance = $api->balance();
     if (isset($balance['error']) || !isset($balance['balance'])) {
         $message = (string) ($balance['error'] ?? 'no balance in the reply');
-        $checks[] = ['label' => 'Connection and API key', 'ok' => false, 'detail' => $message];
-        update_row('providers', ['last_error' => mb_substr($message, 0, 500)], 'id = ?', [$provider['id']]);
 
-        return ['ok' => false, 'checks' => $checks];
+        return [
+            'ok' => false, 'connected' => false,
+            'checks' => [['label' => 'Connection and API key', 'ok' => false, 'detail' => $message]],
+            'fields' => ['last_error' => mb_substr($message, 0, 500)],
+        ];
     }
 
     $currency = strtoupper(trim((string) ($balance['currency'] ?? '')));
@@ -44,7 +61,7 @@ function provider_check(array $provider): array
     $fields['balance_currency']   = mb_substr($currency, 0, 10);
     $fields['balance_checked_at'] = date('Y-m-d H:i:s');
     $fields['last_error']         = '';
-    if (($provider['currency'] ?? '') === '' && $currency !== '') {
+    if ($billsIn === '' && $currency !== '') {
         $fields['currency'] = mb_substr($currency, 0, 10);
     }
 
@@ -56,7 +73,7 @@ function provider_check(array $provider): array
     ];
 
     // --- 2. does the currency it bills in have a rate? -------------------
-    $billing = $fields['currency'] ?? $provider['currency'] ?? '';
+    $billing = $fields['currency'] ?? $billsIn;
     if ($billing === '') {
         $checks[] = ['label' => 'Billing currency', 'ok' => false,
                      'detail' => 'The provider did not say. Set it on this form so prices convert correctly.'];
@@ -89,7 +106,7 @@ function provider_check(array $provider): array
     //
     // No orders needed: the probe reads the shape of the reply, so this is
     // answerable the moment a provider is added.
-    $probe = multi_status_probe($provider);
+    $probe = multi_status_probe($as);
 
     if ($probe['supported'] === null) {
         $checks[] = ['label' => 'Multiple status in one request', 'ok' => false,
@@ -101,14 +118,37 @@ function provider_check(array $provider): array
                                . $probe['detail']];
     }
 
-    update_row('providers', $fields, 'id = ?', [$provider['id']]);
-
     $ok = true;
     foreach ($checks as $check) {
         $ok = $ok && $check['ok'];
     }
 
-    return ['ok' => $ok, 'checks' => $checks];
+    return ['ok' => $ok, 'connected' => true, 'checks' => $checks, 'fields' => $fields];
+}
+
+/**
+ * Put a saved provider through its paces and write down what we learn.
+ *
+ * The asking is provider_probe()'s job; this is the half that remembers the
+ * answer, so the list can show a balance and a currency without going back
+ * to the provider for them.
+ *
+ * @return array{ok: bool, connected: bool, checks: array<int, array{label: string, ok: bool, detail: string}>}
+ */
+function provider_check(array $provider): array
+{
+    $result = provider_probe(
+        (string) $provider['api_url'],
+        (string) $provider['api_key'],
+        (string) ($provider['currency'] ?? ''),
+        (int) $provider['id']
+    );
+
+    if ($result['fields']) {
+        update_row('providers', $result['fields'], 'id = ?', [$provider['id']]);
+    }
+
+    return ['ok' => $result['ok'], 'connected' => $result['connected'], 'checks' => $result['checks']];
 }
 
 /**

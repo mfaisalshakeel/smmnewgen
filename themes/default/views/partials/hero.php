@@ -7,16 +7,21 @@
  * by whichever stylesheet is loaded. A theme that wants a different hero
  * still only has to drop its own copy of this partial in.
  *
- * The script swaps the platform and category without reloading, and what it
- * looks for here is #heroTitle with a .grad span inside it, which it rewrites
- * with textContent. There is no call to action and no row of promises: the
- * badge, the headline and one line under it, and then the platform bar is the
- * first thing to tap.
+ * The band is the headline and nothing else - no badge, no promises, no
+ * button. Every one of those was a thing to read before reaching the platform
+ * bar, which is the choice the whole page hangs off and so the first thing
+ * that should be tappable.
+ *
+ * The headline is one fixed sentence rather than the platform and category
+ * the customer is looking at. Those are named by the tab that is lit, by the
+ * heading over the cards and by the cards themselves; saying it a fourth
+ * time in the largest type on the page only pushed the choice further down
+ * it. Nothing here changes when the platform does, so the script has nothing
+ * to rewrite in the band.
  *
  * @var array  $platform  @var ?array $category
  */
-$noun  = $category['name'] ?? 'Followers';
-$label = $platform['name'] . ' ' . $noun;
+$noun = $category['name'] ?? 'Followers';
 ?>
 <section class="hero">
   <span class="hero-orb" aria-hidden="true"></span>
@@ -24,15 +29,21 @@ $label = $platform['name'] . ' ' . $noun;
 
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <span class="badge-trust">
-        <svg class="icon"><use href="#i-bolt"></use></svg> Trusted by 10,000+ users
-      </span>
+      <h1>Grow Your <b>Social Media</b> With Fast &amp; <b>Simple Services</b></h1>
 
-      <h1 id="heroTitle">Buy <span class="grad"><?= e($label) ?></span>
-        <span class="h1-rest">With Safe &amp; <b>Instant Delivery</b></span></h1>
-
-      <p class="hero-sub">No password required &bull; Starts within 2&ndash;15 minutes &bull;
-        Secure payment &bull; High quality service &bull; 24/7 support</p>
+      <?php /* Four things, said in two words each. The sentence this replaced
+               said the same in thirty, which on a phone was three lines of
+               reading between the headline and the platform bar. */ ?>
+      <ul class="hero-points">
+        <li><svg class="icon"><use href="#i-shield"></use></svg>
+          <span><b>Safe</b><small>Simple process</small></span></li>
+        <li><svg class="icon"><use href="#i-bolt"></use></svg>
+          <span><b>Fast</b><small>Processing</small></span></li>
+        <li><svg class="icon"><use href="#i-lock"></use></svg>
+          <span><b>Secure</b><small>Checkout</small></span></li>
+        <li><svg class="icon"><use href="#i-chat"></use></svg>
+          <span><b>Support</b><small><?= e(support_channel_line()) ?></small></span></li>
+      </ul>
     </div>
 
     <!-- Decoration. Every word in it is repeated in the copy beside it, so

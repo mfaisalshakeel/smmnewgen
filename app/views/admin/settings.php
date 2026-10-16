@@ -48,6 +48,29 @@ $first = array_key_first($panels);
                   <input type="checkbox" name="<?= e($key) ?>" value="1" <?= $value === '1' ? 'checked' : '' ?>>
                   <span class="track"></span> <?= e($field['label']) ?>
                 </label>
+              <?php elseif ($type === 'channels'): ?>
+                <?php /* One row per place, the channels across it. A channel
+                         with nothing filled in on the Contact tab is shown
+                         greyed rather than hidden: "Telegram is off because
+                         you have not given a username" is the answer the
+                         admin needs, and hiding the box asks them to guess. */ ?>
+                <?php $chosen = chat_placement_keys((string) ($field['placement'] ?? '')); ?>
+                <div class="field">
+                  <label><?= e($field['label']) ?></label>
+                  <div class="chanpick">
+                    <?php foreach (CHAT_CHANNELS as $chKey => $channel): ?>
+                      <?php $ready = chat_channel($chKey) !== null; ?>
+                      <label class="chanopt<?= $ready ? '' : ' chanopt-unset' ?>">
+                        <input type="checkbox" name="<?= e($key) ?>[]" value="<?= e($chKey) ?>"
+                               <?= in_array($chKey, $chosen, true) ? 'checked' : '' ?>>
+                        <svg class="icon"><use href="#<?= e($channel['icon']) ?>"></use></svg>
+                        <span><?= e($channel['name']) ?></span>
+                        <?php if (!$ready): ?><small>not set up</small><?php endif; ?>
+                      </label>
+                    <?php endforeach; ?>
+                  </div>
+                  <?php if (!empty($field['hint'])): ?><small><?= e($field['hint']) ?></small><?php endif; ?>
+                </div>
               <?php else: ?>
                 <div class="field<?= $type === 'color' ? ' colorrow-wrap' : '' ?>">
                   <label for="s-<?= e($key) ?>"><?= e($field['label']) ?></label>

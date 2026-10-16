@@ -149,6 +149,8 @@ svg{max-width:100%}
 .tbl .empty{text-align:center;color:var(--muted);padding:40px 14px;cursor:default}
 .tbl input[type=checkbox]{width:17px;height:17px;accent-color:var(--acc);cursor:pointer}
 .chipx{background:var(--acc-soft);color:var(--acc-ink);border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700}
+/* A row of them, for counts that wrap on a narrow screen. */
+.chiprow{display:flex;flex-wrap:wrap;gap:6px}
 
 /* status tags */
 .st{display:inline-block;border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:700;
@@ -223,6 +225,23 @@ svg{max-width:100%}
   background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .switch input:checked + .track{background:var(--acc)}
 .switch input:checked + .track::after{transform:translateX(17px)}
+
+/* channel picker: which chat button goes where.
+   A tick rather than a switch, because the question is "which of these",
+   not "on or off" - and a channel with no address filled in yet is shown
+   greyed instead of hidden, so the screen answers why it is unavailable
+   instead of leaving the admin to work it out. */
+.chanpick{display:flex;flex-wrap:wrap;gap:8px}
+.chanopt{display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;
+  font-size:13.5px;font-weight:700;background:var(--surface);transition:border-color .15s,background .15s}
+.chanopt:hover{border-color:var(--acc)}
+.chanopt .icon{font-size:16px;color:var(--muted)}
+.chanopt input{width:15px;height:15px;accent-color:var(--acc);margin:0}
+.chanopt:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}
+.chanopt:has(input:checked) .icon{color:var(--acc)}
+.chanopt small{color:var(--muted);font-size:11.5px;font-weight:600}
+.chanopt-unset{opacity:.65}
 
 /* import */
 .irow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:16px}

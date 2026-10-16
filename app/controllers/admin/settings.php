@@ -1,6 +1,7 @@
 <?php
 /** Grouped settings, plus the logo and favicon uploads. */
 require_once APP_PATH . '/helpers/crud.php';
+require_once APP_PATH . '/helpers/upload.php';
 require_once APP_PATH . '/helpers/migrate.php';
 
 /** group => [key => definition] */
@@ -15,9 +16,26 @@ $GROUPS = [
         'order_prefix'     => ['label' => 'Order code prefix', 'hint' => 'Letters only, e.g. GK gives GK-8F42KD.'],
     ],
     'Contact' => [
-        'whatsapp_number'  => ['label' => 'WhatsApp number', 'hint' => 'With country code, e.g. 923001234567.'],
-        'support_email'    => ['label' => 'Support email', 'type' => 'email'],
+        'whatsapp_number'   => ['label' => 'WhatsApp number', 'hint' => 'With country code, e.g. 923001234567.'],
+        'telegram_username' => ['label' => 'Telegram', 'hint' => 'Your username or the whole link - '
+                                                               . '@yourshop, yourshop or https://t.me/yourshop.'],
+        'support_email'     => ['label' => 'Support email', 'type' => 'email'],
     ],
+    // Which button goes where. One row per place on the site, because the
+    // answer is genuinely different per place: a bubble that follows every
+    // page is not the same decision as the line under an order.
+    'Chat buttons' => array_combine(
+        array_map(static fn(string $key): string => 'chat_' . $key, array_keys(CHAT_PLACEMENTS)),
+        array_map(
+            static fn(string $key): array => [
+                'label'     => CHAT_PLACEMENTS[$key]['label'],
+                'type'      => 'channels',
+                'hint'      => CHAT_PLACEMENTS[$key]['hint'],
+                'placement' => $key,
+            ],
+            array_keys(CHAT_PLACEMENTS)
+        )
+    ),
     'Catalogue' => [
         'catalogue_mode' => ['label' => 'How a category is sold', 'type' => 'select',
             'options' => [
@@ -131,6 +149,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 set_setting($key, isset($_POST[$key]) ? '1' : '0');
                 continue;
             }
+            // A set of boxes, and none ticked is a real answer - "no button
+            // here" - so this is read whether or not anything was posted.
+            // Saved in the order the channels are declared rather than the
+            // order the boxes came back in, which the browser does not promise.
+            if (($field['type'] ?? '') === 'channels') {
+                set_setting($key, implode(',', array_intersect(
+                    array_keys(CHAT_CHANNELS),
+                    array_map('strval', (array) ($_POST[$key] ?? []))
+                )));
+                continue;
+            }
             // A password is never rendered back into the form, so a blank box
             // means "leave it alone" - saving '' would silently wipe it every
             // time anyone touched an unrelated field on this screen.
@@ -145,11 +174,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     foreach (['logo' => 'logo_path', 'favicon' => 'favicon_path'] as $input => $settingKey) {
         if (!empty($_FILES[$input]['name'])) {
-            $stored = store_branding_file($input);
-            if (is_string($stored)) {
-                set_setting($settingKey, $stored);
+            $stored = store_image_upload($input, 'branding', (string) setting($settingKey, ''));
+            if ($stored['ok']) {
+                set_setting($settingKey, $stored['path']);
             } else {
-                flash('error', $stored === null ? 'Upload failed.' : (string) $stored);
+                flash('error', ucfirst($input) . ': ' . $stored['error']);
             }
         }
         if (isset($_POST['remove_' . $input])) {
@@ -176,60 +205,3 @@ view('admin/settings', [
     'cronKey'  => (string) cfg('cron_key', ''),
     'pending'  => migrations_pending(),
 ], 'layouts/admin');
-
-
-/**
- * Save an uploaded logo or favicon.
- *
- * Only real images are accepted, decided by what GD can actually read rather
- * than by the name or the browser-supplied type, and the file is written with
- * an extension we chose.
- *
- * @return string|null  stored path, or an error message
- */
-function store_branding_file(string $input): ?string
-{
-    $file = $_FILES[$input] ?? null;
-    if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
-        return 'The file did not upload (error ' . ($file['error'] ?? '?') . ').';
-    }
-    if ($file['size'] > 2 * 1024 * 1024) {
-        return 'Keep images under 2 MB.';
-    }
-    if (!is_uploaded_file($file['tmp_name'])) {
-        return 'That upload could not be verified.';
-    }
-
-    $info = @getimagesize($file['tmp_name']);
-    if ($info === false) {
-        return 'That file is not an image.';
-    }
-
-    $allowed = [
-        IMAGETYPE_PNG  => 'png',
-        IMAGETYPE_JPEG => 'jpg',
-        IMAGETYPE_GIF  => 'gif',
-        IMAGETYPE_WEBP => 'webp',
-        IMAGETYPE_ICO  => 'ico',
-    ];
-    $extension = $allowed[$info[2]] ?? null;
-    if ($extension === null) {
-        return 'Use a PNG, JPG, GIF, WebP or ICO image.';
-    }
-
-    $name   = $input . '-' . bin2hex(random_bytes(6)) . '.' . $extension;
-    $target = UPLOAD_PATH . '/branding/' . $name;
-
-    if (!move_uploaded_file($file['tmp_name'], $target)) {
-        return 'Could not write to uploads/branding/. Check the folder is writable.';
-    }
-    @chmod($target, 0644);
-
-    // Drop the previous file so the folder does not fill up.
-    $old = setting($input === 'logo' ? 'logo_path' : 'favicon_path', '');
-    if ($old && str_starts_with($old, 'uploads/branding/') && is_file(BASE_PATH . '/' . $old)) {
-        @unlink(BASE_PATH . '/' . $old);
-    }
-
-    return 'uploads/branding/' . $name;
-}

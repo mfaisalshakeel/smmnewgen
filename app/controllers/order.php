@@ -154,9 +154,14 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $fail('This needs ' . LINK_KINDS[$kind] . '.', 'link');
     }
 
+    // Optional, like the email: left blank there is simply no number on the
+    // order. Typed and wrong it is still refused, because a half-typed number
+    // is worse than none - it looks like a way to reach the customer and is
+    // not, and nobody finds that out until there is something to tell them.
     $digits = preg_replace('/\D/', '', $whatsapp);
-    if (strlen($digits) < 10 || strlen($digits) > 15) {
-        $fail('Please enter a valid WhatsApp number with the country code.', 'whatsapp');
+    if ($whatsapp !== '' && (strlen($digits) < 10 || strlen($digits) > 15)) {
+        $fail('That WhatsApp number does not look right. Leave it blank if you '
+            . 'would rather not give one.', 'whatsapp');
     }
 
     // Optional: left blank it is simply not there, and the receipt is not sent.
@@ -202,7 +207,7 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'service_label'=> $label !== '' ? $label : $service['name'],
         'quantity'     => $quantity,
         'link'         => $link,
-        'whatsapp'     => '+' . $digits,
+        'whatsapp'     => $digits !== '' ? '+' . $digits : '',
         'email'        => $email,
         'price'        => $price,
         'cost'         => $cost,
@@ -239,11 +244,51 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($wantsJson) {
-        // The customer stays where they are and watches the order appear,
-        // then goes straight to the gateway when there is one to go to.
-        // Everything the box shows comes from here, not from what the
-        // browser thought it was ordering.
+        // Where exactly one gateway takes the payment itself there is nothing
+        // to choose and nothing to read, so the payment is begun here and the
+        // answer carries the page it begins on - the Paytm QR, a hosted
+        // checkout, whatever the gateway returns. The browser then makes one
+        // hop from the button to the thing being paid, instead of stopping at
+        // a panel that only says "opening...".
         $sole = sole_redirect_method();
+        $next = url('order/' . $orderCode);
+        $mode = 'page';
+
+        if ($sole) {
+            $order   = one('SELECT * FROM orders WHERE id = ?', [$orderId]);
+            $started = payment_start($sole, $order ?: []);
+
+            if (!empty($started['redirect'])) {
+                update_row('orders', [
+                    'payment_method_id' => (int) $sole['id'],
+                    'updated_at'        => date('Y-m-d H:i:s'),
+                ], 'id = ?', [$orderId]);
+                order_log($orderId, 'Sent to ' . $sole['name'] . ' to pay.');
+
+                $next = (string) $started['redirect'];
+                $mode = 'redirect';
+            } elseif (!empty($started['error'])) {
+                // The order is placed either way. Say so in its log and let
+                // the customer land on the order page, where every other way
+                // of paying still is.
+                order_log($orderId, 'Could not start ' . $sole['name'] . ': ' . $started['error']);
+            }
+        }
+
+        // With a choice to make, the choosing happens in the box the customer
+        // is already in. The same partial the order page renders is sent back
+        // and dropped in, so there is one definition of what paying looks
+        // like and the modal cannot drift from the page.
+        $payStep = '';
+        if ($mode === 'page') {
+            $payStep = render('partials/pay', [
+                'order'     => one('SELECT * FROM orders WHERE id = ?', [$orderId]) ?: [],
+                'methods'   => payable_methods(),
+                'gateways'  => payment_gateways(),
+                'chat'      => chat_channels('order'),
+                'payErrors' => [],
+            ]);
+        }
 
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -252,12 +297,9 @@ if ($code === null && $_SERVER['REQUEST_METHOD'] === 'POST') {
             'amount'   => money($price),
             'quantity' => qty_fmt($quantity),
             'status'   => 'Awaiting payment',
-            'payment'  => $sole
-                ? ['mode' => 'redirect', 'name' => $sole['name'],
-                   'start' => url('order/' . $orderCode . '/start'),
-                   'method' => (int) $sole['id'], 'token' => csrf_token()]
-                : ['mode' => 'page'],
-            'redirect' => url('order/' . $orderCode),
+            'payment'  => ['mode' => $mode, 'name' => $sole['name'] ?? ''],
+            'pay'      => $payStep,
+            'redirect' => $next,
         ]);
         exit;
     }
@@ -576,14 +618,7 @@ view('order', [
     'order'       => $order,
     // A hosted gateway has no account number to show, so the old
     // "must have an account number" filter would have hidden it.
-    'methods'     => array_values(array_filter(
-        all('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY sort_order, id'),
-        static function (array $m): bool {
-            $gateway = payment_gateway((string) $m['driver']);
-            return $gateway !== null
-                && ($gateway['kind'] !== 'manual' || trim((string) $m['account_number']) !== '');
-        }
-    )),
+    'methods'     => payable_methods(),
     'gateways'    => payment_gateways(),
     // Kept for one redirect, like the other validation errors, so a rejected
     // payment comes back with the message under the field it is about.

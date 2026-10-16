@@ -107,7 +107,10 @@ if (($_SERVER['HTTP_X_FRAGMENT'] ?? '') === '1') {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'title'     => $title,
-        'heroTitle' => $platform['name'] . ' ' . $noun,
+        // The heading over the cards. The hero headline is one fixed
+        // sentence now, so this is the only place the platform and
+        // category are written into the page by the switch.
+        'sectionTitle' => $platform['name'] . ' All Services',
         // The arrow is the character itself. '\u2192' in single quotes is six
         // literal characters, and that is exactly what the button showed
         // after a switch: "Buy Instagram Followers \u2192".

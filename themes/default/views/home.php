@@ -9,7 +9,6 @@
  * @var array  $services    services in the current category
  * @var array  $faqs        FAQ entries for this platform
  */
-$noun = $category['name'] ?? 'Followers';
 ?>
 <?php partial('partials/hero', ['platform' => $platform, 'category' => $category]); ?>
 
@@ -29,10 +28,12 @@ $noun = $category['name'] ?? 'Followers';
 <section class="section" style="padding-top:28px">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Our Services</span>
-      <h2 id="svcTitle"><?= e($platform['name'] . ' ' . $noun) ?></h2>
-      <p>Pick a package, type the quantity you want and the price updates instantly.
-         Delivery starts automatically after payment.</p>
+      <h2 id="svcTitle"><?= e($platform['name'] . ' All Services') ?></h2>
+      <?php /* The one thing a customer can get wrong in a way nobody can put
+               right afterwards: a provider delivers to the link it is given,
+               and the wrong one is money spent on somebody else's profile. */ ?>
+      <p class="svc-note"><svg class="icon"><use href="#i-link"></use></svg>
+         Enter Correct Link Before Placing Order</p>
     </div>
 
     <?php partial('partials/tabs', ['categories' => $categories, 'category' => $category, 'platform' => $platform]); ?>
@@ -82,16 +83,23 @@ $noun = $category['name'] ?? 'Followers';
 </section>
 <?php endif; ?>
 
-<?php $wa = preg_replace('/\D/', '', (string) setting('whatsapp_number', '')); ?>
-<?php if ($wa !== ''): ?>
+<?php $chatHome = chat_channels('home'); ?>
+<?php if ($chatHome): ?>
 <section class="wrap">
   <div class="band">
     <h2>Not sure which package to pick?</h2>
-    <p>Message us on WhatsApp and we will recommend the right service for your account &mdash;
+    <p>Message us and we will recommend the right service for your account &mdash;
        usually within a couple of minutes.</p>
-    <a class="btn btn-ghost btn-lg" href="https://wa.me/<?= e($wa) ?>" target="_blank" rel="noopener">
-      <svg class="icon"><use href="#i-whatsapp"></use></svg> Chat on WhatsApp
-    </a>
+    <div class="bandrow">
+      <?php foreach ($chatHome as $channel): ?>
+        <a class="btn btn-ghost btn-lg" href="<?= e($channel['url']) ?>"
+           <?= $channel['key'] === 'email' ? '' : 'target="_blank" rel="noopener"' ?>
+           title="<?= e($channel['title']) ?>" aria-label="<?= e($channel['title']) ?>">
+          <svg class="icon"><use href="#<?= e($channel['icon']) ?>"></use></svg>
+          <?= e($channel['label']) ?>
+        </a>
+      <?php endforeach; ?>
+    </div>
   </div>
 </section>
 <?php endif; ?>

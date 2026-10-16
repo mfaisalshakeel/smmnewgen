@@ -20,7 +20,7 @@ $methods = all('SELECT name FROM payment_methods WHERE is_active = 1 ORDER BY so
       <div class="fabout">
         <a href="<?= e(url('')) ?>" class="logo">
           <span class="logo-mark"><svg class="icon"><use href="#i-rocket"></use></svg></span>
-          <span><?= e($siteName) ?><small>SMM Panel</small></span>
+          <span><?= e($siteName) ?></span>
         </a>
         <p><?= e(setting('site_tagline', 'Social media growth services. Safe, fast and no password ever required.')) ?></p>
         <?php if ($methods): ?>

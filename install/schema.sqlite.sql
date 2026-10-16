@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS "providers" (
   "balance_checked_at" TEXT,
   "is_active" INTEGER NOT NULL DEFAULT 1,
   "sort_order" INTEGER NOT NULL DEFAULT 0,
-  "created_at" TEXT NOT NULL
+  "created_at" TEXT NOT NULL,
+  "updated_at" TEXT
 );
 CREATE INDEX IF NOT EXISTS "ix_providers_active" ON "providers" ("is_active");
 
@@ -115,6 +116,7 @@ CREATE TABLE IF NOT EXISTS "payment_methods" (
   "extra_label" TEXT NOT NULL DEFAULT '',
   "extra_value" TEXT NOT NULL DEFAULT '',
   "instructions" TEXT,
+  "logo_path" TEXT NOT NULL DEFAULT '',
   "sort_order" INTEGER NOT NULL DEFAULT 0,
   "is_active" INTEGER NOT NULL DEFAULT 1
 );
